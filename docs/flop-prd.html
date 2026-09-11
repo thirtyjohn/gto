@@ -4,20 +4,10 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
 <style>
   :root {
-    --ground: #eef1ed;
-    --surface: #ffffff;
-    --surface-2: #e6ebe6;
-    --ink: #16211d;
-    --muted: #5f6d66;
-    --line: #d5ddd6;
-    --accent: #0f5348;
-    --accent-soft: #dcece6;
-    --bet: #b8502f;
-    --check: #3f8f5f;
-    --fold: #9aa7a0;
-    --flat: #e4e9e5;
-    --warn: #a8531b;
-    --on-fill: #ffffff;
+    --ground: #eef1ed; --surface: #ffffff; --surface-2: #e6ebe6;
+    --ink: #16211d; --muted: #5f6d66; --line: #d5ddd6;
+    --accent: #0f5348; --accent-soft: #dcece6;
+    --bet: #b8502f; --check: #3f8f5f; --warn: #a8531b;
     --f-display: "Noto Serif SC", Georgia, "Songti SC", serif;
     --f-body: "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
     --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
@@ -27,41 +17,27 @@
       --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
       --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
       --accent: #55b69c; --accent-soft: #16302a;
-      --bet: #dd7a52; --check: #5fbc82; --fold: #67766e; --flat: #1b2622;
-      --warn: #d98f4c; --on-fill: #0c1310;
+      --bet: #dd7a52; --check: #5fbc82; --warn: #d98f4c;
     }
   }
   :root[data-theme="dark"] {
     --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
     --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
     --accent: #55b69c; --accent-soft: #16302a;
-    --bet: #dd7a52; --check: #5fbc82; --fold: #67766e; --flat: #1b2622;
-    --warn: #d98f4c; --on-fill: #0c1310;
+    --bet: #dd7a52; --check: #5fbc82; --warn: #d98f4c;
   }
 
   * { box-sizing: border-box; }
-  body {
-    background: var(--ground); color: var(--ink); font-family: var(--f-body);
-    font-size: 16px; line-height: 1.75; -webkit-font-smoothing: antialiased;
-  }
-  .wrap {
-    max-width: 1140px; margin: 0 auto; padding: 40px 24px 96px;
-    display: grid; grid-template-columns: 1fr; gap: 40px;
-  }
+  body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.75; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 40px 24px 96px; display: grid; grid-template-columns: 1fr; gap: 40px; }
   @media (min-width: 1060px) {
     .wrap { grid-template-columns: 200px minmax(0, 760px); justify-content: center; align-items: start; }
     .toc { position: sticky; top: 32px; }
   }
 
   .masthead { grid-column: 1 / -1; border-bottom: 2px solid var(--ink); padding-bottom: 22px; }
-  .eyebrow {
-    font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .16em;
-    text-transform: uppercase; color: var(--accent); margin: 0 0 14px;
-  }
-  h1 {
-    font-family: var(--f-display); font-size: clamp(30px, 5vw, 44px); line-height: 1.2;
-    margin: 0 0 12px; text-wrap: balance; font-weight: 700; letter-spacing: -.01em;
-  }
+  .eyebrow { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
+  h1 { font-family: var(--f-display); font-size: clamp(30px, 5vw, 44px); line-height: 1.2; margin: 0 0 12px; text-wrap: balance; font-weight: 700; letter-spacing: -.01em; }
   .dek { margin: 0 0 22px; color: var(--muted); max-width: 62ch; font-size: 17px; }
   .facts { display: flex; flex-wrap: wrap; gap: 8px 28px; font-family: var(--f-mono); font-size: 12.5px; }
   .facts div { color: var(--muted); }
@@ -71,27 +47,20 @@
   .toc a { display: flex; gap: 10px; text-decoration: none; color: var(--muted); font-size: 13.5px; line-height: 1.45; padding: 4px 0; }
   .toc a:hover { color: var(--accent); }
   .toc a span { font-family: var(--f-mono); font-size: 11px; padding-top: 2px; opacity: .7; }
-  .toc-title {
-    font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
-    color: var(--ink); margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
-  }
+  .toc-title { font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink); margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 
   main { min-width: 0; display: flex; flex-direction: column; gap: 44px; }
   section { scroll-margin-top: 24px; }
   h2 { font-family: var(--f-display); font-size: 23px; font-weight: 700; margin: 0 0 6px; display: flex; align-items: baseline; gap: 12px; }
   h2 i { font-family: var(--f-mono); font-style: normal; font-size: 12px; color: var(--accent); letter-spacing: .05em; flex: none; }
-  h3 { font-size: 15.5px; font-weight: 700; margin: 26px 0 8px; letter-spacing: .01em; }
+  h3 { font-size: 15.5px; font-weight: 700; margin: 26px 0 8px; }
   h2 + .lede { color: var(--muted); margin: 0 0 18px; }
   p { margin: 0 0 12px; }
   ul, ol { margin: 0 0 12px; padding-left: 20px; }
   li { margin: 0 0 5px; }
   li::marker { color: var(--accent); }
   code { font-family: var(--f-mono); font-size: .875em; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
-  pre {
-    font-family: var(--f-mono); font-size: 12.5px; line-height: 1.65; background: var(--surface);
-    border: 1px solid var(--line); border-left: 3px solid var(--accent);
-    padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink);
-  }
+  pre { font-family: var(--f-mono); font-size: 12.5px; line-height: 1.65; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink); }
   strong { font-weight: 700; }
 
   .tw { overflow-x: auto; margin: 0 0 14px; border: 1px solid var(--line); background: var(--surface); }
@@ -100,6 +69,8 @@
   th { font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; white-space: nowrap; }
   tbody tr:last-child td { border-bottom: none; }
   td.num, th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  .up { color: var(--check); font-weight: 600; }
+  .down { color: var(--bet); font-weight: 600; }
 
   .note { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 14px 16px; font-size: 14.5px; margin: 0 0 14px; }
   .note p:last-child { margin: 0; }
@@ -113,29 +84,17 @@
   .open li:last-child { margin-bottom: 0; }
   .q { font-weight: 700; }
 
-  /* 牌面样例 */
-  .boardcard { background: var(--surface); border: 1px solid var(--line); padding: 18px; margin: 0 0 14px; }
-  .boardhead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
-  .boardhead h4 { margin: 0; font-family: var(--f-mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); font-weight: 600; }
-  .boardhead .tot { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .flops { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-  .flop { border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; background: var(--ground); }
-  .flop .cards { display: flex; gap: 4px; margin-bottom: 5px; }
-  .pip {
-    width: 26px; height: 34px; background: #fff; border: 1px solid #c9d2cb; border-radius: 4px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    font-family: var(--f-mono); font-weight: 600; line-height: 1; color: #16202b;
-  }
-  .pip .r { font-size: 12px; } .pip .s { font-size: 10px; }
-  .pip.red { color: #c22f26; }
-  .flop .cls { font-size: 12px; color: var(--muted); }
-  .flop .cls b { color: var(--ink); font-weight: 600; }
+  .steps { display: grid; gap: 0; }
+  .step { display: grid; grid-template-columns: 40px 1fr; gap: 16px; border-top: 1px solid var(--line); padding: 14px 0; }
+  .step:first-child { border-top: none; }
+  .step .n { font-family: var(--f-mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+  .step h4 { margin: 0 0 4px; font-size: 15px; }
+  .step p { margin: 0; font-size: 14.5px; color: var(--muted); }
+  .step p + p { margin-top: 6px; }
 
-  .bar { display: inline-block; height: 9px; background: var(--accent); border-radius: 2px; vertical-align: middle; }
-
-  /* 策略表 */
-  .policy td.f { font-family: var(--f-mono); font-size: 12px; white-space: nowrap; }
-  .sw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  .panel { background: var(--surface); border: 1px solid var(--line); padding: 16px 18px; margin: 0 0 14px; font-family: var(--f-mono); font-size: 12.5px; line-height: 1.9; }
+  .panel .hd { color: var(--accent); letter-spacing: .1em; text-transform: uppercase; font-size: 10.5px; margin-bottom: 8px; }
+  .panel .b { display: inline-block; height: 8px; border-radius: 2px; vertical-align: middle; }
 
   footer { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); letter-spacing: .04em; }
   a { color: var(--accent); }
@@ -144,15 +103,15 @@
 
 <div class="wrap">
   <header class="masthead">
-    <p class="eyebrow">产品说明文档 · v0.1 · 待确认</p>
-    <h1>翻牌圈决策训练器</h1>
-    <p class="dek">翻前训练器的姊妹项目。把翻牌圈的下注决策拆成「牌面属于哪一类 × 我的牌属于哪一类」两个判断，用规则模型给出该下注还是过牌、下多大，训练你在真实牌桌上最高频也最容易打错的那一圈。</p>
+    <p class="eyebrow">产品说明文档 · v0.2 · 推翻重写</p>
+    <h1>翻牌圈训练器</h1>
+    <p class="dek">不再查表。给定牌面和双方范围，逐个组合算出谁强谁弱、我的胜率是多少、我这手牌在自己范围里排第几，再由这些数字推出该下注还是过牌。所有结论都是算出来的，可以被独立验证。</p>
     <div class="facts">
       <div>牌型 <b>NLHE 6-max</b></div>
       <div>筹码 <b>100 BB</b></div>
       <div>阶段 <b>仅 Flop</b></div>
       <div>底池 <b>单挑</b></div>
-      <div>策略 <b>规则模型</b></div>
+      <div>对手 <b>默认 GTO，可编辑</b></div>
       <div>日期 <b>2026-09-11</b></div>
     </div>
   </header>
@@ -160,14 +119,14 @@
   <nav class="toc">
     <p class="toc-title">目录</p>
     <ol>
-      <li><a href="#s1"><span>01</span>先把话说清楚</a></li>
-      <li><a href="#s2"><span>02</span>产品定位</a></li>
-      <li><a href="#s3"><span>03</span>牌局假设</a></li>
-      <li><a href="#s4"><span>04</span>牌面分类模型</a></li>
-      <li><a href="#s5"><span>05</span>手牌分类模型</a></li>
-      <li><a href="#s6"><span>06</span>策略表与判定</a></li>
-      <li><a href="#s7"><span>07</span>场景矩阵</a></li>
-      <li><a href="#s8"><span>08</span>功能规格</a></li>
+      <li><a href="#s1"><span>01</span>为什么推翻 v0.1</a></li>
+      <li><a href="#s2"><span>02</span>对手范围从哪来</a></li>
+      <li><a href="#s3"><span>03</span>引擎四步</a></li>
+      <li><a href="#s4"><span>04</span>从胜率到动作</a></li>
+      <li><a href="#s5"><span>05</span>场景矩阵</a></li>
+      <li><a href="#s6"><span>06</span>界面规格</a></li>
+      <li><a href="#s7"><span>07</span>范围编辑与预设</a></li>
+      <li><a href="#s8"><span>08</span>性能实测</a></li>
       <li><a href="#s9"><span>09</span>项目结构</a></li>
       <li><a href="#s10"><span>10</span>里程碑</a></li>
       <li><a href="#s11"><span>11</span>风险与待确认</a></li>
@@ -176,389 +135,283 @@
 
   <main>
     <section id="s1">
-      <h2><i>01</i>先把话说清楚</h2>
-      <p class="lede">这个项目和翻前训练器有一个本质区别，必须写在第一节，而不是藏在附录里。</p>
-      <p>翻前只有 169 个起手牌等价类。36 个场景一共 6084 个格子，我能逐格写出来、逐格校验、出一份对照表交你审。那份数据是可以穷举的。</p>
-      <p>翻牌不行。仅翻牌面就有 22100 种发法，按花色同构归并后仍有 1755 种策略上不同的牌面；每个牌面下双方各有数百个手牌组合，再乘以下注尺度、以及后面两条街的分支，节点数是千万级。这个规模的均衡策略只能由 solver 迭代算出来。</p>
-      <div class="note warn">
-        <b>这个 App 不会自称 GTO</b>
-        <p>按你选的路线，翻牌圈策略来自一套<strong>我编写的规则模型</strong>，不是 solver 输出。它能教会你正确的思考框架和大方向，在常见牌面上的结论与真实解法高度一致，但在边缘牌面和混合频率的细节上必然有偏差。因此本项目的界面文案、图标名称、文档标题一律不使用「GTO」三个字，只说「训练器」。这不是措辞洁癖，是避免你把一套近似当成真理去背。</p>
+      <h2><i>01</i>为什么推翻 v0.1</h2>
+      <p class="lede">v0.1 的 224 格手写策略表已作废。问题不在数字写得准不准，在于它无法被证伪。</p>
+      <p>那套表里的频率是我按经验填的，预期区间也是我定的。校验通过只证明我没算错加法、没写出自相矛盾的形状，<strong>不证明策略正确</strong>。两边都出自同一个人的同一套直觉，这是个闭环。</p>
+      <p>还有一个更要命的问题：表里没有「对手范围」这个变量。频率按牌面类别写死，意味着无论对面是谁，K72 上的打法都一样。而实测显示，同一手 Q♠J♠ 在同一个牌面上，对手范围一变，胜率从 20% 跳到 45%。一个连这个都表达不了的模型，不配叫策略。</p>
+      <div class="note">
+        <b>新方案解决了什么</b>
+        <p>把范围当输入，策略当输出。对手范围、我的范围、牌面三者进去，组合对比、胜率、分位出来，动作比例由这些数字推导。结论可以拿去和公开的解法基准对照，<strong>第一次具备了被外部证伪的能力</strong>。</p>
       </div>
-      <p>好消息是，规则模型有一个 solver 没有的优点：<strong>它能解释自己</strong>。每一手牌训练完，App 能告诉你「这是 A 高干燥彩虹面，你作为翻前加注者在这类面上有范围优势，所以高频小注」，而 solver 只会给你一个数字。对于打法成型阶段的玩家，可解释性比小数点后两位更值钱。</p>
-      <p>路线本身是可升级的。第 9 节的数据层按 solver 输出的结构设计，日后你拿到真实数据，替换数据文件即可，界面不用改。</p>
+      <h3>保留的部分</h3>
+      <ul>
+        <li><strong>翻前 36 套范围</strong>，它现在是对手范围的来源，地位比之前更重要。</li>
+        <li><strong>牌面分类器与手牌分类器</strong>，不再驱动策略，改用于一句话解释和热力图分组。</li>
+        <li><strong>共用模块</strong>：范围记法、牌桌渲染、存储与错题本。</li>
+      </ul>
     </section>
 
     <section id="s2">
-      <h2><i>02</i>产品定位</h2>
-      <p class="lede">给已经会翻前范围的玩家，一个练翻牌圈第一个决策的工具。</p>
-      <h3>核心价值</h3>
-      <ul>
-        <li><strong>把牌面读成类别，而不是三张具体的牌。</strong>高手看到 <code>K♠7♦2♣</code> 想的不是这三张牌，而是「高牌干燥彩虹，我有范围优势」。训练器要做的就是把这个抽象过程变成肌肉记忆。</li>
-        <li><strong>两个视角都练。</strong>作为翻前加注者决定是否持续下注，以及作为防守方面对持续下注决定跟弃加。多数人只练前者，而后者错得更多。</li>
-        <li><strong>承接翻前。</strong>发到你手上的牌不是随机的，而是从翻前训练器里那套范围中抽出来的。你在 BTN 开池范围里会有什么牌，翻牌圈就会拿到什么牌。</li>
-      </ul>
-      <h3>明确不做（v1）</h3>
-      <ul>
-        <li>转牌与河牌。节点数暴涨，规则模型的误差会逐街累积。</li>
-        <li>多人底池。三人以上的翻后策略与单挑差异极大，不是加个座位就能覆盖的。</li>
-        <li>下注尺度自由输入。每个节点只给两档尺度加过牌，见第 3 节。</li>
-        <li>精确的混合频率。规则模型给的是频率档位，不是解法的精确值。</li>
-      </ul>
+      <h2><i>02</i>对手范围从哪来</h2>
+      <p class="lede">全部来自翻前那份数据，没有新造任何范围。</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>训练场景</th><th>对手</th><th>取哪个字段</th></tr></thead>
+          <tbody>
+            <tr><td>单加注池 · 进攻方</td><td>BB</td><td><code>3bet.bb.vs_btn</code> 的 call 部分</td></tr>
+            <tr><td>单加注池 · 防守方</td><td>开池者</td><td><code>open.btn</code> 的 raise 部分</td></tr>
+            <tr><td>3bet 池 · 进攻方</td><td>BTN</td><td><code>4bet.btn.vs_bb</code> 的 call 部分</td></tr>
+            <tr><td>3bet 池 · 防守方</td><td>BB</td><td><code>3bet.bb.vs_btn</code> 的 raise 部分</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>CO 与 UTG 的线路同理，换成对应场景的 id。这四个字段本来就是按这些含义写的：<code>3bet.bb.vs_btn</code> 就是「BB 面对 BTN 开池」，它的 call 部分按定义就是 BB 的平跟范围。</p>
+
+      <h3>展开成实体组合</h3>
+      <p>遍历全部 1326 种两张牌组合，还原成 169 网格的键，查出该键在目标动作上的频率，大于零就保留，权重取 <code>频率 ÷ 100</code>；最后剔除与我的底牌或公共牌共用实体牌的组合。</p>
+      <div class="note">
+        <b>权重不能省，剔除也不只是减数量</b>
+        <p>BB 跟注 BTN 的范围在 K♦7♥2♣ 上有 547 个原始组合，加权后只有 388 个，差额全部来自混合频率的手牌。按原始数量算等于把 50% 跟注的牌当成必跟，会系统性高估对手。</p>
+        <p>剔除会改变范围的形状：BB 范围里含 K 的组合占比，在 9♦7♥2♣ 上是 16.1%，在 K♦7♥2♣ 上降到 12.4%，在 K♠K♦7♥ 上只剩 8.6%。「配对牌面对手更难击中」这句常识，在这里变成了自动算出来的数字。</p>
+      </div>
     </section>
 
     <section id="s3">
-      <h2><i>03</i>牌局假设</h2>
-      <p class="lede">与翻前训练器共用同一套桌型假设，翻后部分另加四条。</p>
-      <div class="tw">
-        <table>
-          <thead><tr><th>项目</th><th>取值</th><th>说明</th></tr></thead>
-          <tbody>
-            <tr><td>桌型与筹码</td><td>6-max，100 BB</td><td>与翻前一致</td></tr>
-            <tr><td>底池类型</td><td>单加注池 / 3bet 池</td><td>均为单挑，翻前已有一方跟注</td></tr>
-            <tr><td>进攻方下注尺度</td><td>33% 底池 / 75% 底池</td><td>小注用于高频施压，大注用于两极化</td></tr>
-            <tr><td>防守方加注尺度</td><td>3 倍对手下注额</td><td>只保留一档，不做尺度选择</td></tr>
-            <tr><td>可选动作</td><td>进攻方 3 个，防守方 3 个</td><td>下小注 / 下大注 / 过牌；弃牌 / 跟注 / 加注</td></tr>
-            <tr><td>位置</td><td>进攻方可有位置也可无位置</td><td>由翻前线路决定，影响策略</td></tr>
-          </tbody>
-        </table>
+      <h2><i>03</i>引擎四步</h2>
+      <p class="lede">每手牌做四件事，前三件是纯计算，第四件在第 4 节。</p>
+      <div class="steps">
+        <div class="step">
+          <div class="n">01</div>
+          <div>
+            <h4>展开对手范围</h4>
+            <p>按第 2 节的方法，得到一组带权重的实体组合。实测 152 到 599 个，耗时 2 毫秒。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="n">02</div>
+          <div>
+            <h4>当前强弱对比</h4>
+            <p>我的五张牌与每个对手组合的五张牌逐一比较，按权重累加，得出<strong>现在领先</strong>、打平、落后三个比例。这是精确枚举不是抽样，耗时 3 毫秒。</p>
+            <p>界面上展示的「哪些组合比我强」就是这一步的产物，可以按牌型分组列出。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="n">03</div>
+          <div>
+            <h4>胜率</h4>
+            <p>蒙特卡洛抽样发转牌河牌，用七张牌评估器比大小。八千样本耗时约 200 毫秒，标准误约 0.6 个百分点。因为只在你做完决策后才算，这个延迟看不见。</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="n">04</div>
+          <div>
+            <h4>我在自己范围里的分位</h4>
+            <p>把我方范围的全部组合在这个牌面上按当前强弱排序，得出我这手牌的百分位。这是极化的依据，见下一节。</p>
+            <p>成本是我方约 600 组合对对手约 550 组合，三十万次比较，约 300 毫秒。同一个牌面只需算一次，可缓存。</p>
+          </div>
+        </div>
       </div>
     </section>
 
     <section id="s4">
-      <h2><i>04</i>牌面分类模型</h2>
-      <p class="lede">整个项目的地基。分类必须覆盖全部 22100 种翻牌，且每一类的出现频率都在合理区间。</p>
+      <h2><i>04</i>从胜率到动作</h2>
+      <p class="lede">这是整份文档最关键的一节。胜率本身不能直接映射成动作。</p>
 
-      <h3>两个轴</h3>
-      <p>牌面用两个正交的轴描述。<strong>结构轴</strong>决定谁的范围占优、该用哪一档尺度；<strong>花色轴</strong>决定听牌有多少，对尺度做修正。拆成两轴而不是一个大类，是为了让策略表停留在可手写的规模。</p>
+      <h3>为什么不能直接映射</h3>
+      <p>K♦7♥2♣ 对 BB 的 GTO 跟注范围，实测五手牌：</p>
       <div class="tw">
         <table>
-          <thead><tr><th>轴</th><th>取值</th><th>判定规则</th></tr></thead>
+          <thead><tr><th>我的牌</th><th class="num">现在领先</th><th class="num">胜率</th><th class="num">后续增减</th><th>该做什么</th></tr></thead>
           <tbody>
-            <tr><td rowspan="7"><b>结构</b></td><td>配对面</td><td>三张里有两张同点数（含三条）</td></tr>
-            <tr><td>同花面</td><td>三张同花色，且不配对</td></tr>
-            <tr><td>连接面</td><td>不配对、非同花面，三张跨度 ≤ 4（A 可当 1 用）</td></tr>
-            <tr><td>A 高干燥</td><td>跨度 ≥ 5，最大张为 A</td></tr>
-            <tr><td>KQ 高干燥</td><td>跨度 ≥ 5，最大张为 K 或 Q</td></tr>
-            <tr><td>JT 高干燥</td><td>跨度 ≥ 5，最大张为 J 或 T</td></tr>
-            <tr><td>低干燥</td><td>跨度 ≥ 5，最大张为 9 或更小</td></tr>
-            <tr><td rowspan="3"><b>花色</b></td><td>彩虹</td><td>三种花色</td></tr>
-            <tr><td>双色</td><td>恰好两张同花色</td></tr>
-            <tr><td>单色</td><td>三张同花色</td></tr>
+            <tr><td>A♣K♥</td><td class="num">97.9%</td><td class="num">90.2%</td><td class="num down">−7.7</td><td>下注取价值</td></tr>
+            <tr><td>5♣5♦</td><td class="num">69.8%</td><td class="num">56.8%</td><td class="num down">−13.0</td><td>过牌保护摊牌价值</td></tr>
+            <tr><td>A♠4♠</td><td class="num">50.6%</td><td class="num">45.0%</td><td class="num down">−5.6</td><td>过牌</td></tr>
+            <tr><td>Q♠J♠</td><td class="num">43.3%</td><td class="num">46.1%</td><td class="num up">+2.8</td><td>下注当诈唬</td></tr>
+            <tr><td>9♠8♠</td><td class="num">15.4%</td><td class="num">30.6%</td><td class="num up">+15.1</td><td>下注当半诈唬</td></tr>
           </tbody>
         </table>
       </div>
+      <p>Q♠J♠ 和 5♣5♦ 的胜率差不多，正确打法相反。只看胜率的模型必然把它们归为一类，这个错误很隐蔽，练一万手也发现不了。</p>
+      <p>但把两列摊开看，答案就出来了。<strong>「现在领先」排出你在范围里的位置</strong>，顶端取价值，底端当诈唬，中间过牌。<strong>「后续增减」区分中间牌和诈唬牌</strong>：55 衰减 13 个点，是靠摊牌价值过牌的典型；98s 增长 15 个点，是半诈唬的典型。</p>
 
-      <h3>全量校验</h3>
-      <p>下面这张表由本页面枚举全部 22100 种翻牌实时算出，用的就是上面的判定规则。每一类的占比若过小（低于 3%）说明分得太碎，过大（高于 35%）说明分得太粗，都需要回头调规则。</p>
-      <div class="boardcard">
-        <div class="boardhead">
-          <h4>结构分布 · 全部 22100 种翻牌</h4>
-          <div class="tot" id="tot">计算中</div>
+      <h3>三个参数，其中两个不是我定的</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="n">B</div>
+          <div>
+            <h4>下注总频率</h4>
+            <p>由范围对范围的胜率和坚果占比决定，公式形如 <code>B = 基准 + k₁(范围胜率 − 50) + k₂(坚果占比 − 50)</code>。<strong>这是唯一由我定参数的地方</strong>，三个数，全部写在数据文件里可审可改。对比 v0.1 的 224 个手写数字，自由度下降了两个数量级。</p>
+          </div>
         </div>
-        <div class="tw">
-          <table>
-            <thead><tr><th>结构</th><th class="num">占比</th><th class="num">牌面数</th><th>分布</th><th>样例</th></tr></thead>
-            <tbody id="dist"></tbody>
-          </table>
+        <div class="step">
+          <div class="n">V</div>
+          <div>
+            <h4>价值与诈唬的比例</h4>
+            <p>由下注尺度决定，不是我定的。下注 33% 底池给对手 1.33 比 0.33 的赔率，对手需要 19.9% 胜率才能跟，所以你的诈唬占比应当是 19.9%，价值 80.1%。下注 75% 时是 30% 诈唬。<strong>这是纯数学，没有调参空间。</strong></p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="n">S</div>
+          <div>
+            <h4>大注与小注的分配</h4>
+            <p>由牌面动态性决定。用第 2 节保留下来的牌面分类器：连接面和双色面用大注的比例更高，干燥彩虹面几乎全是小注。这里保留了少量判断，但它作用在一个显眼且易于讨论的位置。</p>
+          </div>
         </div>
       </div>
 
-      <h3>随机抽样自检</h3>
-      <p>随机抽 12 个翻牌，显示分类器给出的结果。你可以逐个核对分类是否符合直觉。</p>
-      <div class="boardcard">
-        <div class="boardhead">
-          <h4>抽样</h4>
-          <div class="tot" id="sampleinfo"></div>
-        </div>
-        <div class="flops" id="samples"></div>
-      </div>
+      <h3>合起来</h3>
+      <p>算出 B 与 V 之后，价值区间是按「现在领先」排序的顶部 <code>B×V</code>，诈唬区间是底部 <code>B×(1−V)</code>，中间全部过牌。诈唬区间内部再按「后续增减」排序，优先选增长最多的，也就是听牌。我这手牌落在哪个区间，就给哪个动作。</p>
 
-      <div class="note">
-        <b>为什么不按同构归并成 1755</b>
-        <p>1755 是学术上的「策略不同的牌面数」，但训练时你要看到的是真实发牌。按 22100 全量抽样，各类牌面出现的频率就等于真实牌桌上的频率，这与翻前按组合数加权发牌是同一个道理。</p>
+      <div class="note warn">
+        <b>这仍然不是 solver</b>
+        <p>真正的均衡需要双方策略互为最优解并反复迭代。这套模型只做一轮：假设对手按翻前范围到达翻牌，然后算我的最优反应。在防守方场景里这会低估对手，因为他下注的范围比他的整条范围更强。第 11 节写了缓解办法。界面文案仍然一律不用「GTO」三个字。</p>
       </div>
     </section>
 
     <section id="s5">
-      <h2><i>05</i>手牌分类模型</h2>
-      <p class="lede">拿到牌面后，把英雄的两张底牌归入八类之一。分类逻辑是纯计算，不含主观判断。</p>
+      <h2><i>05</i>场景矩阵</h2>
+      <p class="lede">八个场景不变，只是策略来源换了。</p>
       <div class="tw">
         <table>
-          <thead><tr><th class="num">#</th><th>类别</th><th>判定</th></tr></thead>
+          <thead><tr><th>#</th><th>翻前线路</th><th>底池</th><th>英雄</th><th>位置</th><th>可选动作</th></tr></thead>
           <tbody>
-            <tr><td class="num">1</td><td><b>超强牌</b></td><td>两对及以上：两对、暗三条、明三条、顺子、同花</td></tr>
-            <tr><td class="num">2</td><td><b>强顶对及以上</b></td><td>超对，或顶对且踢脚为 T 以上</td></tr>
-            <tr><td class="num">3</td><td><b>弱顶对</b></td><td>顶对且踢脚为 9 及以下</td></tr>
-            <tr><td class="num">4</td><td><b>中对底对</b></td><td>击中第二大或第三大的牌面张，或口袋对低于顶张</td></tr>
-            <tr><td class="num">5</td><td><b>强听牌</b></td><td>同花听牌加两头顺，或任一听牌加两张超牌</td></tr>
-            <tr><td class="num">6</td><td><b>普通听牌</b></td><td>同花听牌，或两头顺听牌</td></tr>
-            <tr><td class="num">7</td><td><b>弱牌有潜力</b></td><td>卡顺听牌、两张超牌、后门同花加后门顺</td></tr>
-            <tr><td class="num">8</td><td><b>空气</b></td><td>以上都不是</td></tr>
+            <tr><td>1</td><td>BTN 开池，BB 跟注</td><td>5.5 BB</td><td>BTN</td><td>有位置</td><td>下注 33% / 75% / 过牌</td></tr>
+            <tr><td>2</td><td>同上</td><td>5.5 BB</td><td>BB</td><td>无位置</td><td>弃牌 / 跟注 / 加注</td></tr>
+            <tr><td>3</td><td>CO 开池，BB 跟注</td><td>5.5 BB</td><td>CO</td><td>有位置</td><td>下注 33% / 75% / 过牌</td></tr>
+            <tr><td>4</td><td>同上</td><td>5.5 BB</td><td>BB</td><td>无位置</td><td>弃牌 / 跟注 / 加注</td></tr>
+            <tr><td>5</td><td>UTG 开池，BB 跟注</td><td>5.5 BB</td><td>UTG</td><td>有位置</td><td>下注 33% / 75% / 过牌</td></tr>
+            <tr><td>6</td><td>同上</td><td>5.5 BB</td><td>BB</td><td>无位置</td><td>弃牌 / 跟注 / 加注</td></tr>
+            <tr><td>7</td><td>BB 3bet，BTN 跟注</td><td>22 BB</td><td>BB</td><td>无位置</td><td>下注 33% / 75% / 过牌</td></tr>
+            <tr><td>8</td><td>同上</td><td>22 BB</td><td>BTN</td><td>有位置</td><td>弃牌 / 跟注 / 加注</td></tr>
           </tbody>
         </table>
       </div>
-      <p>这八类是策略表的行。分类器要处理的边界情况在 M1 用单元测试逐条钉死，例如口袋对正好等于顶张时算三条不算超对、同花听牌同时是卡顺时归入第 5 类而非第 6 类。</p>
+      <p>防守方场景里，你面对的下注尺度固定为 33% 底池。v1 不训练面对 75% 的分支，这是明确的简化。</p>
     </section>
 
     <section id="s6">
-      <h2><i>06</i>策略表与判定</h2>
-      <p class="lede">策略 = 查表 + 修正。表是手写的，修正是程序算的。</p>
+      <h2><i>06</i>界面规格</h2>
+      <p class="lede">训练时先决策后揭示，另有一个不计分的分析模式。</p>
 
-      <h3>数据结构</h3>
-      <p>每个 <code>(底池类型, 视角, 位置)</code> 组合对应一张 <code>7 结构 × 8 手牌类</code> 的表，每格是一个频率三元组。花色轴不进表，改为程序化修正，否则表的规模会乘以三。</p>
-      <pre>{
-  "id": "srp.aggressor.ip",
-  "pot": "单加注池", "role": "进攻方", "pos": "有位置",
-  "actions": ["bet33", "bet75", "check"],
-  "table": {
-    "A高干燥": {
-      "超强牌":      [ 35, 55, 10],
-      "强顶对及以上": [ 70, 20, 10],
-      "弱顶对":      [ 75,  0, 25],
-      "中对底对":    [ 45,  0, 55],
-      "强听牌":      [ 30, 60, 10],
-      "普通听牌":    [ 55, 20, 25],
-      "弱牌有潜力":  [ 60,  0, 40],
-      "空气":        [ 45,  0, 55]
-    },
-    "连接面": { ... }
-  }
-}</pre>
+      <h3>6.1 训练流程</h3>
+      <p>与翻前一致：首页选场景，进场景面看双方范围概要，开练每局 20 手。牌桌中央多了三张公共牌，底池与下注额按线路预置。你选完动作才展开揭示面板，在此之前看不到任何胜率数字，否则就成了照答案。</p>
 
-      <h3>花色修正</h3>
-      <p>双色面与单色面在结构表的基础上按固定规则调整，规则写在代码里并在对照表页面展示：</p>
+      <h3>6.2 揭示面板</h3>
+      <p>这是新产品的核心界面，自上而下四块：</p>
+      <div class="panel">
+        <div class="hd">揭示面板 · 示意</div>
+        你的牌 A♣K♥　　牌面 K♦7♥2♣（KQ 高干燥 · 彩虹）<br>
+        ── 对手可能的组合 388 个 ──────────<br>
+        比你强　　2.1%　<span class="b" style="width:14px;background:var(--bet)"></span>　KK 3 个・77 3 个・22 3 个<br>
+        打平　　　0.0%<br>
+        比你弱　 97.9%　<span class="b" style="width:170px;background:var(--check)"></span><br>
+        ── 你的胜率 ───────────────────<br>
+        现在领先 97.9%　　算到河牌 90.2%　　后续 −7.7<br>
+        ── 你在自己范围里 ─────────────<br>
+        排前 4%　　属于价值区间<br>
+        ── 建议 ──────────────────────<br>
+        下注 33% 62%　　下注 75% 28%　　过牌 10%<br>
+        理由：KQ 高干燥面你有范围优势，这手牌在你范围顶端，取价值
+      </div>
       <ul>
-        <li><strong>双色</strong>：小注频率下调 15 个点，等量转入大注；听牌类手牌的下注总频率上调 10 个点。</li>
-        <li><strong>单色</strong>：无同花相关牌力的手牌，下注总频率下调 25 个点转入过牌；持有该花色高张的手牌下注频率上调。</li>
-        <li><strong>彩虹</strong>：不修正，即结构表本身。</li>
+        <li><strong>对手组合分解</strong>：比我强的组合按牌型分组列出，点开可看具体组合。这是你提的「哪些组合比我强」。</li>
+        <li><strong>胜率三个数</strong>：现在领先、算到河牌、后续增减。第三个数是理解中间牌与诈唬牌区别的钥匙。</li>
+        <li><strong>我的分位</strong>：在自己范围里排前百分之多少，以及落在价值、过牌、诈唬哪个区间。</li>
+        <li><strong>建议比例</strong>：三个动作的频率，加一句话理由。判定沿用翻前的阈值规则，所选动作频率不低于 30% 判对。</li>
       </ul>
 
-      <h3>判定规则</h3>
-      <p>与翻前完全一致，复用同一个函数：所选动作的频率 <strong>≥ 30%</strong> 判正确，频率在 1% 到 29% 之间标为「可接受的低频选择」，与硬错误分开显示。阈值同样可在设置里调成严格或宽松。</p>
+      <h3>6.3 分析模式</h3>
+      <p>不计分、不发牌，你自己摆牌面和底牌，随时看完整分解。这里也是改对手范围做实验的地方：把 BB 的跟注范围改松，看同一手牌的胜率和建议怎么变。</p>
 
-      <h3>校验</h3>
-      <p>构建时逐格检查：三个频率之和等于 100；每张表的加权总下注频率落在预期区间内。预期区间按结构写死，例如单加注池有位置的进攻方，在 A 高干燥面的总下注频率应在 65% 到 85% 之间，在低连接双色面应在 40% 到 60% 之间。超出即在对照表页面标红，与翻前的入池率校验是同一套机制。</p>
+      <h3>6.4 复用翻前的部分</h3>
+      <p>错题本、统计与存储、结算页与评级、分享图、设置面，全部沿用，不重写。热力图的两个轴改成牌面结构乘手牌类别，这是牌面与手牌两个分类器保留下来的用途。</p>
     </section>
 
     <section id="s7">
-      <h2><i>07</i>场景矩阵</h2>
-      <p class="lede">翻前线路决定了双方范围和位置关系。v1 取四条最高频的线路，各两个视角。</p>
-      <div class="tw">
-        <table>
-          <thead><tr><th>#</th><th>翻前线路</th><th>底池</th><th>英雄视角</th><th>位置</th></tr></thead>
-          <tbody>
-            <tr><td>1</td><td>BTN 开池，BB 跟注</td><td>单加注池 5.5 BB</td><td>进攻方 BTN</td><td>有位置</td></tr>
-            <tr><td>2</td><td>BTN 开池，BB 跟注</td><td>单加注池 5.5 BB</td><td>防守方 BB</td><td>无位置</td></tr>
-            <tr><td>3</td><td>CO 开池，BB 跟注</td><td>单加注池 5.5 BB</td><td>进攻方 CO</td><td>有位置</td></tr>
-            <tr><td>4</td><td>CO 开池，BB 跟注</td><td>单加注池 5.5 BB</td><td>防守方 BB</td><td>无位置</td></tr>
-            <tr><td>5</td><td>UTG 开池，BB 跟注</td><td>单加注池 5.5 BB</td><td>进攻方 UTG</td><td>有位置</td></tr>
-            <tr><td>6</td><td>UTG 开池，BB 跟注</td><td>单加注池 5.5 BB</td><td>防守方 BB</td><td>无位置</td></tr>
-            <tr><td>7</td><td>BB 3bet，BTN 跟注</td><td>3bet 池 22 BB</td><td>进攻方 BB</td><td>无位置</td></tr>
-            <tr><td>8</td><td>BB 3bet，BTN 跟注</td><td>3bet 池 22 BB</td><td>防守方 BTN</td><td>有位置</td></tr>
-          </tbody>
-        </table>
+      <h2><i>07</i>范围编辑与预设</h2>
+      <p class="lede">默认对手是 GTO 选手。这一点已确认，剥削是打开开关之后的事。</p>
+      <div class="note">
+        <b>为什么不做松紧滑块</b>
+        <p>滑块假设范围只有一个维度，越松越弱。但实测显示这是错的：K♦7♥2♣ 上，一个什么 K 都跟的松玩家，手里含 K 的加权组合有 98 个，而 GTO 玩家只有 53 个。<strong>对手变松，我拿 Q♠J♠ 的胜率反而从 44.9% 降到 38.1%</strong>，因为他多出来的顶对比多出来的垃圾更要紧。决定胜率的是范围的形状和这个牌面怎么交互，不是范围的大小。</p>
       </div>
-      <p>每个场景的英雄手牌从对应的翻前范围里抽取。线路 1 的 BTN 手牌来自翻前数据集的 <code>open.btn</code> 加注范围；线路 2 的 BB 手牌来自 <code>3bet.bb.vs_btn</code> 的跟注部分。翻前那套数据在这里第二次发挥作用，不需要重新整理。</p>
-      <p>策略表的数量是 <strong>4 张</strong>：单加注池进攻方、单加注池防守方、3bet 池进攻方、3bet 池防守方。位置关系在 v1 与底池类型绑定，不单独成表。合计 <strong>4 × 7 × 8 = 224</strong> 个频率三元组需要手写。</p>
+      <p>所以范围是<strong>直接可编辑</strong>的 13×13 网格。界面现成，翻前训练器已经在画；数据也现成，范围记法已经能解析。预设只是起点，每个就是数据文件里的一条范围字符串：GTO、紧、松、站街鱼。你觉得哪个不像你牌局里的人，直接改，或者存成自己的。</p>
+      <p>你自己的范围同样可编辑，因为它决定极化结构，也就是你该在什么分位上下注。</p>
     </section>
 
     <section id="s8">
-      <h2><i>08</i>功能规格</h2>
-      <p class="lede">界面骨架与翻前训练器一致，你不用重新学怎么用。</p>
-      <h3>直接复用的</h3>
-      <ul>
-        <li>训练循环：每局 20 手、按真实频率发牌、考试与教学两种反馈模式、结算页与评级。</li>
-        <li>错题本：答错入库，连续答对两次移出，支持只练错题。</li>
-        <li>统计与存储：按场景累计手数与正确率，全部存在本机。</li>
-        <li>牌桌渲染：自适应尺寸那一套原样搬过来，只是桌面中央多了三张公共牌。</li>
-        <li>分享图与设置面。</li>
-      </ul>
-      <h3>新增的</h3>
-      <ul>
-        <li><strong>公共牌区。</strong>牌桌中央显示三张翻牌，底池与双方下注额按翻前线路预置。</li>
-        <li><strong>场景面的预览从范围表换成分类说明。</strong>点开场景卡后，先看到这条线路的双方范围概要、该视角下六类结构的总下注频率柱状图，再决定开练。</li>
-        <li><strong>每手牌的解释。</strong>教学模式下，反馈不只给频率，还给一句话理由，例如「K72 彩虹，你的范围里 K 和超对远多于对手，高频小注施压」。</li>
-        <li><strong>热力图换成 7 × 8 矩阵。</strong>横轴是牌面结构，纵轴是手牌类别，格子按你的错误率着色。翻前是 13×13 的手牌网格，翻后是这张矩阵，作用相同：一眼看出弱点在哪。</li>
-      </ul>
+      <h2><i>08</i>性能实测</h2>
+      <p class="lede">全部已在真实数据上跑过，不是估算。</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>步骤</th><th>规模</th><th class="num">耗时</th><th>时机</th></tr></thead>
+          <tbody>
+            <tr><td>展开对手范围</td><td>1326 组合遍历</td><td class="num">2 ms</td><td>发牌时</td></tr>
+            <tr><td>当前强弱对比</td><td>约 550 次五张评估</td><td class="num">3 ms</td><td>决策后</td></tr>
+            <tr><td>胜率蒙特卡洛</td><td>8000 样本七张评估</td><td class="num">200 ms</td><td>决策后</td></tr>
+            <tr><td>我方范围分位</td><td>约 30 万次比较</td><td class="num">300 ms</td><td>每牌面一次，可缓存</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>牌力评估器已通过十类牌型的排序自检，从皇家同花顺到高牌全部正确，轮子顺单独验过。</p>
     </section>
 
     <section id="s9">
       <h2><i>09</i>项目结构</h2>
-      <p class="lede">同一个仓库，两个应用，共用底层。</p>
       <pre>gto/
   src/
-    range.js        共用  范围记法解析、组合数加权、判定阈值
-    table.js        共用  牌桌渲染与自适应（从现有 app.js 抽出）
-    ui.js           共用  首页卡片、场景面、结算页、错题本、设置
-    cards.js        新增  牌力评估与手牌分类
-    board.js        新增  牌面分类器
-    app.html/js     翻前  入口
-    flop.html/js    翻后  入口
+    ui.js         共用  元素构造、确认框、存储与错题本
+    range.js      共用  范围记法解析、组合数加权、判定阈值
+    table.js      共用  牌桌渲染与自适应
+    cards.js      翻后  牌力评估与手牌分类（F2 已完成）
+    board.js      翻后  牌面分类器（F2 已完成）
+    equity.js     翻后  新增：五张与七张评估器、范围展开、胜率与分位
+    strategy.js   翻后  新增：极化模型，B 与 V 与 S 的计算
+    flop.html/js  翻后  入口
   data/
-    ranges.js       翻前  36 套范围
-    flop-policy.js  翻后  4 张策略表与花色修正规则
-  docs/
-    index.html         翻前应用（线上地址不变，你主屏幕上的图标继续可用）
-    flop/index.html    翻后应用（独立图标，可单独添加到主屏幕）
-    prd.html           翻前说明书
-    flop-prd.html      本文档</pre>
-      <p>第一步是把现有 <code>app.js</code> 里的牌桌渲染和通用界面抽成 <code>table.js</code> 与 <code>ui.js</code>。这一步不改任何行为，抽完后翻前应用必须逐项回归到当前状态才算通过。构建仍用现有的 <code>tools/build.sh</code>，只是多跑一条命令。</p>
-      <div class="note">
-        <b>两个图标还是一个</b>
-        <p>按当前方案，两个应用各自有 manifest 和图标，可以分别添加到主屏幕，互不干扰。翻前那个的线上地址完全不变，你已经装好的图标不受影响。两边首页互相放一个入口链接，想换着练的时候点一下就过去了。</p>
-      </div>
+    ranges.js     翻前  36 套范围，同时是翻后的对手范围来源
+    opponents.js  翻后  新增：范围预设，GTO 之外的紧 / 松 / 鱼
+    flop-policy.js      作废，v0.1 的 224 格手写表</pre>
+      <p><code>docs/index.html</code> 仍是翻前应用，线上地址不变，你主屏幕上的图标不受影响。翻后应用装在 <code>docs/flop/</code>，独立图标可单独添加到主屏幕。</p>
     </section>
 
     <section id="s10">
       <h2><i>10</i>里程碑</h2>
-      <p class="lede">每个阶段结束你都能上手点。</p>
       <div class="tw">
         <table>
-          <thead><tr><th>阶段</th><th>产物</th><th>验收标准</th></tr></thead>
+          <thead><tr><th>阶段</th><th>产物</th><th>验收标准</th><th>状态</th></tr></thead>
           <tbody>
-            <tr><td><b>F0</b></td><td>本文档确认</td><td>分类模型、场景矩阵、策略表规模三项拍板</td></tr>
-            <tr><td><b>F1</b></td><td>底层代码抽取</td><td>翻前应用逐项回归通过，行为零变化</td></tr>
-            <tr><td><b>F2</b></td><td>分类器与评估器</td><td>牌面分类跑通全部 22100 种翻牌；手牌分类通过单元测试</td></tr>
-            <tr><td><b>F3</b></td><td>4 张策略表 + 校验</td><td>224 个三元组落库，附可打印对照表交你审阅</td></tr>
-            <tr><td><b>F4</b></td><td>训练闭环</td><td>8 个场景可练，结算与统计回写</td></tr>
-            <tr><td><b>F5</b></td><td>解释、矩阵热力图、上线</td><td>独立图标可装机，离线可用</td></tr>
+            <tr><td><b>F1</b></td><td>共用模块抽取</td><td>翻前逐项回归零差异</td><td>已完成</td></tr>
+            <tr><td><b>F2</b></td><td>牌面与手牌分类器</td><td>22100 种翻牌全覆盖，24 条用例通过</td><td>已完成</td></tr>
+            <tr><td><b>F3</b></td><td>手写策略表</td><td>—</td><td>作废</td></tr>
+            <tr><td><b>F4</b></td><td>胜率引擎</td><td>评估器排序自检；对已知牌型的胜率与公开计算器逐项对照</td><td>下一步</td></tr>
+            <tr><td><b>F5</b></td><td>极化模型</td><td>模型算出的持续下注频率与公开解法基准逐牌面对照</td><td></td></tr>
+            <tr><td><b>F6</b></td><td>训练闭环与揭示面板</td><td>八个场景可练，结算与统计回写</td><td></td></tr>
+            <tr><td><b>F7</b></td><td>分析模式与范围编辑</td><td>可改对手范围并即时看到结果变化</td><td></td></tr>
+            <tr><td><b>F8</b></td><td>上线装机</td><td>独立图标，离线可用</td><td></td></tr>
           </tbody>
         </table>
       </div>
+      <p>F5 的验收标准是这个项目第一次可以拿外部数据打自己的脸。公开资料里有 BTN 对 BB 在各类牌面上的持续下注频率，模型算出来的数字对不对得上，是能被证伪的。</p>
     </section>
 
     <section id="s11">
       <h2><i>11</i>风险与待确认</h2>
-      <p class="lede">两个真实风险，三个按默认值推进的问题。</p>
       <h3>风险</h3>
       <ul>
-        <li><strong>规则模型的可信度无法自证。</strong>翻前那份范围我能说「这是标准解法整理的」，翻后这份只能说「这是我按公认原则写的」。缓解办法是把每一格的理由写进对照表，让你能逐条判断，而不是只给数字。若你日后拿到 solver 数据，可以用它反过来校准这张表。</li>
-        <li><strong>八类手牌的粒度可能不够。</strong>例如「空气」里既有带阻断牌的 A 高，也有毫无价值的 72，真实策略对二者处理不同。若训练中发现这一类的判定经常反直觉，就需要把它拆细，届时策略表要重写对应行。</li>
+        <li><strong>只迭代一轮。</strong>防守方场景里对手的范围没有按他的下注策略过滤，会低估他。缓解办法是先用模型算出进攻方的策略，再用它加权过滤对手范围，做一轮自洽迭代。代价是每手牌多算一遍全范围策略，约 300 毫秒，可缓存。<strong>建议在 F5 一并做掉</strong>，否则防守方的四个场景数字都是偏的。</li>
+        <li><strong>B 的三个参数仍是我定的。</strong>比 224 个好得多，但没有归零。F5 的外部对照就是用来校准它们的。</li>
+        <li><strong>蒙特卡洛有抽样误差。</strong>八千样本标准误约 0.6 个百分点。同一手牌两次训练显示的胜率会差零点几，需要在界面上把数字取整到整数位，避免看起来不稳定。</li>
       </ul>
       <h3>按默认值推进</h3>
       <div class="open">
         <ol>
-          <li><span class="q">应用名称。</span>界面标题用「翻牌圈训练器」，不含 GTO 字样，原因见第 1 节。</li>
-          <li><span class="q">下注尺度档位。</span>进攻方两档 33% 与 75%，防守方加注固定 3 倍。档位越多训练越细但表越大，v1 先用两档。</li>
-          <li><span class="q">先做哪个视角。</span>F4 先跑通进攻方四个场景，确认手感后再接防守方，两者共用同一套界面。</li>
+          <li><span class="q">应用名称</span>仍为「翻牌圈训练器」，界面不出现 GTO 字样，理由见第 4 节末尾。</li>
+          <li><span class="q">先做进攻方</span>四个场景跑通后再接防守方，两者共用同一套界面与引擎。</li>
+          <li><span class="q">分位用「现在领先」排序</span>而不是用胜率排序，理由见第 4 节的五手牌实测。</li>
         </ol>
       </div>
     </section>
   </main>
 
-  <footer>翻牌圈决策训练器 · 产品说明文档 v0.1 · 确认后进入 F1</footer>
+  <footer>翻牌圈训练器 · 产品说明文档 v0.2 · 确认后进入 F4</footer>
 </div>
-
-<script>
-(function () {
-  'use strict';
-  var RANKS = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
-  var SUITS = ['s','h','d','c'];
-  var SYM = { s: '♠', h: '♥', d: '♦', c: '♣' };
-  var RED = { h: 1, d: 1 };
-
-  // 结构分类：与第 4 节表格里的判定规则一一对应
-  function structureOf(vals) {
-    var v = vals.slice().sort(function (a, b) { return b - a; });
-    if (v[0] === v[1] || v[1] === v[2]) return '配对面';
-    var span = v[0] - v[2];
-    if (v[0] === 14) {                       // A 可以当 1 用，取更紧的跨度
-      var alt = [1, v[1], v[2]].sort(function (a, b) { return b - a; });
-      span = Math.min(span, alt[0] - alt[2]);
-    }
-    if (span <= 4) return '连接面';
-    if (v[0] === 14) return 'A 高干燥';
-    if (v[0] >= 12) return 'KQ 高干燥';
-    if (v[0] >= 10) return 'JT 高干燥';
-    return '低干燥';
-  }
-  function suitOf(ss) {
-    var u = {};
-    ss.forEach(function (s) { u[s] = (u[s] || 0) + 1; });
-    var counts = Object.keys(u).map(function (k) { return u[k]; });
-    if (counts.indexOf(3) >= 0) return '单色';
-    if (counts.indexOf(2) >= 0) return '双色';
-    return '彩虹';
-  }
-  function classify(cards) {
-    var vals = cards.map(function (c) { return c.v; });
-    var ss = cards.map(function (c) { return c.s; });
-    var suit = suitOf(ss);
-    // 三张同花色时结构归为同花面，其余按结构轴判定
-    var st = structureOf(vals);
-    if (suit === '单色' && st !== '配对面') st = '同花面';
-    return { st: st, suit: suit };
-  }
-
-  // 枚举全部 22100 种翻牌
-  var deck = [];
-  for (var r = 0; r < 13; r++) {
-    for (var s = 0; s < 4; s++) deck.push({ v: r + 2, r: RANKS[r], s: SUITS[s] });
-  }
-  var ORDER = ['配对面', '同花面', '连接面', 'A 高干燥', 'KQ 高干燥', 'JT 高干燥', '低干燥'];
-  var tally = {}, example = {};
-  ORDER.forEach(function (k) { tally[k] = 0; });
-  var total = 0;
-  for (var a = 0; a < 52; a++) {
-    for (var b = a + 1; b < 52; b++) {
-      for (var c = b + 1; c < 52; c++) {
-        var trio = [deck[a], deck[b], deck[c]];
-        var cl = classify(trio);
-        tally[cl.st]++;
-        total++;
-        if (!example[cl.st]) example[cl.st] = trio;
-      }
-    }
-  }
-
-  document.getElementById('tot').textContent =
-    '合计 ' + total.toLocaleString() + ' 种　·　7 类全部命中';
-
-  var tb = document.getElementById('dist');
-  ORDER.forEach(function (k) {
-    var pct = tally[k] / total * 100;
-    var tr = document.createElement('tr');
-    var ex = example[k].map(function (c) { return c.r + SYM[c.s]; }).join(' ');
-    tr.innerHTML =
-      '<td><b>' + k + '</b></td>' +
-      '<td class="num">' + pct.toFixed(1) + '%</td>' +
-      '<td class="num">' + tally[k].toLocaleString() + '</td>' +
-      '<td><span class="bar" style="width:' + (pct * 4.2).toFixed(1) + 'px"></span></td>' +
-      '<td style="font-family:var(--f-mono);font-size:12px">' + ex + '</td>';
-    tb.appendChild(tr);
-  });
-
-  // 随机抽 12 个翻牌做自检
-  var box = document.getElementById('samples');
-  var seen = {};
-  for (var n = 0; n < 12; n++) {
-    var pick = [], used = {};
-    while (pick.length < 3) {
-      var i = Math.floor(Math.random() * 52);
-      if (used[i]) continue;
-      used[i] = 1; pick.push(deck[i]);
-    }
-    pick.sort(function (x, y) { return y.v - x.v; });
-    var cl2 = classify(pick);
-    seen[cl2.st] = 1;
-    var node = document.createElement('div');
-    node.className = 'flop';
-    var row = document.createElement('div');
-    row.className = 'cards';
-    pick.forEach(function (c) {
-      var p = document.createElement('div');
-      p.className = 'pip' + (RED[c.s] ? ' red' : '');
-      p.innerHTML = '<div class="r">' + c.r + '</div><div class="s">' + SYM[c.s] + '</div>';
-      row.appendChild(p);
-    });
-    node.appendChild(row);
-    var cls = document.createElement('div');
-    cls.className = 'cls';
-    cls.innerHTML = '<b>' + cl2.st + '</b> · ' + cl2.suit;
-    node.appendChild(cls);
-    box.appendChild(node);
-  }
-  document.getElementById('sampleinfo').textContent =
-    '本次抽到 ' + Object.keys(seen).length + ' 种结构　·　刷新页面重抽';
-})();
-</script>
