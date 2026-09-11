@@ -1,0 +1,315 @@
+<title>分区模型校验</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+  :root {
+    --ground: #eef1ed; --surface: #ffffff; --surface-2: #e6ebe6;
+    --ink: #16211d; --muted: #5f6d66; --line: #d5ddd6;
+    --accent: #0f5348; --accent-soft: #dcece6;
+    --ok: #2f7d4f; --bad: #b8402f; --warn: #a8531b;
+    --value: #b8402f; --check: #4a5d70; --bluff: #d9903f;
+    --f-display: "Noto Serif SC", Georgia, serif;
+    --f-body: "Noto Sans SC", -apple-system, "PingFang SC", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+      --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+      --accent: #55b69c; --accent-soft: #16302a;
+      --ok: #5fbc82; --bad: #dd7a52; --warn: #d98f4c;
+      --value: #dd7a52; --check: #5a6e80; --bluff: #d9a05c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+    --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+    --accent: #55b69c; --accent-soft: #16302a;
+    --ok: #5fbc82; --bad: #dd7a52; --warn: #d98f4c;
+    --value: #dd7a52; --check: #5a6e80; --bluff: #d9a05c;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.75; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 36px 20px 80px; }
+
+  header.top { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 24px; }
+  .eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+  h1 { font-family: var(--f-display); font-size: clamp(26px, 4vw, 36px); margin: 0 0 10px; font-weight: 700; }
+  .dek { color: var(--muted); margin: 0 0 18px; max-width: 64ch; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 26px; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+  .facts b { color: var(--ink); font-weight: 500; }
+
+  .status { padding: 12px 16px; margin: 0 0 24px; font-size: 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+  .status.bad { background: var(--surface); border: 1px solid var(--bad); border-left-width: 3px; }
+  .status b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; display: block; margin-bottom: 4px; color: var(--accent); }
+  .status.bad b { color: var(--bad); }
+  .status ul { margin: 8px 0 0; padding-left: 18px; font-family: var(--f-mono); font-size: 12px; }
+
+  h2 { font-family: var(--f-display); font-size: 20px; margin: 40px 0 4px; font-weight: 700; }
+  .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; max-width: 68ch; }
+  p { margin: 0 0 12px; }
+
+  .tw { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); margin: 0 0 22px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 7px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  .ok { color: var(--ok); font-weight: 700; }
+  .no { color: var(--bad); font-weight: 700; }
+  .dim { color: var(--muted); }
+
+  .note { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 13px 16px; font-size: 14px; margin: 0 0 20px; }
+  .note b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 4px; }
+  .note p:last-child { margin: 0; }
+  .note.warn { background: var(--surface); border: 1px solid var(--warn); border-left-width: 3px; }
+  .note.warn b { color: var(--warn); }
+
+  .zonebar { display: flex; height: 26px; border-radius: 5px; overflow: hidden; margin: 4px 0 2px; }
+  .zonebar i { display: block; height: 100%; }
+  .zlab { display: flex; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+  .zlab span { text-align: center; }
+  .mk { position: relative; height: 13px; }
+  .mk i { position: absolute; top: 0; transform: translateX(-50%); width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 6px solid var(--ink); }
+
+  .kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 0 0 22px; }
+  .kpi div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .kpi b { font-family: var(--f-mono); font-size: 22px; display: block; }
+  .kpi span { font-size: 12.5px; color: var(--muted); display: block; margin-top: 2px; }
+  .kpi em { font-style: normal; font-size: 11.5px; color: var(--accent); display: block; margin-top: 4px; font-family: var(--f-mono); }
+
+  footer { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 14px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">F5 交付物 · 分区模型</p>
+    <h1>分区模型校验</h1>
+    <p class="dek">不推导下注总频率。把我方范围按当前领先率排序，顶部取价值、底部当诈唬、中间过牌。自由常数只有两个，其余边界由赔率数学导出。</p>
+    <div class="facts">
+      <div>自由常数 <b>2 个</b></div>
+      <div>用例 <b id="f-cases">…</b></div>
+      <div>校验 <b id="f-check">运行中</b></div>
+    </div>
+  </header>
+
+  <div class="status" id="status"><b>校验结果</b><span id="status-text">正在计算…</span></div>
+
+  <h2>一、为什么不推导下注频率</h2>
+  <p class="sub">四种推导方式都试过，都失败了，而且失败可测量。这一节把失败记录下来，免得日后有人再走一遍。</p>
+  <div class="tw"><table>
+    <thead><tr><th>推导方式</th><th class="n">A 高干燥</th><th class="n">中连张双色</th><th class="n">单色面</th><th>失败方式</th></tr></thead>
+    <tbody>
+      <tr><td>范围对范围胜率</td><td class="n">57.8</td><td class="n">51.6</td><td class="n">56.3</td><td class="dim">单色面与干燥面区分不开</td></tr>
+      <tr><td>加上坚果占比</td><td class="n">77.9</td><td class="n">50.4</td><td class="n">58.1</td><td class="dim">仍然分不开</td></tr>
+      <tr><td>加上翻转率</td><td class="n">15.9</td><td class="n">28.9</td><td class="n">22.9</td><td class="dim">单色面测出来不动态</td></tr>
+      <tr><td>零参数 MDF 构造</td><td class="n">52.6</td><td class="n">48.1</td><td class="n">—</td><td class="dim">公认是 80 对 40，几乎无区分度</td></tr>
+      <tr><td>对手可继续比例</td><td class="n">89.0</td><td class="n">95.7</td><td class="n">82.2</td><td class="no">方向反了</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note warn">
+    <b>最有说服力的反例</b>
+    <p>单色面逼对手弃牌最多，被迫弃牌 17.8%，是六个牌面里最高的；而它公认的下注频率最低，约 35%。决定频率的不是弃牌率，而是继续下来的那些牌有多强、你会不会被加注。这件事只有解完博弈树才知道，光看翻牌的摘要统计量看不出来。</p>
+  </div>
+
+  <h2>二、两个自由常数，其余全是数学</h2>
+  <p class="sub">这一节把"我定的"和"算出来的"分清楚。任何人可以不同意那两个常数，但不能不同意由它们导出的部分。</p>
+  <div class="kpi" id="k-const"></div>
+  <div class="tw"><table>
+    <thead><tr><th>量</th><th>来源</th><th>公式</th><th class="n">取值</th></tr></thead>
+    <tbody id="t-derive"></tbody>
+  </table></div>
+
+  <h2>三、分区落点</h2>
+  <p class="sub">K♦7♥2♣ 上，BTN 开池范围按当前领先率排序后各手牌的落点。分区边界由上面两个常数与尺度赔率共同决定。</p>
+  <div id="zoneviz"></div>
+  <div class="tw"><table>
+    <thead><tr><th>手牌</th><th class="n">现在领先</th><th class="n">范围分位</th><th>落在</th><th>建议</th><th>理由</th></tr></thead>
+    <tbody id="t-zone"></tbody>
+  </table></div>
+
+  <h2>四、数学恒等式</h2>
+  <p class="sub">导出部分必须精确成立。诈唬占比与最小防守频率都只是下注尺度的函数，算错了一眼能看出来。</p>
+  <div class="tw"><table>
+    <thead><tr><th>恒等式</th><th>期望</th><th>实得</th><th></th></tr></thead>
+    <tbody id="t-ident"></tbody>
+  </table></div>
+
+  <h2>五、判定规则</h2>
+  <p class="sub">动作落在本区即判对。分区边界是我定的常数，所以贴边 5 个百分点以内时，相邻区的动作也判对，不因为差一个百分点就把人判错。</p>
+  <div class="tw"><table>
+    <thead><tr><th>手牌</th><th class="n">分位</th><th>本区</th><th>选下注</th><th>选过牌</th><th class="dim">说明</th></tr></thead>
+    <tbody id="t-judge"></tbody>
+  </table></div>
+
+  <h2>六、各类牌面的尺度分配</h2>
+  <p class="sub">大注占下注量的比例由牌面结构决定。这是第三处判断，但它只影响用多大的注，不影响是否下注。</p>
+  <div class="tw"><table>
+    <thead><tr><th>牌面结构</th><th class="n">彩虹面大注占比</th><th class="n">双色面大注占比</th></tr></thead>
+    <tbody id="t-size"></tbody>
+  </table></div>
+
+  <footer>翻牌圈训练器 · F5 分区模型校验 · 数据源 src/strategy.js</footer>
+</div>
+
+<script>
+<!--@include src/range.js-->
+</script>
+<script>
+<!--@include data/ranges.js-->
+</script>
+<script>
+<!--@include src/cards.js-->
+</script>
+<script>
+<!--@include src/board.js-->
+</script>
+<script>
+<!--@include src/equity.js-->
+</script>
+<script>
+<!--@include src/strategy.js-->
+</script>
+<script>
+(function () {
+  'use strict';
+  var E = Equity, S = Strategy;
+  var problems = [], cases = 0, pass = 0;
+  function row(tb, cells, good) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = cells.join('') + (good === undefined ? '' :
+      '<td class="' + (good ? 'ok' : 'no') + '">' + (good ? '✔' : '✖') + '</td>');
+    tb.appendChild(tr);
+    if (good !== undefined) { cases++; if (good) pass++; }
+  }
+
+  var SMALL = 0.33, BIG = 0.75;
+
+  /* ---------- 二、常数与导出 ---------- */
+  var zA = S.aggressorZones(SMALL, BIG);
+  var zD = S.defenderZones(SMALL);
+  document.getElementById('k-const').innerHTML =
+    '<div><b>' + S.CONST.valueWidth + '%</b><span>进攻方价值区宽度</span><em>我定的</em></div>' +
+    '<div><b>' + S.CONST.raiseWidth + '%</b><span>防守方加注区宽度</span><em>我定的</em></div>' +
+    '<div><b>' + zA.bluffWidthSmall.toFixed(1) + '%</b><span>小注的诈唬区宽度</span><em>由赔率导出</em></div>' +
+    '<div><b>' + zD.foldWidth.toFixed(1) + '%</b><span>防守方弃牌区宽度</span><em>由最小防守频率导出</em></div>';
+
+  var tD = document.getElementById('t-derive');
+  row(tD, ['<td>诈唬占下注量的比例（小注 33%）</td>', '<td class="dim">赔率</td>',
+    '<td class="dim">f / (1 + 2f)</td>', '<td class="n">' + (S.bluffShare(SMALL) * 100).toFixed(1) + '%</td>']);
+  row(tD, ['<td>诈唬占下注量的比例（大注 75%）</td>', '<td class="dim">赔率</td>',
+    '<td class="dim">f / (1 + 2f)</td>', '<td class="n">' + (S.bluffShare(BIG) * 100).toFixed(1) + '%</td>']);
+  row(tD, ['<td>诈唬区宽度（小注）</td>', '<td class="dim">导出</td>',
+    '<td class="dim">价值宽度 × b / (1 − b)</td>', '<td class="n">' + zA.bluffWidthSmall.toFixed(1) + '%</td>']);
+  row(tD, ['<td>诈唬区宽度（大注）</td>', '<td class="dim">导出</td>',
+    '<td class="dim">价值宽度 × b / (1 − b)</td>', '<td class="n">' + zA.bluffWidthBig.toFixed(1) + '%</td>']);
+  row(tD, ['<td>最小防守频率（面对 33%）</td>', '<td class="dim">赔率</td>',
+    '<td class="dim">1 / (1 + f)</td>', '<td class="n">' + zD.mdf.toFixed(1) + '%</td>']);
+  row(tD, ['<td>弃牌区宽度</td>', '<td class="dim">导出</td>',
+    '<td class="dim">1 − 最小防守频率</td>', '<td class="n">' + zD.foldWidth.toFixed(1) + '%</td>']);
+  row(tD, ['<td>下注区合计</td>', '<td class="dim">导出</td>',
+    '<td class="dim">价值 + 诈唬</td>',
+    '<td class="n">' + (zA.valueWidth + zA.bluffTo).toFixed(1) + '%</td>']);
+
+  /* ---------- 三、分区落点 ---------- */
+  var byId = {};
+  Range.buildAll(SCENARIOS).forEach(function (b) { byId[b.scenario.id] = b; });
+  var board = ['Kd', '7h', '2c'];
+  var bcls = Board.classify(board);
+  var ladder = E.rangeLadder(board, byId['open.btn'], 'raise', byId['3bet.bb.vs_btn'], 'call');
+
+  var viz = document.getElementById('zoneviz');
+  viz.innerHTML =
+    '<div class="zonebar">' +
+    '<i style="width:' + zA.bluffTo + '%;background:repeating-linear-gradient(45deg,var(--bluff),var(--bluff) 5px,#a86f18 5px,#a86f18 10px)"></i>' +
+    '<i style="width:' + (zA.valueFrom - zA.bluffTo) + '%;background:var(--check)"></i>' +
+    '<i style="width:' + zA.valueWidth + '%;background:var(--value)"></i></div>' +
+    '<div class="zlab"><span style="width:' + zA.bluffTo + '%">诈唬 0–' + zA.bluffTo.toFixed(0) + '</span>' +
+    '<span style="width:' + (zA.valueFrom - zA.bluffTo) + '%">过牌 ' + zA.bluffTo.toFixed(0) + '–' + zA.valueFrom.toFixed(0) + '</span>' +
+    '<span style="width:' + zA.valueWidth + '%">价值 ' + zA.valueFrom.toFixed(0) + '–100</span></div>';
+
+  var HANDS = [['A♣K♥', ['Ac','Kh']], ['5♣5♦', ['5c','5d']], ['A♠4♠', ['As','4s']],
+               ['Q♠J♠', ['Qs','Js']], ['J♠T♠', ['Js','Ts']], ['9♠8♠', ['9s','8s']], ['6♠5♠', ['6s','5s']]];
+  var ZH = { value: '价值区', check: '过牌区', bluff: '诈唬区' };
+  var tZ = document.getElementById('t-zone');
+  var advCache = {};
+  HANDS.forEach(function (h) {
+    var p = E.percentileOf(h[1], ladder);
+    if (!p.inRange) { row(tZ, ['<td>' + h[0] + '</td>', '<td class="n">—</td>', '<td class="n">—</td>', '<td class="dim">不在范围内</td>', '<td>—</td>', '<td class="dim">—</td>']); return; }
+    var a = S.adviseAggressor(p.percentile, { structure: bcls.structure, suit: bcls.suit }, { small: SMALL, big: BIG });
+    advCache[h[0]] = { p: p, a: a };
+    var act = a.zone === 'check' ? '过牌'
+      : '下注 · 小注 ' + a.weights.bet33 + ' 大注 ' + a.weights.bet75;
+    row(tZ, ['<td>' + h[0] + '</td>',
+      '<td class="n">' + p.ahead.toFixed(1) + '%</td>',
+      '<td class="n">' + p.percentile.toFixed(0) + '%</td>',
+      '<td><b style="color:var(--' + a.zone + ')">' + ZH[a.zone] + '</b></td>',
+      '<td class="dim">' + act + '</td>',
+      '<td class="dim" style="white-space:normal">' + a.why + '</td>']);
+  });
+
+  /* ---------- 四、恒等式 ---------- */
+  var tI = document.getElementById('t-ident');
+  function ident(name, expect, got, good) {
+    if (!good) problems.push('恒等式：' + name + ' 期望 ' + expect + ' 实得 ' + got);
+    row(tI, ['<td>' + name + '</td>', '<td class="dim">' + expect + '</td>', '<td class="n">' + got + '</td>'], good);
+  }
+  var bs33 = S.bluffShare(0.33), bs75 = S.bluffShare(0.75), bs100 = S.bluffShare(1);
+  ident('下注 33% 的诈唬占比 = f/(1+2f)', '19.88%', (bs33 * 100).toFixed(2) + '%', Math.abs(bs33 - 0.33 / 1.66) < 1e-12);
+  ident('下注 75% 的诈唬占比', '30.00%', (bs75 * 100).toFixed(2) + '%', Math.abs(bs75 - 0.3) < 1e-12);
+  ident('下注 100% 的诈唬占比 = 三分之一', '33.33%', (bs100 * 100).toFixed(2) + '%', Math.abs(bs100 - 1 / 3) < 1e-12);
+  ident('面对 33% 的最小防守频率', '75.19%', (S.mdf(0.33) * 100).toFixed(2) + '%', Math.abs(S.mdf(0.33) - 1 / 1.33) < 1e-12);
+  ident('面对 100% 的最小防守频率 = 一半', '50.00%', (S.mdf(1) * 100).toFixed(2) + '%', Math.abs(S.mdf(1) - 0.5) < 1e-12);
+  ident('诈唬区与价值区之比 = b/(1−b)',
+    (bs33 / (1 - bs33)).toFixed(4),
+    (zA.bluffWidthSmall / zA.valueWidth).toFixed(4),
+    Math.abs(zA.bluffWidthSmall / zA.valueWidth - bs33 / (1 - bs33)) < 1e-12);
+  ident('三个分区宽度之和 = 100', '100.00',
+    (zA.bluffTo + (zA.valueFrom - zA.bluffTo) + zA.valueWidth).toFixed(2),
+    Math.abs(zA.bluffTo + (zA.valueFrom - zA.bluffTo) + zA.valueWidth - 100) < 1e-9);
+  ident('防守方三区之和 = 100', '100.00',
+    (zD.foldWidth + (zD.raiseFrom - zD.foldTo) + zD.raiseWidth).toFixed(2),
+    Math.abs(zD.foldWidth + (zD.raiseFrom - zD.foldTo) + zD.raiseWidth - 100) < 1e-9);
+
+  /* ---------- 五、判定 ---------- */
+  var tJ = document.getElementById('t-judge');
+  HANDS.forEach(function (h) {
+    var c = advCache[h[0]];
+    if (!c) return;
+    var jb = S.judge(c.a, 'bet33', 'aggressor');
+    var jc = S.judge(c.a, 'check', 'aggressor');
+    var expectBet = c.a.zone !== 'check';
+    var good = (jb.correct === expectBet || jb.marginal) && (jc.correct === !expectBet || jc.marginal);
+    if (!good) problems.push('判定：' + h[0] + ' 在' + ZH[c.a.zone] + '的判定不自洽');
+    row(tJ, ['<td>' + h[0] + '</td>', '<td class="n">' + c.p.percentile.toFixed(0) + '%</td>',
+      '<td><b style="color:var(--' + c.a.zone + ')">' + ZH[c.a.zone] + '</b></td>',
+      '<td class="' + (jb.correct ? 'ok' : 'no') + '">' + (jb.correct ? (jb.marginal ? '对（贴边）' : '对') : '错') + '</td>',
+      '<td class="' + (jc.correct ? 'ok' : 'no') + '">' + (jc.correct ? (jc.marginal ? '对（贴边）' : '对') : '错') + '</td>',
+      '<td class="dim">' + (c.a.near ? '距边界 5% 以内，两边都算对' : '') + '</td>'], good);
+  });
+
+  /* ---------- 六、尺度 ---------- */
+  var tS = document.getElementById('t-size');
+  Board.STRUCTURES.forEach(function (st) {
+    row(tS, ['<td>' + st + '</td>',
+      '<td class="n">' + S.bigShare(st, '彩虹') + '%</td>',
+      '<td class="n">' + S.bigShare(st, '双色') + '%</td>']);
+  });
+
+  /* ---------- 汇总 ---------- */
+  document.getElementById('f-cases').textContent = pass + ' / ' + cases;
+  var st = document.getElementById('status'), txt = document.getElementById('status-text');
+  if (problems.length) {
+    st.className = 'status bad';
+    document.getElementById('f-check').textContent = problems.length + ' 处待修';
+    txt.innerHTML = '发现 ' + problems.length + ' 处问题：<ul>' +
+      problems.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul>';
+  } else {
+    document.getElementById('f-check').textContent = '全部通过';
+    txt.textContent = cases + ' 条用例全部通过：八条由赔率导出的量精确成立，' +
+      '七手样例牌的分区落点与判定自洽。自由常数只有两个，都写在 src/strategy.js 顶部。';
+  }
+  window.__F5__ = { cases: cases, pass: pass, problems: problems };
+})();
+</script>
