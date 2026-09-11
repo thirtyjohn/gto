@@ -263,6 +263,40 @@
   .mbtn.danger { background: var(--btn-fold); color: #fff; }
   .help h3 { font-size: 16px; margin: 22px 0 6px; }
   .help p { margin: 0 0 10px; color: var(--muted); font-size: 14.5px; }
+
+  /* 分析模式 */
+  .anbox { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; margin-bottom: 14px; }
+  .anhd { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .anhd .lab { margin: 0; }
+  .anhd em { font-style: normal; font-family: var(--f-num); font-size: 11.5px; color: var(--muted); }
+  .slots { display: flex; gap: 6px; }
+  .slot {
+    width: 46px; height: 63px; border-radius: 7px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-weight: 700; line-height: 1;
+    background: #fff; color: #16202b; box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  }
+  .slot.red { color: #c22f26; }
+  .slot .r { font-size: 22px; } .slot .s { font-size: 17px; margin-top: 2px; }
+  .slot.empty { background: #0d2137; border: 1px dashed #2d4a68; color: var(--dim); box-shadow: none; font-size: 22px; font-weight: 400; }
+
+  .picker { position: fixed; inset: 0; z-index: 120; background: rgba(4,12,22,.82); display: flex; align-items: flex-end; }
+  .pickbox { background: var(--bg2); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; padding: 16px 14px calc(18px + env(safe-area-inset-bottom)); width: 100%; }
+  .pickbox h4 { margin: 0 0 12px; font-size: 15px; font-weight: 700; }
+  .pickgrid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; }
+  .pcell {
+    aspect-ratio: 0.72; border-radius: 4px; background: #fff; color: #16202b;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-weight: 700; line-height: 1; font-size: 12px;
+  }
+  .pcell.red { color: #c22f26; }
+  .pcell.used { opacity: .22; }
+  .pcell small { font-size: 9px; }
+
+  .editnote { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+  .gcell.edit { cursor: pointer; }
+  .anlegend { display: flex; gap: 14px; margin-top: 9px; font-size: 12px; color: var(--muted); }
+  .anlegend span { display: flex; align-items: center; gap: 6px; }
+  .anlegend i { width: 11px; height: 11px; border-radius: 2px; }
 </style>
 
 <div id="app">
@@ -275,6 +309,7 @@
     <section id="screen-home" class="screen on"></section>
     <section id="screen-sheet" class="screen"></section>
     <section id="screen-train" class="screen"></section>
+    <section id="screen-analysis" class="screen"></section>
     <section id="screen-result" class="screen"></section>
     <section id="screen-settings" class="screen"></section>
     <section id="screen-help" class="screen"></section>
@@ -2034,7 +2069,7 @@
   /* ---------------- 存储 ---------------- */
   function blank() {
     return {
-      stats: {}, mistakes: [],
+      stats: {}, mistakes: [], custom: {},
       settings: { hands: 20, feedback: 'exam', preset: 'GTO', valueWidth: 50, raiseWidth: 18 }
     };
   }
@@ -2046,9 +2081,28 @@
     return St.mistakesFor(ids, function (id) { return !!BY_ID[id]; });
   }
 
-  /* ---------------- 对手范围预设 ---------------- */
+  /* ---------------- 对手范围：预设与自定义 ----------------
+   * 优先级：自定义 > 预设 > 翻前原始数据。
+   * 自定义存成 169 个格子的频率表，直接拼成 built 结构，不走范围记法。 */
   var presetCache = {};
+
+  function builtFromMap(map) {
+    var grid = {};
+    Range.ALL_HANDS.forEach(function (h) {
+      var f = map[h.key] || 0;
+      grid[h.key] = { raise: 0, call: f, fold: 100 - f };
+    });
+    return { grid: grid };
+  }
+
+  function customKey(ref) { return ref.id; }
+  function hasCustom(ref) {
+    var c = St.data.custom[customKey(ref)];
+    return !!(c && Object.keys(c).length);
+  }
+
   function rangeFor(ref, presetName) {
+    if (hasCustom(ref)) return builtFromMap(St.data.custom[customKey(ref)]);
     var p = OPP_PRESETS[presetName];
     if (!p || !p.ranges || !p.ranges[ref.id]) return PRE[ref.id];
     var ck = presetName + '|' + ref.id;
@@ -2060,10 +2114,22 @@
     }
     return presetCache[ck];
   }
-  // 预设里写的是一条范围字符串，存在 call 槽里，所以取值动作要换
+  // 预设与自定义都写在 call 槽里，所以取值动作要换
   function actionFor(ref, presetName) {
+    if (hasCustom(ref)) return 'call';
     var p = OPP_PRESETS[presetName];
     return (p && p.ranges && p.ranges[ref.id]) ? 'call' : ref.action;
+  }
+
+  // 把当前生效的范围抄成一份可编辑的频率表
+  function snapshotRange(ref) {
+    var b = rangeFor(ref, St.data.settings.preset), a = actionFor(ref, St.data.settings.preset);
+    var map = {};
+    Range.ALL_HANDS.forEach(function (h) {
+      var g = b.grid[h.key];
+      if (g && g[a]) map[h.key] = g[a];
+    });
+    return map;
   }
 
   function heroBuilt(sc) { return PRE[sc.heroRange.id]; }
@@ -2156,9 +2222,11 @@
     var p = E.percentileOf(hole, ladder);
     var bcls = Board.classify(board);
     var opts = { valueWidth: St.data.settings.valueWidth, raiseWidth: St.data.settings.raiseWidth };
-    var adv = sc.role === 'aggressor'
-      ? S.adviseAggressor(p.percentile, bcls, sc.sizes, opts)
-      : S.adviseDefender(p.percentile, sc.facing, opts);
+    // 分析模式里可以摆出不在自己范围内的牌，那时没有分位也就没有建议
+    var adv = !p.inRange ? null
+      : sc.role === 'aggressor'
+        ? S.adviseAggressor(p.percentile, bcls, sc.sizes, opts)
+        : S.adviseDefender(p.percentile, sc.facing, opts);
     return {
       breakdown: bd, equity: eq.equity, stderr: eq.stderr,
       ahead: bd.ahead, delta: eq.equity - bd.ahead,
@@ -2172,7 +2240,7 @@
   var navLeft = document.getElementById('nav-left');
   var navRight = document.getElementById('nav-right');
   var navTitle = document.getElementById('nav-title');
-  var SCREENS = ['home', 'sheet', 'train', 'result', 'settings', 'help'];
+  var SCREENS = ['home', 'sheet', 'train', 'analysis', 'result', 'settings', 'help'];
 
   function show(name, opts) {
     view = { name: name, opts: opts || {} };
@@ -2182,6 +2250,7 @@
     document.getElementById('screen-' + name).scrollTop = 0;
     if (name === 'home') renderHome();
     if (name === 'sheet') renderSheet();
+    if (name === 'analysis') renderAnalysis();
     if (name === 'settings') renderSettings();
     if (name === 'help') renderHelp();
   }
@@ -2227,6 +2296,17 @@
     FLOP_SCENARIOS.forEach(function (s) {
       if (groups.indexOf(s.group) < 0) groups.push(s.group);
     });
+    var anw = el('div', 'grp');
+    var anb = el('button', 'redobar');
+    var anl = el('div');
+    anl.appendChild(el('div', 'redotitle', '分析模式'));
+    anl.appendChild(el('div', 'redosub', '自己摆牌面，改对手范围，不计分'));
+    anb.appendChild(anl);
+    anb.appendChild(el('div', 'redogo', '打开'));
+    anb.onclick = function () { show('analysis'); };
+    anw.appendChild(anb);
+    root.appendChild(anw);
+
     root.appendChild(crossLink('翻前训练器', '起手牌范围，36 个位置场景', '../index.html'));
     groups.forEach(function (g) {
       var sec = el('div', 'grp');
@@ -2785,6 +2865,296 @@
       wrap.appendChild(r);
     });
     return wrap;
+  }
+
+  /* ---------------- 分析模式 ----------------
+   * 不计分，不发牌。自己摆公共牌与底牌，改对手范围，结果立刻重算。 */
+  var an = { scId: FLOP_SCENARIOS[0].id, board: [], hole: [] };
+
+  function renderAnalysis() {
+    var sc = BY_ID[an.scId];
+    setNav('分析模式',
+      { label: '✕', fn: function () { show('home'); } },
+      { label: '随机', fn: function () { randomSpot(); } });
+    navLeft.className = 'icon-btn';
+    navRight.className = 'txt-btn';
+
+    var root = document.getElementById('screen-analysis');
+    clear(root);
+    var w = el('div', 'sheetwrap');
+
+    // 场景选择
+    w.appendChild(el('div', 'lab', '场景'));
+    var chips = el('div', 'chips');
+    FLOP_SCENARIOS.forEach(function (s) {
+      var c = el('button', 'chip' + (s.id === an.scId ? ' on' : ''),
+        s.hero + (s.role === 'aggressor' ? ' 进攻' : ' 防守'));
+      c.onclick = function () {
+        an.scId = s.id; an.hole = []; E.clearCache(); renderAnalysis();
+      };
+      chips.appendChild(c);
+    });
+    w.appendChild(chips);
+    w.appendChild(el('p', 'presetnote', sc.line + '。底池 ' + sc.pot + 'BB。'));
+
+    // 摆牌
+    var box = el('div', 'anbox');
+    var hd = el('div', 'anhd');
+    hd.appendChild(el('div', 'lab', '公共牌'));
+    hd.appendChild(el('em', null, an.board.length === 3
+      ? Board.classify(an.board).structure + ' · ' + Board.classify(an.board).suit : '点空位选牌'));
+    box.appendChild(hd);
+    box.appendChild(slotRow(an.board, 3, 'board'));
+    box.appendChild(el('div', 'lab', '你的底牌'));
+    box.appendChild(slotRow(an.hole, 2, 'hole'));
+    w.appendChild(box);
+
+    // 结果区单独成块，编辑范围时只刷这一块
+    var slot = el('div');
+    slot.id = 'an-result';
+    if (an.board.length === 3 && an.hole.length === 2) slot.appendChild(analysisResult(sc));
+    else slot.appendChild(el('p', 'presetnote', '摆满三张公共牌和两张底牌后，这里会显示完整分解。'));
+    w.appendChild(slot);
+
+    // 范围编辑器
+    var ref = sc.oppRange;
+    var b = rangeFor(ref, St.data.settings.preset), act = actionFor(ref, St.data.settings.preset);
+    var rp = rangePct(b, act);
+    var ehd = el('div', 'anhd');
+    ehd.appendChild(el('div', 'lab', '对手范围　点格子增减'));
+    var meta = el('em', null, rp.pct.toFixed(1) + '% · ' + rp.combos + ' 组合');
+    meta.id = 'an-rangemeta';
+    ehd.appendChild(meta);
+    w.appendChild(ehd);
+
+    var pchips = el('div', 'chips');
+    pchips.id = 'an-presets';
+    renderPresetChips(pchips, ref);
+    w.appendChild(pchips);
+
+    w.appendChild(editableGrid(ref, b, act));
+    var lg = el('div', 'anlegend');
+    [['var(--btn-call)', '跟注 100%'], ['#1c6a4c', '部分频率 50%'], ['#33475c', '弃牌']].forEach(function (p) {
+      var s = el('span');
+      var i = el('i'); i.style.background = p[0];
+      s.appendChild(i); s.appendChild(el('b', null, p[1]));
+      s.lastChild.style.fontWeight = '400';
+      lg.appendChild(s);
+    });
+    w.appendChild(lg);
+    w.appendChild(el('p', 'editnote', '每点一下在弃牌、半频、跟注之间循环。改完上面的胜率与建议立刻重算。'));
+
+    root.appendChild(w);
+  }
+
+  function renderPresetChips(host, ref) {
+    clear(host);
+    Object.keys(OPP_PRESETS).forEach(function (k) {
+      var on = !hasCustom(ref) && St.data.settings.preset === k;
+      var c = el('button', 'chip' + (on ? ' on' : ''), k);
+      c.onclick = function () {
+        delete St.data.custom[customKey(ref)];
+        St.data.settings.preset = k; saveStore(); E.clearCache(); renderAnalysis();
+      };
+      host.appendChild(c);
+    });
+    if (hasCustom(ref)) {
+      var cc = el('button', 'chip on', '自定义 · 点此还原');
+      cc.onclick = function () {
+        delete St.data.custom[customKey(ref)];
+        saveStore(); E.clearCache(); renderAnalysis();
+      };
+      host.appendChild(cc);
+    }
+  }
+
+  function slotRow(arr, n, which) {
+    var row = el('div', 'slots');
+    for (var i = 0; i < n; i++) {
+      (function (idx) {
+        var c = arr[idx];
+        var s;
+        if (c) {
+          s = el('div', 'slot' + (Table.RED[c[1]] ? ' red' : ''));
+          s.appendChild(el('div', 'r', c[0]));
+          s.appendChild(el('div', 's', Table.SUITS[c[1]]));
+        } else {
+          s = el('div', 'slot empty', '+');
+        }
+        s.onclick = function () { openPicker(which, idx); };
+        row.appendChild(s);
+      })(i);
+    }
+    return row;
+  }
+
+  function usedCards() { return an.board.concat(an.hole); }
+
+  function openPicker(which, idx) {
+    var used = usedCards();
+    var cur = (which === 'board' ? an.board : an.hole)[idx];
+    var over = el('div', 'picker');
+    var box = el('div', 'pickbox');
+    box.appendChild(el('h4', null, which === 'board' ? '选一张公共牌' : '选一张底牌'));
+    var grid = el('div', 'pickgrid');
+    'shdc'.split('').forEach(function (su) {
+      'AKQJT98765432'.split('').forEach(function (rk) {
+        var card = rk + su;
+        var taken = used.indexOf(card) >= 0 && card !== cur;
+        var c = el('div', 'pcell' + (Table.RED[su] ? ' red' : '') + (taken ? ' used' : ''));
+        c.appendChild(el('div', null, rk));
+        c.appendChild(el('small', null, Table.SUITS[su]));
+        if (!taken) c.onclick = function () {
+          var arr = which === 'board' ? an.board : an.hole;
+          arr[idx] = card;
+          // 填补空洞，保持数组紧凑
+          var compact = arr.filter(function (x) { return !!x; });
+          if (which === 'board') an.board = compact; else an.hole = compact;
+          document.body.removeChild(over);
+          E.clearCache();
+          renderAnalysis();
+        };
+        grid.appendChild(c);
+      });
+    });
+    box.appendChild(grid);
+    var clr = el('button', 'cta ghost', cur ? '清空这一张' : '取消');
+    clr.onclick = function () {
+      if (cur) {
+        var arr = which === 'board' ? an.board : an.hole;
+        arr.splice(idx, 1);
+        E.clearCache();
+      }
+      document.body.removeChild(over);
+      renderAnalysis();
+    };
+    box.appendChild(clr);
+    over.appendChild(box);
+    over.onclick = function (e) { if (e.target === over) document.body.removeChild(over); };
+    document.body.appendChild(over);
+  }
+
+  function randomSpot() {
+    var sc = BY_ID[an.scId];
+    var d = dealHand(sc);
+    an.hole = d.hole; an.board = d.board;
+    E.clearCache();
+    renderAnalysis();
+  }
+
+  function analysisResult(sc) {
+    var wrap = el('div');
+    var a = analyse(sc, an.board, an.hole);
+    var inRange = a.pct != null;
+
+    var tiles = el('div', 'tiles');
+    [[a.ahead.toFixed(0) + '%', '现在领先', null],
+     [a.equity.toFixed(0) + '%', '算到河牌', null],
+     [inRange ? a.pct.toFixed(0) + '%' : '—', '范围分位',
+      inRange ? ZONE_COLOR[a.advice.zone] : null]].forEach(function (t) {
+      var d = el('div', 'tile');
+      var b = el('b', null, t[0]);
+      if (t[2]) b.style.color = t[2];
+      d.appendChild(b);
+      d.appendChild(el('span', null, t[1]));
+      tiles.appendChild(d);
+    });
+    wrap.appendChild(tiles);
+
+    var meta = el('p', 'presetnote', '对手 ' + Math.round(a.breakdown.total) + ' 个组合　比你强 ' +
+      a.breakdown.behind.toFixed(1) + '%　你的牌：' + a.hand.cls +
+      '　后续 ' + (a.delta >= 0 ? '+' : '') + a.delta.toFixed(0));
+    wrap.appendChild(meta);
+
+    if (!inRange) {
+      wrap.appendChild(el('p', 'editnote', '这手牌不在你这个场景的范围里，所以没有分位与建议。' +
+        '换一手牌，或者在上面切到别的场景。'));
+      return wrap;
+    }
+
+    wrap.appendChild(el('div', 'lab', '建议'));
+    sc.actions.forEach(function (k) {
+      var wt = a.advice.weights[k] || 0;
+      var row = el('div', 'arow');
+      row.appendChild(el('span', 'an', actionLabel(sc, k)));
+      var trk = el('span', 'atrk');
+      var fi = el('i');
+      var col = sc.role === 'aggressor'
+        ? (k === 'bet33' ? 'var(--btn-raise)' : k === 'bet75' ? 'var(--btn-fold)' : 'var(--btn-call)')
+        : (k === 'fold' ? 'var(--fold)' : k === 'call' ? 'var(--btn-call)' : 'var(--btn-fold)');
+      fi.style.cssText = 'width:' + wt + '%;background:' + col;
+      trk.appendChild(fi);
+      row.appendChild(trk);
+      var v = el('span', 'av', wt + '%');
+      if (wt >= 50) v.style.fontWeight = '700'; else v.style.color = 'var(--muted)';
+      row.appendChild(v);
+      wrap.appendChild(row);
+    });
+    wrap.appendChild(el('div', 'reason', reasonText(sc, a)));
+    return wrap;
+  }
+
+  /* 可编辑的 13×13：每点一下在 0、50、100 之间循环。
+   * 点击只改这一格的颜色，不整屏重绘。重算分位阶梯要 350 毫秒，
+   * 连点十几下就会卡死，所以计算延后合并，停手 400 毫秒后只刷结果区。 */
+  var editTimer = null;
+
+  function editableGrid(ref, built, action) {
+    var box = el('div', 'gridbox');
+    var grid = el('div', 'grid');
+    Range.ALL_HANDS.forEach(function (h) {
+      var f = built.grid[h.key] ? built.grid[h.key][action] : 0;
+      var cell = el('div', 'gcell edit', h.key);
+      paintCell(cell, f);
+      cell.onclick = function () {
+        var key = customKey(ref);
+        if (!St.data.custom[key]) St.data.custom[key] = snapshotRange(ref);
+        var cur = St.data.custom[key][h.key] || 0;
+        var next = cur === 0 ? 50 : cur < 100 ? 100 : 0;
+        St.data.custom[key][h.key] = next;
+        paintCell(cell, next);
+        scheduleRecalc();
+      };
+      grid.appendChild(cell);
+    });
+    box.appendChild(grid);
+    return box;
+  }
+
+  function paintCell(cell, f) {
+    cell.classList.toggle('lit', f >= 50);
+    cell.style.background = f === 0 ? '#33475c' : f >= 100 ? 'var(--btn-call)' : '#1c6a4c';
+  }
+
+  function scheduleRecalc() {
+    var meta = document.getElementById('an-rangemeta');
+    if (meta) meta.textContent = '改动中…';
+    if (editTimer) clearTimeout(editTimer);
+    editTimer = setTimeout(function () {
+      editTimer = null;
+      saveStore();
+      E.clearCache();
+      refreshAnalysis();
+    }, 400);
+  }
+
+  // 只重算结果区与范围占比，不动网格，避免编辑时焦点乱跳
+  function refreshAnalysis() {
+    var sc = BY_ID[an.scId];
+    var meta = document.getElementById('an-rangemeta');
+    if (meta) {
+      var ref = sc.oppRange;
+      var rp = rangePct(rangeFor(ref, St.data.settings.preset), actionFor(ref, St.data.settings.preset));
+      meta.textContent = rp.pct.toFixed(1) + '% · ' + rp.combos + ' 组合';
+    }
+    var slot = document.getElementById('an-result');
+    if (!slot) return;
+    clear(slot);
+    if (an.board.length === 3 && an.hole.length === 2) slot.appendChild(analysisResult(sc));
+    else slot.appendChild(el('p', 'presetnote', '摆满三张公共牌和两张底牌后，这里会显示完整分解。'));
+    // 自定义标记可能刚出现，预设那一行要跟着变
+    var pc = document.getElementById('an-presets');
+    if (pc) renderPresetChips(pc, sc.oppRange);
   }
 
   /* ---------------- 设置 ---------------- */

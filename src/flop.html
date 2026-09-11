@@ -263,6 +263,40 @@
   .mbtn.danger { background: var(--btn-fold); color: #fff; }
   .help h3 { font-size: 16px; margin: 22px 0 6px; }
   .help p { margin: 0 0 10px; color: var(--muted); font-size: 14.5px; }
+
+  /* 分析模式 */
+  .anbox { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; margin-bottom: 14px; }
+  .anhd { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .anhd .lab { margin: 0; }
+  .anhd em { font-style: normal; font-family: var(--f-num); font-size: 11.5px; color: var(--muted); }
+  .slots { display: flex; gap: 6px; }
+  .slot {
+    width: 46px; height: 63px; border-radius: 7px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-weight: 700; line-height: 1;
+    background: #fff; color: #16202b; box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  }
+  .slot.red { color: #c22f26; }
+  .slot .r { font-size: 22px; } .slot .s { font-size: 17px; margin-top: 2px; }
+  .slot.empty { background: #0d2137; border: 1px dashed #2d4a68; color: var(--dim); box-shadow: none; font-size: 22px; font-weight: 400; }
+
+  .picker { position: fixed; inset: 0; z-index: 120; background: rgba(4,12,22,.82); display: flex; align-items: flex-end; }
+  .pickbox { background: var(--bg2); border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; padding: 16px 14px calc(18px + env(safe-area-inset-bottom)); width: 100%; }
+  .pickbox h4 { margin: 0 0 12px; font-size: 15px; font-weight: 700; }
+  .pickgrid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; }
+  .pcell {
+    aspect-ratio: 0.72; border-radius: 4px; background: #fff; color: #16202b;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-weight: 700; line-height: 1; font-size: 12px;
+  }
+  .pcell.red { color: #c22f26; }
+  .pcell.used { opacity: .22; }
+  .pcell small { font-size: 9px; }
+
+  .editnote { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+  .gcell.edit { cursor: pointer; }
+  .anlegend { display: flex; gap: 14px; margin-top: 9px; font-size: 12px; color: var(--muted); }
+  .anlegend span { display: flex; align-items: center; gap: 6px; }
+  .anlegend i { width: 11px; height: 11px; border-radius: 2px; }
 </style>
 
 <div id="app">
@@ -275,6 +309,7 @@
     <section id="screen-home" class="screen on"></section>
     <section id="screen-sheet" class="screen"></section>
     <section id="screen-train" class="screen"></section>
+    <section id="screen-analysis" class="screen"></section>
     <section id="screen-result" class="screen"></section>
     <section id="screen-settings" class="screen"></section>
     <section id="screen-help" class="screen"></section>
