@@ -1,0 +1,267 @@
+<title>翻牌圈策略对照表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+  :root {
+    --ground: #eef1ed; --surface: #ffffff; --surface-2: #e6ebe6;
+    --ink: #16211d; --muted: #5f6d66; --line: #d5ddd6;
+    --accent: #0f5348; --accent-soft: #dcece6; --warn: #a8531b;
+    --small: #d9903f; --big: #b8402f; --check: #3f8f5f;
+    --fold: #9aa7a0; --call: #3f8f5f; --raise: #b8402f;
+    --f-display: "Noto Serif SC", Georgia, serif;
+    --f-body: "Noto Sans SC", -apple-system, "PingFang SC", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+      --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+      --accent: #55b69c; --accent-soft: #16302a; --warn: #d98f4c;
+      --small: #d9a05c; --big: #dd6a4c; --check: #5fbc82;
+      --fold: #67766e; --call: #5fbc82; --raise: #dd6a4c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+    --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+    --accent: #55b69c; --accent-soft: #16302a; --warn: #d98f4c;
+    --small: #d9a05c; --big: #dd6a4c; --check: #5fbc82;
+    --fold: #67766e; --call: #5fbc82; --raise: #dd6a4c;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.7; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 36px 20px 80px; }
+
+  header.top { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 24px; }
+  .eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+  h1 { font-family: var(--f-display); font-size: clamp(26px, 4vw, 36px); margin: 0 0 10px; font-weight: 700; }
+  .dek { color: var(--muted); margin: 0 0 18px; max-width: 64ch; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 26px; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+  .facts b { color: var(--ink); font-weight: 500; }
+
+  .status { padding: 12px 16px; margin: 0 0 26px; font-size: 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+  .status.bad { background: var(--surface); border: 1px solid var(--warn); border-left-width: 3px; }
+  .status b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; display: block; margin-bottom: 4px; color: var(--accent); }
+  .status.bad b { color: var(--warn); }
+  .status ul { margin: 8px 0 0; padding-left: 18px; font-family: var(--f-mono); font-size: 12px; }
+
+  .tbl { margin: 0 0 46px; break-inside: avoid; }
+  .tbl h2 { font-family: var(--f-display); font-size: 21px; margin: 0 0 3px; font-weight: 700; }
+  .tbl .meta { font-family: var(--f-mono); font-size: 12px; color: var(--muted); margin: 0 0 14px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--muted); margin: 0 0 12px; }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .legend i { width: 11px; height: 11px; border-radius: 2px; }
+
+  .grid { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); text-align: center; }
+  th:first-child, td:first-child { text-align: left; white-space: nowrap; position: sticky; left: 0; background: var(--surface); z-index: 1; }
+  th { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .04em; color: var(--muted); font-weight: 500; line-height: 1.3; }
+  tbody tr:last-child td { border-bottom: none; }
+  td:last-child, th:last-child { border-right: none; }
+  .hcls { font-weight: 600; font-size: 12.5px; }
+
+  .cell { display: flex; flex-direction: column; gap: 3px; align-items: center; }
+  .sbar { display: flex; width: 68px; height: 9px; border-radius: 2px; overflow: hidden; background: var(--surface-2); }
+  .sbar i { height: 100%; }
+  .nums { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .nums b { color: var(--ink); font-weight: 600; }
+
+  .why { margin: 14px 0 0; }
+  .why div { display: grid; grid-template-columns: 96px 1fr; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .why div:first-child { border-top: none; }
+  .why .k { font-weight: 700; }
+  .why .k small { display: block; font-family: var(--f-mono); font-weight: 400; font-size: 11px; color: var(--muted); }
+  .why .v { color: var(--muted); }
+
+  .note { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 14px 16px; font-size: 14px; margin: 0 0 26px; }
+  .note b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 4px; }
+  .note p:last-child { margin: 0; }
+  .ex { font-family: var(--f-mono); font-size: 12.5px; margin-top: 8px; }
+
+  footer { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 14px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+  @media print { body { background: #fff; } .tbl { page-break-inside: avoid; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">F3 交付物 · 策略对照表</p>
+    <h1>翻牌圈策略对照表</h1>
+    <p class="dek">四张表，每张 7 种牌面结构乘 8 类手牌，共 224 个频率三元组。每一行下面写了为什么是这个形状，你可以逐条判断，不同意哪一格告诉我改哪一格。<strong>这是规则模型不是 solver 输出</strong>，用途是建立正确的思考框架，不是背诵精确值。</p>
+    <div class="facts">
+      <div>表 <b>4 张</b></div>
+      <div>三元组 <b id="f-cells">…</b></div>
+      <div>校验 <b id="f-check">运行中</b></div>
+    </div>
+  </header>
+
+  <div class="status" id="status"><b>数据校验</b><span id="status-text">正在展开…</span></div>
+
+  <div class="note">
+    <b>花色修正</b>
+    <p>同花面已经单独成一类，所以剩下六类只有彩虹与双色两种情况。表里写的是<strong>彩虹面</strong>的频率，双色面由程序修正：把 15 点小注挪到大注，听牌类手牌再从过牌里多拿 10 点下注频率。防守方的表不做修正，因为防守的主要变量是牌面结构而不是听牌数量。</p>
+    <div class="ex" id="mod-example"></div>
+  </div>
+
+  <div id="tables"></div>
+
+  <footer>翻牌圈决策训练器 · F3 策略对照表 · 数据源 data/flop-policy.js</footer>
+</div>
+
+<script>
+<!--@include src/cards.js-->
+</script>
+<script>
+<!--@include src/board.js-->
+</script>
+<script>
+<!--@include data/flop-policy.js-->
+</script>
+<script>
+<!--@include src/policy.js-->
+</script>
+<script>
+(function () {
+  'use strict';
+  var COLOR = {
+    bet33: 'var(--small)', bet75: 'var(--big)', check: 'var(--check)',
+    fold: 'var(--fold)', call: 'var(--call)', raise: 'var(--raise)'
+  };
+
+  var problems = Policy.validate(Cards.CLASSES);
+  var cells = 0;
+  Policy.tables.forEach(function (t) {
+    Object.keys(t.rows).forEach(function () { cells += Cards.CLASSES.length; });
+  });
+  document.getElementById('f-cells').textContent = cells + ' 个';
+
+  var st = document.getElementById('status');
+  var txt = document.getElementById('status-text');
+  if (problems.length) {
+    st.className = 'status bad';
+    document.getElementById('f-check').textContent = problems.length + ' 处待修';
+    txt.innerHTML = '发现 ' + problems.length + ' 处问题：<ul>' +
+      problems.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul>';
+  } else {
+    document.getElementById('f-check').textContent = '全部通过';
+    txt.textContent = cells + ' 个三元组求和均为 100，28 行的均值全部落在预期区间内，理由说明齐全。';
+  }
+
+  function cellNode(freqs, actions) {
+    var wrap = document.createElement('div');
+    wrap.className = 'cell';
+    var bar = document.createElement('div');
+    bar.className = 'sbar';
+    actions.forEach(function (a) {
+      if (!freqs[a]) return;
+      var i = document.createElement('i');
+      i.style.width = freqs[a] + '%';
+      i.style.background = COLOR[a];
+      bar.appendChild(i);
+    });
+    wrap.appendChild(bar);
+    var top = Policy.topAction(freqs, actions);
+    var nums = document.createElement('div');
+    nums.className = 'nums';
+    nums.innerHTML = actions.map(function (a) {
+      return a === top.key ? '<b>' + freqs[a] + '</b>' : freqs[a];
+    }).join('·');
+    wrap.appendChild(nums);
+    return wrap;
+  }
+
+  var root = document.getElementById('tables');
+  Policy.tables.forEach(function (t) {
+    var box = document.createElement('div');
+    box.className = 'tbl';
+
+    var h = document.createElement('h2');
+    h.textContent = t.pot + ' · ' + t.role;
+    box.appendChild(h);
+
+    var meta = document.createElement('p');
+    meta.className = 'meta';
+    meta.textContent = t.id + '　·　' + t.pos +
+      (t.facing ? '　·　' + t.facing : '') +
+      '　·　' + t.actions.map(function (a) { return t.labels[a]; }).join(' / ');
+    box.appendChild(meta);
+
+    var leg = document.createElement('div');
+    leg.className = 'legend';
+    t.actions.forEach(function (a) {
+      var s = document.createElement('span');
+      var i = document.createElement('i');
+      i.style.background = COLOR[a];
+      s.appendChild(i);
+      s.appendChild(document.createTextNode(t.labels[a]));
+      leg.appendChild(s);
+    });
+    var s2 = document.createElement('span');
+    s2.textContent = '每格三个数按上面的顺序，加粗的是最高频动作';
+    leg.appendChild(s2);
+    box.appendChild(leg);
+
+    var wrapT = document.createElement('div');
+    wrapT.className = 'grid';
+    var table = document.createElement('table');
+    var structures = Object.keys(t.rows);
+
+    var thead = document.createElement('thead');
+    var hr = document.createElement('tr');
+    hr.appendChild(document.createElement('th'));
+    structures.forEach(function (stk) {
+      var th = document.createElement('th');
+      th.innerHTML = stk.replace(' ', '<br>');
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    Cards.CLASSES.forEach(function (hc) {
+      var tr = document.createElement('tr');
+      var td0 = document.createElement('td');
+      td0.className = 'hcls';
+      td0.textContent = hc;
+      tr.appendChild(td0);
+      structures.forEach(function (stk) {
+        var td = document.createElement('td');
+        var v = t.rows[stk].hands[hc];
+        var f = {};
+        t.actions.forEach(function (a, i) { f[a] = v[i]; });
+        td.appendChild(cellNode(f, t.actions));
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrapT.appendChild(table);
+    box.appendChild(wrapT);
+
+    var why = document.createElement('div');
+    why.className = 'why';
+    structures.forEach(function (stk) {
+      var row = t.rows[stk];
+      var d = document.createElement('div');
+      d.innerHTML = '<div class="k">' + stk + '<small>' + t.aggName + ' ' +
+        (row._mean != null ? row._mean.toFixed(0) + '%' : '—') + '</small></div>' +
+        '<div class="v">' + row.why + '</div>';
+      why.appendChild(d);
+    });
+    box.appendChild(why);
+    root.appendChild(box);
+  });
+
+  // 花色修正的实例
+  var a = Policy.lookup('srp.aggressor', '连接面', '彩虹', '普通听牌');
+  var b = Policy.lookup('srp.aggressor', '连接面', '双色', '普通听牌');
+  document.getElementById('mod-example').textContent =
+    '例：单加注池进攻方，连接面，普通听牌　彩虹 ' +
+    [a.bet33, a.bet75, a.check].join('·') + '　→　双色 ' +
+    [b.bet33, b.bet75, b.check].join('·');
+
+  window.__F3__ = { cells: cells, problems: problems };
+})();
+</script>

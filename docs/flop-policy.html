@@ -1,0 +1,1001 @@
+<title>翻牌圈策略对照表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+  :root {
+    --ground: #eef1ed; --surface: #ffffff; --surface-2: #e6ebe6;
+    --ink: #16211d; --muted: #5f6d66; --line: #d5ddd6;
+    --accent: #0f5348; --accent-soft: #dcece6; --warn: #a8531b;
+    --small: #d9903f; --big: #b8402f; --check: #3f8f5f;
+    --fold: #9aa7a0; --call: #3f8f5f; --raise: #b8402f;
+    --f-display: "Noto Serif SC", Georgia, serif;
+    --f-body: "Noto Sans SC", -apple-system, "PingFang SC", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+      --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+      --accent: #55b69c; --accent-soft: #16302a; --warn: #d98f4c;
+      --small: #d9a05c; --big: #dd6a4c; --check: #5fbc82;
+      --fold: #67766e; --call: #5fbc82; --raise: #dd6a4c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+    --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+    --accent: #55b69c; --accent-soft: #16302a; --warn: #d98f4c;
+    --small: #d9a05c; --big: #dd6a4c; --check: #5fbc82;
+    --fold: #67766e; --call: #5fbc82; --raise: #dd6a4c;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.7; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 36px 20px 80px; }
+
+  header.top { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 24px; }
+  .eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+  h1 { font-family: var(--f-display); font-size: clamp(26px, 4vw, 36px); margin: 0 0 10px; font-weight: 700; }
+  .dek { color: var(--muted); margin: 0 0 18px; max-width: 64ch; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 26px; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+  .facts b { color: var(--ink); font-weight: 500; }
+
+  .status { padding: 12px 16px; margin: 0 0 26px; font-size: 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+  .status.bad { background: var(--surface); border: 1px solid var(--warn); border-left-width: 3px; }
+  .status b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; display: block; margin-bottom: 4px; color: var(--accent); }
+  .status.bad b { color: var(--warn); }
+  .status ul { margin: 8px 0 0; padding-left: 18px; font-family: var(--f-mono); font-size: 12px; }
+
+  .tbl { margin: 0 0 46px; break-inside: avoid; }
+  .tbl h2 { font-family: var(--f-display); font-size: 21px; margin: 0 0 3px; font-weight: 700; }
+  .tbl .meta { font-family: var(--f-mono); font-size: 12px; color: var(--muted); margin: 0 0 14px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--muted); margin: 0 0 12px; }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .legend i { width: 11px; height: 11px; border-radius: 2px; }
+
+  .grid { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); text-align: center; }
+  th:first-child, td:first-child { text-align: left; white-space: nowrap; position: sticky; left: 0; background: var(--surface); z-index: 1; }
+  th { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .04em; color: var(--muted); font-weight: 500; line-height: 1.3; }
+  tbody tr:last-child td { border-bottom: none; }
+  td:last-child, th:last-child { border-right: none; }
+  .hcls { font-weight: 600; font-size: 12.5px; }
+
+  .cell { display: flex; flex-direction: column; gap: 3px; align-items: center; }
+  .sbar { display: flex; width: 68px; height: 9px; border-radius: 2px; overflow: hidden; background: var(--surface-2); }
+  .sbar i { height: 100%; }
+  .nums { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .nums b { color: var(--ink); font-weight: 600; }
+
+  .why { margin: 14px 0 0; }
+  .why div { display: grid; grid-template-columns: 96px 1fr; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .why div:first-child { border-top: none; }
+  .why .k { font-weight: 700; }
+  .why .k small { display: block; font-family: var(--f-mono); font-weight: 400; font-size: 11px; color: var(--muted); }
+  .why .v { color: var(--muted); }
+
+  .note { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 14px 16px; font-size: 14px; margin: 0 0 26px; }
+  .note b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 4px; }
+  .note p:last-child { margin: 0; }
+  .ex { font-family: var(--f-mono); font-size: 12.5px; margin-top: 8px; }
+
+  footer { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 14px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+  @media print { body { background: #fff; } .tbl { page-break-inside: avoid; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">F3 交付物 · 策略对照表</p>
+    <h1>翻牌圈策略对照表</h1>
+    <p class="dek">四张表，每张 7 种牌面结构乘 8 类手牌，共 224 个频率三元组。每一行下面写了为什么是这个形状，你可以逐条判断，不同意哪一格告诉我改哪一格。<strong>这是规则模型不是 solver 输出</strong>，用途是建立正确的思考框架，不是背诵精确值。</p>
+    <div class="facts">
+      <div>表 <b>4 张</b></div>
+      <div>三元组 <b id="f-cells">…</b></div>
+      <div>校验 <b id="f-check">运行中</b></div>
+    </div>
+  </header>
+
+  <div class="status" id="status"><b>数据校验</b><span id="status-text">正在展开…</span></div>
+
+  <div class="note">
+    <b>花色修正</b>
+    <p>同花面已经单独成一类，所以剩下六类只有彩虹与双色两种情况。表里写的是<strong>彩虹面</strong>的频率，双色面由程序修正：把 15 点小注挪到大注，听牌类手牌再从过牌里多拿 10 点下注频率。防守方的表不做修正，因为防守的主要变量是牌面结构而不是听牌数量。</p>
+    <div class="ex" id="mod-example"></div>
+  </div>
+
+  <div id="tables"></div>
+
+  <footer>翻牌圈决策训练器 · F3 策略对照表 · 数据源 data/flop-policy.js</footer>
+</div>
+
+<script>
+/* 牌力评估与手牌分类。
+ * 输入是 ['As','Kd'] 这种字符串，与 table.js 用的格式一致。
+ * 输出是说明书第 5 节定义的八类之一。
+ */
+(function (global) {
+  'use strict';
+
+  var RANK_CH = '23456789TJQKA';
+  function val(ch) { return RANK_CH.indexOf(ch) + 2; }
+  function rankOf(card) { return val(card[0]); }
+  function suitOf(card) { return card[1]; }
+
+  var CLASSES = [
+    '超强牌', '强顶对及以上', '弱顶对', '中对底对',
+    '强听牌', '普通听牌', '弱牌有潜力', '空气'
+  ];
+
+  function counts(list) {
+    var c = {};
+    list.forEach(function (v) { c[v] = (c[v] || 0) + 1; });
+    return c;
+  }
+
+  function hasStraight(vals) {
+    var set = {};
+    vals.forEach(function (v) { set[v] = 1; if (v === 14) set[1] = 1; });
+    for (var hi = 14; hi >= 5; hi--) {
+      var ok = true;
+      for (var k = 0; k < 5; k++) if (!set[hi - k]) { ok = false; break; }
+      if (ok) return true;
+    }
+    return false;
+  }
+
+  // 还差一张就成顺时，能成顺的点数有几个。两个及以上算两头顺，一个算卡顺。
+  function straightOuts(vals) {
+    var outs = [];
+    for (var r = 2; r <= 14; r++) {
+      if (hasStraight(vals.concat([r]))) outs.push(r);
+    }
+    return outs;
+  }
+
+  // 某个五张窗口里有没有三个不同点数，且至少用到一张底牌
+  function backdoorStraight(holeVals, allVals) {
+    for (var lo = 2; lo <= 10; lo++) {
+      var inWindow = {}, usesHole = false;
+      allVals.forEach(function (v) {
+        var w = v;
+        if (v === 14 && lo === 2) w = 1;                 // A 当 1 用
+        if (w >= (lo === 2 ? 1 : lo) && w <= lo + 4) inWindow[w] = 1;
+      });
+      holeVals.forEach(function (v) {
+        var w = (v === 14 && lo === 2) ? 1 : v;
+        if (w >= (lo === 2 ? 1 : lo) && w <= lo + 4) usesHole = true;
+      });
+      if (Object.keys(inWindow).length >= 3 && usesHole) return true;
+    }
+    return false;
+  }
+
+  /* 返回一份完整的读牌结果，分类只是其中一项，其余字段用于界面解释。 */
+  function read(hole, board) {
+    var hv = hole.map(rankOf), bv = board.map(rankOf);
+    var hs = hole.map(suitOf), bs = board.map(suitOf);
+    var allV = hv.concat(bv), allS = hs.concat(bs);
+    var vc = counts(allV), sc = counts(allS);
+    var boardTop = Math.max.apply(null, bv);
+
+    var flush = false, flushSuit = null, flushDraw = false, backdoorFlush = false;
+    Object.keys(sc).forEach(function (s) {
+      var inHole = hs.indexOf(s) >= 0;
+      if (sc[s] >= 5) { flush = true; flushSuit = s; }
+      else if (sc[s] === 4 && inHole) flushDraw = true;
+      else if (sc[s] === 3 && inHole) backdoorFlush = true;
+    });
+
+    var straight = hasStraight(allV);
+    var outs = straight ? [] : straightOuts(allV);
+    var oesd = outs.length >= 2, gutshot = outs.length === 1;
+
+    // 只认用到底牌的成对，纯牌面对子不算我们的牌力
+    var quads = false, trips = false, pairRanks = [];
+    Object.keys(vc).map(Number).forEach(function (r) {
+      var usesHole = hv.indexOf(r) >= 0;
+      if (vc[r] === 4 && usesHole) quads = true;
+      else if (vc[r] === 3 && usesHole) trips = true;
+      else if (vc[r] === 2) pairRanks.push({ r: r, usesHole: usesHole });
+    });
+    var ourPairs = pairRanks.filter(function (p) { return p.usesHole; });
+    var twoPair = pairRanks.length >= 2 && ourPairs.length >= 1;
+
+    var res = {
+      flush: flush, straight: straight, quads: quads, trips: trips,
+      twoPair: twoPair, flushDraw: flushDraw, backdoorFlush: backdoorFlush,
+      oesd: oesd, gutshot: gutshot, outs: outs.length,
+      boardTop: boardTop, pair: null, kicker: null
+    };
+
+    if (ourPairs.length === 1 && !trips && !quads && !twoPair) {
+      var pr = ourPairs[0].r;
+      var pocket = hv[0] === hv[1];
+      res.pair = { rank: pr, pocket: pocket };
+      if (pocket) {
+        res.pair.kind = pr > boardTop ? '超对' : '低于顶张的口袋对';
+      } else {
+        res.pair.kind = pr === boardTop ? '顶对'
+          : pr === Math.min.apply(null, bv) ? '底对' : '中对';
+        var other = hv[0] === pr ? hv[1] : hv[0];
+        res.kicker = other;
+      }
+    }
+
+    res.overcards = hv[0] > boardTop && hv[1] > boardTop;
+    res.backdoorStraight = !straight && !oesd && !gutshot &&
+      backdoorStraight(hv, allV);
+    res.cls = classOf(res);
+    return res;
+  }
+
+  function classOf(r) {
+    if (r.flush || r.straight || r.quads || r.trips || r.twoPair) return '超强牌';
+
+    if (r.pair) {
+      if (r.pair.kind === '超对') return '强顶对及以上';
+      if (r.pair.kind === '顶对') return r.kicker >= 10 ? '强顶对及以上' : '弱顶对';
+      return '中对底对';
+    }
+
+    var anyDraw = r.flushDraw || r.oesd || r.gutshot;
+    if (r.flushDraw && (r.oesd || r.gutshot)) return '强听牌';
+    if (anyDraw && r.overcards) return '强听牌';
+    if (r.flushDraw || r.oesd) return '普通听牌';
+    if (r.gutshot || r.overcards || (r.backdoorFlush && r.backdoorStraight)) return '弱牌有潜力';
+    return '空气';
+  }
+
+  function classify(hole, board) { return read(hole, board).cls; }
+
+  global.Cards = {
+    RANK_CH: RANK_CH, CLASSES: CLASSES,
+    val: val, rankOf: rankOf, suitOf: suitOf,
+    hasStraight: hasStraight, read: read, classify: classify
+  };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 牌面分类器。判定规则与说明书第 4 节的表格一一对应。 */
+(function (global) {
+  'use strict';
+
+  var val = Cards.val;
+
+  var STRUCTURES = ['配对面', '同花面', '连接面', 'A 高干燥', 'KQ 高干燥', 'JT 高干燥', '低干燥'];
+  var SUITS = ['彩虹', '双色', '单色'];
+
+  function suitAxis(ss) {
+    var u = {};
+    ss.forEach(function (s) { u[s] = (u[s] || 0) + 1; });
+    var counts = Object.keys(u).map(function (k) { return u[k]; });
+    if (counts.indexOf(3) >= 0) return '单色';
+    if (counts.indexOf(2) >= 0) return '双色';
+    return '彩虹';
+  }
+
+  function structureOf(v) {
+    var s = v.slice().sort(function (a, b) { return b - a; });
+    if (s[0] === s[1] || s[1] === s[2]) return '配对面';
+    var span = s[0] - s[2];
+    if (s[0] === 14) {                        // A 可以当 1 用，取更紧的跨度
+      var alt = [1, s[1], s[2]].sort(function (a, b) { return b - a; });
+      span = Math.min(span, alt[0] - alt[2]);
+    }
+    if (span <= 4) return '连接面';
+    if (s[0] === 14) return 'A 高干燥';
+    if (s[0] >= 12) return 'KQ 高干燥';
+    if (s[0] >= 10) return 'JT 高干燥';
+    return '低干燥';
+  }
+
+  function classify(cards) {
+    var v = cards.map(function (c) { return val(c[0]); });
+    var suit = suitAxis(cards.map(function (c) { return c[1]; }));
+    var st = structureOf(v);
+    if (suit === '单色' && st !== '配对面') st = '同花面';
+    return { structure: st, suit: suit };
+  }
+
+  // 完整的 52 张牌
+  var DECK = [];
+  '23456789TJQKA'.split('').forEach(function (r) {
+    'shdc'.split('').forEach(function (s) { DECK.push(r + s); });
+  });
+
+  // 随机发一副翻牌，避开已经在英雄手里的牌
+  function randomFlop(dead) {
+    var pool = DECK.filter(function (c) { return (dead || []).indexOf(c) < 0; });
+    var out = [];
+    while (out.length < 3) {
+      var i = Math.floor(Math.random() * pool.length);
+      out.push(pool.splice(i, 1)[0]);
+    }
+    return out.sort(function (a, b) { return val(b[0]) - val(a[0]); });
+  }
+
+  // 枚举全部 22100 种翻牌，用于分布校验
+  function enumerate(fn) {
+    for (var a = 0; a < 52; a++) {
+      for (var b = a + 1; b < 52; b++) {
+        for (var c = b + 1; c < 52; c++) {
+          fn([DECK[a], DECK[b], DECK[c]]);
+        }
+      }
+    }
+  }
+
+  global.Board = {
+    STRUCTURES: STRUCTURES, SUITS: SUITS, DECK: DECK,
+    classify: classify, randomFlop: randomFlop, enumerate: enumerate
+  };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 翻牌圈策略表 · 规则模型，不是 solver 输出
+ *
+ * 四张表 = 底池类型（单加注池 / 3bet 池）× 视角（进攻方 / 防守方）。
+ * 每张表 7 种牌面结构 × 8 类手牌，共 224 个频率三元组。
+ *
+ * 频率三元组的顺序见每张表的 actions 字段。三个数之和必须等于 100。
+ * expect 是该行"下注率"或"防守率"的预期区间，构建时超出会报警。
+ *
+ * 花色轴不进表：同花面已单独成一类，剩下六类只有彩虹与双色两种，
+ * 双色用程序化修正，规则见文件末尾的 suitMod。
+ */
+(function (global) {
+  'use strict';
+
+  var TABLES = [
+
+    /* ==================================================================
+     * 单加注池 · 进攻方
+     * 翻前你开池，BB 跟注。底池约 5.5BB，你有位置。
+     * 对手范围宽而且封顶：最强的牌翻前就 3bet 走了。
+     * ================================================================== */
+    {
+      id: 'srp.aggressor',
+      pot: '单加注池', role: '进攻方', pos: '有位置',
+      actions: ['bet33', 'bet75', 'check'],
+      labels: { bet33: '下注 33%', bet75: '下注 75%', check: '过牌' },
+      aggKeys: ['bet33', 'bet75'],
+      aggName: '下注率',
+      rows: {
+        'A 高干燥': {
+          why: '范围优势最大的一类面。A 在你的开池范围里远多于对手的跟注范围，' +
+               '而且牌面没有听牌可言，对手很难继续。整条范围高频小注，几乎不用大注。',
+          expect: [62, 85],
+          hands: {
+            '超强牌': [60, 30, 10], '强顶对及以上': [75, 10, 15],
+            '弱顶对': [70, 0, 30], '中对底对': [45, 0, 55],
+            '强听牌': [55, 25, 20], '普通听牌': [60, 10, 30],
+            '弱牌有潜力': [65, 0, 35], '空气': [55, 0, 45]
+          }
+        },
+        'KQ 高干燥': {
+          why: '仍然是你的面。对手跟注范围里的 K 和 Q 比 A 多一些，所以频率略降，' +
+               '大注比例略升，用来在对手确实有顶对时也能收到价值。',
+          expect: [58, 80],
+          hands: {
+            '超强牌': [55, 35, 10], '强顶对及以上': [70, 15, 15],
+            '弱顶对': [65, 0, 35], '中对底对': [40, 0, 60],
+            '强听牌': [50, 30, 20], '普通听牌': [55, 15, 30],
+            '弱牌有潜力': [60, 0, 40], '空气': [50, 0, 50]
+          }
+        },
+        'JT 高干燥': {
+          why: '分界线。J 和 T 在对手的跟注范围里密度明显上升，范围优势收窄，' +
+               '中等牌力开始更多过牌，把没什么摊牌价值的牌留给大注。',
+          expect: [52, 72],
+          hands: {
+            '超强牌': [45, 40, 15], '强顶对及以上': [60, 20, 20],
+            '弱顶对': [55, 0, 45], '中对底对': [35, 0, 65],
+            '强听牌': [45, 35, 20], '普通听牌': [45, 15, 40],
+            '弱牌有潜力': [45, 0, 55], '空气': [40, 0, 60]
+          }
+        },
+        '低干燥': {
+          why: '对手的口袋对和小牌在这类面上击中得更多，但他同样有大量空气。' +
+               '你的超牌本身有摊牌价值，所以小注仍然高频，只是中等牌力更常过牌。',
+          expect: [50, 70],
+          hands: {
+            '超强牌': [50, 30, 20], '强顶对及以上': [55, 20, 25],
+            '弱顶对': [50, 0, 50], '中对底对': [35, 0, 65],
+            '强听牌': [45, 30, 25], '普通听牌': [45, 15, 40],
+            '弱牌有潜力': [50, 0, 50], '空气': [45, 0, 55]
+          }
+        },
+        '连接面': {
+          why: '对手的顺子、两对和听牌密度最高的一类面，你的范围优势最小。' +
+               '策略转为两极化：强牌和强听牌用大注，中等牌力大量过牌控池。',
+          expect: [44, 64],
+          hands: {
+            '超强牌': [25, 60, 15], '强顶对及以上': [35, 30, 35],
+            '弱顶对': [35, 10, 55], '中对底对': [25, 0, 75],
+            '强听牌': [25, 55, 20], '普通听牌': [30, 25, 45],
+            '弱牌有潜力': [30, 5, 65], '空气': [25, 10, 65]
+          }
+        },
+        '配对面': {
+          why: '谁都没击中的面。对手跟注范围里能继续的牌极少，' +
+               '高频小注是标准解，空气的下注频率反而比中等牌力更高。',
+          expect: [56, 78],
+          hands: {
+            '超强牌': [55, 30, 15], '强顶对及以上': [65, 10, 25],
+            '弱顶对': [60, 0, 40], '中对底对': [45, 0, 55],
+            '强听牌': [50, 25, 25], '普通听牌': [55, 10, 35],
+            '弱牌有潜力': [60, 0, 40], '空气': [55, 0, 45]
+          }
+        },
+        '同花面': {
+          why: '三张同花，任何人拿一张该花色都有听牌，范围优势基本消失。' +
+               '整体大幅过牌，成花和坚果同花听用大注，其余控池。',
+          expect: [34, 54],
+          hands: {
+            '超强牌': [25, 45, 30], '强顶对及以上': [35, 15, 50],
+            '弱顶对': [30, 5, 65], '中对底对': [20, 0, 80],
+            '强听牌': [25, 45, 30], '普通听牌': [30, 20, 50],
+            '弱牌有潜力': [25, 5, 70], '空气': [20, 5, 75]
+          }
+        }
+      }
+    },
+
+    /* ==================================================================
+     * 单加注池 · 防守方
+     * 你在 BB 跟注了对手的开池，翻牌面对 33% 底池的持续下注。
+     * 33% 的注只需要约 20% 胜率就能跟，所以防守范围必须很宽。
+     * ================================================================== */
+    {
+      id: 'srp.defender',
+      pot: '单加注池', role: '防守方', pos: '无位置',
+      facing: '对手下注 33% 底池',
+      actions: ['fold', 'call', 'raise'],
+      labels: { fold: '弃牌', call: '跟注', raise: '加注' },
+      aggKeys: ['call', 'raise'],
+      aggName: '防守率',
+      rows: {
+        'A 高干燥': {
+          why: '对手范围优势最大的面，你只能靠弃得够多来保护跟注范围。' +
+               '带 A 的牌几乎不弃，纯空气大量弃牌，加注留给强牌和少量阻断牌。',
+          expect: [70, 90],
+          hands: {
+            '超强牌': [0, 55, 45], '强顶对及以上': [0, 85, 15],
+            '弱顶对': [0, 90, 10], '中对底对': [15, 85, 0],
+            '强听牌': [0, 55, 45], '普通听牌': [5, 80, 15],
+            '弱牌有潜力': [45, 50, 5], '空气': [80, 15, 5]
+          }
+        },
+        'KQ 高干燥': {
+          why: '你的范围里 K 和 Q 比 A 多，能继续的牌更多，弃牌率下调。' +
+               '中对在这类面上几乎不弃，它挡住了对手的价值牌。',
+          expect: [73, 92],
+          hands: {
+            '超强牌': [0, 50, 50], '强顶对及以上': [0, 80, 20],
+            '弱顶对': [0, 90, 10], '中对底对': [10, 90, 0],
+            '强听牌': [0, 50, 50], '普通听牌': [5, 75, 20],
+            '弱牌有潜力': [40, 55, 5], '空气': [75, 20, 5]
+          }
+        },
+        'JT 高干燥': {
+          why: '你的范围开始占优。J 和 T 在 BB 的跟注范围里密度高于对手的开池范围，' +
+               '弃牌率进一步下调，加注频率上调。',
+          expect: [76, 94],
+          hands: {
+            '超强牌': [0, 45, 55], '强顶对及以上': [0, 75, 25],
+            '弱顶对': [0, 85, 15], '中对底对': [5, 95, 0],
+            '强听牌': [0, 45, 55], '普通听牌': [0, 75, 25],
+            '弱牌有潜力': [35, 60, 5], '空气': [70, 25, 5]
+          }
+        },
+        '低干燥': {
+          why: '你的口袋对和小连张在这里击中得最多，而对手大多是超牌。' +
+               '任何一对都值得跟到底，弃牌集中在毫无潜力的高张。',
+          expect: [78, 95],
+          hands: {
+            '超强牌': [0, 45, 55], '强顶对及以上': [0, 75, 25],
+            '弱顶对': [0, 85, 15], '中对底对': [0, 95, 5],
+            '强听牌': [0, 50, 50], '普通听牌': [0, 75, 25],
+            '弱牌有潜力': [30, 65, 5], '空气': [70, 25, 5]
+          }
+        },
+        '连接面': {
+          why: '你的范围里顺子和两对的密度高于对手，是最适合加注的一类面。' +
+               '强牌和强听牌大量加注，把对手的超牌逼出底池。',
+          expect: [73, 92],
+          hands: {
+            '超强牌': [0, 40, 60], '强顶对及以上': [0, 70, 30],
+            '弱顶对': [5, 85, 10], '中对底对': [10, 90, 0],
+            '强听牌': [0, 40, 60], '普通听牌': [0, 70, 30],
+            '弱牌有潜力': [40, 55, 5], '空气': [75, 20, 5]
+          }
+        },
+        '配对面': {
+          why: '双方都很难击中，但对手的下注频率也最高，你不能弃得太多。' +
+               '带牌面那张点数的牌全部继续，其余靠少量诈唬加注平衡。',
+          expect: [68, 88],
+          hands: {
+            '超强牌': [0, 55, 45], '强顶对及以上': [0, 85, 15],
+            '弱顶对': [0, 90, 10], '中对底对': [10, 90, 0],
+            '强听牌': [0, 55, 45], '普通听牌': [5, 80, 15],
+            '弱牌有潜力': [50, 45, 5], '空气': [80, 15, 5]
+          }
+        },
+        '同花面': {
+          why: '对手下注频率最低，所以他下注时范围更强，你该弃得更多。' +
+               '手里有该花色的牌是继续的主要理由，没有花色的中等牌力价值大跌。',
+          expect: [62, 84],
+          hands: {
+            '超强牌': [0, 60, 40], '强顶对及以上': [5, 85, 10],
+            '弱顶对': [10, 85, 5], '中对底对': [20, 80, 0],
+            '强听牌': [0, 60, 40], '普通听牌': [0, 85, 15],
+            '弱牌有潜力': [55, 40, 5], '空气': [85, 10, 5]
+          }
+        }
+      }
+    },
+
+    /* ==================================================================
+     * 3bet 池 · 进攻方
+     * 你在 BB 3bet，对手跟注。底池约 22BB，剩余筹码约 89BB，SPR 只有 4。
+     * 与单加注池最大的不同：底池已经很大，小注就能施加足够压力，
+     * 大注的使用频率明显下降；同时你无位置，中等牌力更需要控池。
+     * ================================================================== */
+    {
+      id: '3bp.aggressor',
+      pot: '3bet 池', role: '进攻方', pos: '无位置',
+      actions: ['bet33', 'bet75', 'check'],
+      labels: { bet33: '下注 33%', bet75: '下注 75%', check: '过牌' },
+      aggKeys: ['bet33', 'bet75'],
+      aggName: '下注率',
+      rows: {
+        'A 高干燥': {
+          why: '你的 3bet 范围里 AK 和 AQ 密度极高，范围优势比单加注池还大。' +
+               '几乎整条范围小注，大注留给极少数需要建池的牌。',
+          expect: [65, 88],
+          hands: {
+            '超强牌': [75, 15, 10], '强顶对及以上': [80, 5, 15],
+            '弱顶对': [70, 0, 30], '中对底对': [50, 0, 50],
+            '强听牌': [65, 15, 20], '普通听牌': [65, 5, 30],
+            '弱牌有潜力': [65, 0, 35], '空气': [50, 0, 50]
+          }
+        },
+        'KQ 高干燥': {
+          why: '同样是你的面，KQ 和 AK 都在你的范围里。' +
+               '底池已大，小注足以让对手的空气无法继续。',
+          expect: [60, 82],
+          hands: {
+            '超强牌': [70, 15, 15], '强顶对及以上': [75, 5, 20],
+            '弱顶对': [65, 0, 35], '中对底对': [45, 0, 55],
+            '强听牌': [60, 15, 25], '普通听牌': [60, 5, 35],
+            '弱牌有潜力': [60, 0, 40], '空气': [45, 0, 55]
+          }
+        },
+        'JT 高干燥': {
+          why: '对手跟 3bet 的范围里同花 JT、QJ 这类牌占比不低，优势收窄。' +
+               '无位置让中等牌力更早放弃主动权。',
+          expect: [52, 74],
+          hands: {
+            '超强牌': [60, 20, 20], '强顶对及以上': [65, 10, 25],
+            '弱顶对': [55, 0, 45], '中对底对': [40, 0, 60],
+            '强听牌': [55, 20, 25], '普通听牌': [50, 10, 40],
+            '弱牌有潜力': [50, 0, 50], '空气': [35, 0, 65]
+          }
+        },
+        '低干燥': {
+          why: '你的大牌没击中，但对手跟 3bet 的范围里小牌同样稀少。' +
+               '超牌加上底池压力足以让小注继续奏效。',
+          expect: [52, 74],
+          hands: {
+            '超强牌': [60, 20, 20], '强顶对及以上': [65, 10, 25],
+            '弱顶对': [55, 0, 45], '中对底对': [40, 0, 60],
+            '强听牌': [55, 20, 25], '普通听牌': [50, 10, 40],
+            '弱牌有潜力': [50, 0, 50], '空气': [40, 0, 60]
+          }
+        },
+        '连接面': {
+          why: 'SPR 低加上无位置，是最难打的组合。中等牌力大量过牌，' +
+               '强牌用大注直接把筹码往中间推，避免被转牌河牌打崩。',
+          expect: [44, 66],
+          hands: {
+            '超强牌': [35, 40, 25], '强顶对及以上': [45, 20, 35],
+            '弱顶对': [35, 5, 60], '中对底对': [30, 0, 70],
+            '强听牌': [35, 40, 25], '普通听牌': [35, 15, 50],
+            '弱牌有潜力': [30, 5, 65], '空气': [25, 5, 70]
+          }
+        },
+        '配对面': {
+          why: '对手跟 3bet 的范围几乎不可能击中低配对面，' +
+               '这是 3bet 池里下注频率最高的一类面之一。',
+          expect: [58, 80],
+          hands: {
+            '超强牌': [70, 15, 15], '强顶对及以上': [70, 5, 25],
+            '弱顶对': [60, 0, 40], '中对底对': [45, 0, 55],
+            '强听牌': [60, 15, 25], '普通听牌': [60, 5, 35],
+            '弱牌有潜力': [60, 0, 40], '空气': [50, 0, 50]
+          }
+        },
+        '同花面': {
+          why: '对手跟 3bet 的范围里同花牌比例高，单色面对他有利。' +
+               '无位置时更要控池，整体大幅过牌。',
+          expect: [34, 56],
+          hands: {
+            '超强牌': [35, 30, 35], '强顶对及以上': [40, 10, 50],
+            '弱顶对': [30, 5, 65], '中对底对': [25, 0, 75],
+            '强听牌': [35, 30, 35], '普通听牌': [35, 15, 50],
+            '弱牌有潜力': [25, 5, 70], '空气': [20, 5, 75]
+          }
+        }
+      }
+    },
+
+    /* ==================================================================
+     * 3bet 池 · 防守方
+     * 你在 BTN 跟了对手的 3bet，翻牌面对 33% 底池的持续下注，你有位置。
+     * 你的范围本身就强：跟 3bet 的牌基本都是大对子和同花大牌。
+     * 有位置让你更愿意跟注而不是加注，把决定权留到转牌。
+     * ================================================================== */
+    {
+      id: '3bp.defender',
+      pot: '3bet 池', role: '防守方', pos: '有位置',
+      facing: '对手下注 33% 底池',
+      actions: ['fold', 'call', 'raise'],
+      labels: { fold: '弃牌', call: '跟注', raise: '加注' },
+      aggKeys: ['call', 'raise'],
+      aggName: '防守率',
+      rows: {
+        'A 高干燥': {
+          why: '对手 3bet 范围里 A 的密度极高，这是他的面。' +
+               '但你跟 3bet 的范围本身很强，加上有位置，防守率仍然很高。',
+          expect: [76, 94],
+          hands: {
+            '超强牌': [0, 55, 45], '强顶对及以上': [0, 85, 15],
+            '弱顶对': [0, 90, 10], '中对底对': [10, 90, 0],
+            '强听牌': [0, 60, 40], '普通听牌': [0, 85, 15],
+            '弱牌有潜力': [35, 60, 5], '空气': [70, 25, 5]
+          }
+        },
+        'KQ 高干燥': {
+          why: '你的范围里 KK、QQ、AK、KQ 同花都在，与对手旗鼓相当。' +
+               '有位置时优先跟注，把加注留给真正的坚果。',
+          expect: [78, 95],
+          hands: {
+            '超强牌': [0, 55, 45], '强顶对及以上': [0, 85, 15],
+            '弱顶对': [0, 90, 10], '中对底对': [5, 95, 0],
+            '强听牌': [0, 60, 40], '普通听牌': [0, 85, 15],
+            '弱牌有潜力': [30, 65, 5], '空气': [65, 30, 5]
+          }
+        },
+        'JT 高干燥': {
+          why: '你的同花连张在这类面上击中得更多，防守率进一步上调。',
+          expect: [80, 96],
+          hands: {
+            '超强牌': [0, 50, 50], '强顶对及以上': [0, 80, 20],
+            '弱顶对': [0, 90, 10], '中对底对': [5, 95, 0],
+            '强听牌': [0, 55, 45], '普通听牌': [0, 80, 20],
+            '弱牌有潜力': [25, 70, 5], '空气': [60, 35, 5]
+          }
+        },
+        '低干燥': {
+          why: '双方都没击中，但你的大对子全部还是超对。' +
+               '这是防守率最高的一类面，几乎只弃掉毫无潜力的高张。',
+          expect: [82, 97],
+          hands: {
+            '超强牌': [0, 50, 50], '强顶对及以上': [0, 80, 20],
+            '弱顶对': [0, 90, 10], '中对底对': [0, 95, 5],
+            '强听牌': [0, 55, 45], '普通听牌': [0, 80, 20],
+            '弱牌有潜力': [25, 70, 5], '空气': [60, 35, 5]
+          }
+        },
+        '连接面': {
+          why: '你的同花连张在这里最有价值，但对手的超对也最难放弃。' +
+               '强听牌高频加注，因为 SPR 低，一次加注就能把筹码推进去。',
+          expect: [74, 93],
+          hands: {
+            '超强牌': [0, 45, 55], '强顶对及以上': [0, 75, 25],
+            '弱顶对': [5, 85, 10], '中对底对': [10, 90, 0],
+            '强听牌': [0, 45, 55], '普通听牌': [0, 75, 25],
+            '弱牌有潜力': [35, 60, 5], '空气': [70, 25, 5]
+          }
+        },
+        '配对面': {
+          why: '对手下注频率极高，你不能因为没击中就大量弃牌。' +
+               '所有口袋对继续，靠少量诈唬加注平衡。',
+          expect: [70, 90],
+          hands: {
+            '超强牌': [0, 55, 45], '强顶对及以上': [0, 85, 15],
+            '弱顶对': [0, 90, 10], '中对底对': [10, 90, 0],
+            '强听牌': [0, 60, 40], '普通听牌': [5, 80, 15],
+            '弱牌有潜力': [45, 50, 5], '空气': [75, 20, 5]
+          }
+        },
+        '同花面': {
+          why: '你的同花大牌在这里变成坚果听牌甚至成花。' +
+               '没有该花色的中等牌力价值大跌，弃牌率是四张表里最高的。',
+          expect: [62, 84],
+          hands: {
+            '超强牌': [0, 60, 40], '强顶对及以上': [5, 85, 10],
+            '弱顶对': [10, 85, 5], '中对底对': [20, 80, 0],
+            '强听牌': [0, 60, 40], '普通听牌': [0, 85, 15],
+            '弱牌有潜力': [50, 45, 5], '空气': [80, 15, 5]
+          }
+        }
+      }
+    }
+  ];
+
+  /* 花色修正：同花面已单独成一类，所以只剩彩虹与双色两种情况。
+   * 双色面上听牌变多，策略向两极化偏移：
+   *   一是把一部分小注挪到大注，牌面越湿越需要收保护费；
+   *   二是听牌类手牌的总下注频率上调，从过牌里拿。
+   * 防守方的表不做花色修正，因为防守的主要变量是牌面结构而非听牌数量。
+   */
+  var SUIT_MOD = {
+    '彩虹': null,
+    '单色': null,
+    '双色': {
+      shiftToBig: 15,
+      drawBonus: 10,
+      drawClasses: ['强听牌', '普通听牌'],
+      note: '把 15 点小注挪到大注；听牌类手牌额外从过牌里拿 10 点下注频率'
+    }
+  };
+
+  global.FLOP_POLICY = { tables: TABLES, suitMod: SUIT_MOD };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 策略查询与校验。
+ * 查询 = 查表 + 花色修正。表在 data/flop-policy.js，修正规则也在那里。
+ */
+(function (global) {
+  'use strict';
+
+  var BY_ID = {};
+  FLOP_POLICY.tables.forEach(function (t) { BY_ID[t.id] = t; });
+
+  function tableOf(id) { return BY_ID[id]; }
+
+  function clamp(v) { return Math.max(0, Math.min(100, v)); }
+
+  // 把三元组归一到和为 100，避免修正后出现 99 或 101
+  function normalize(freqs, actions) {
+    var sum = actions.reduce(function (s, a) { return s + freqs[a]; }, 0);
+    if (sum === 100 || sum === 0) return freqs;
+    var out = {}, acc = 0;
+    actions.forEach(function (a, i) {
+      if (i === actions.length - 1) out[a] = 100 - acc;
+      else { out[a] = Math.round(freqs[a] / sum * 100); acc += out[a]; }
+    });
+    return out;
+  }
+
+  /* 返回 { bet33, bet75, check } 或 { fold, call, raise } */
+  function lookup(tableId, structure, suit, handClass) {
+    var t = tableOf(tableId);
+    if (!t) return null;
+    var row = t.rows[structure];
+    if (!row) return null;
+    var base = row.hands[handClass];
+    if (!base) return null;
+
+    var f = {};
+    t.actions.forEach(function (a, i) { f[a] = base[i]; });
+
+    var mod = FLOP_POLICY.suitMod[suit];
+    // 只有进攻方的表做花色修正，防守方不做
+    if (mod && t.actions[0] === 'bet33') {
+      var shift = Math.min(mod.shiftToBig, f.bet33);
+      f.bet33 -= shift;
+      f.bet75 += shift;
+      if (mod.drawClasses.indexOf(handClass) >= 0) {
+        var bonus = Math.min(mod.drawBonus, f.check);
+        f.check -= bonus;
+        f.bet75 += bonus;
+      }
+      t.actions.forEach(function (a) { f[a] = clamp(f[a]); });
+      f = normalize(f, t.actions);
+    }
+    return f;
+  }
+
+  /* 构建时校验：三元组求和、预期区间、覆盖完整性 */
+  function validate(handClasses) {
+    var problems = [];
+    FLOP_POLICY.tables.forEach(function (t) {
+      Object.keys(t.rows).forEach(function (st) {
+        var row = t.rows[st];
+        var totals = [];
+        handClasses.forEach(function (hc) {
+          var v = row.hands[hc];
+          if (!v) {
+            problems.push(t.id + ' / ' + st + ' 缺少手牌类别「' + hc + '」');
+            return;
+          }
+          var sum = v[0] + v[1] + v[2];
+          if (sum !== 100) {
+            problems.push(t.id + ' / ' + st + ' / ' + hc + ' 三项之和为 ' + sum + '，应为 100');
+          }
+          var agg = t.aggKeys.reduce(function (s, k) {
+            return s + v[t.actions.indexOf(k)];
+          }, 0);
+          totals.push(agg);
+        });
+        if (totals.length) {
+          var mean = totals.reduce(function (a, b) { return a + b; }, 0) / totals.length;
+          if (row.expect && (mean < row.expect[0] || mean > row.expect[1])) {
+            problems.push(t.id + ' / ' + st + ' 的' + t.aggName + '均值 ' + mean.toFixed(1) +
+              '% 落在预期区间 ' + row.expect[0] + '–' + row.expect[1] + '% 之外');
+          }
+          row._mean = mean;
+        }
+        if (!row.why || row.why.length < 20) {
+          problems.push(t.id + ' / ' + st + ' 缺少足够的理由说明');
+        }
+      });
+    });
+    return problems;
+  }
+
+  function topAction(freqs, actions) {
+    var best = null;
+    actions.forEach(function (a) {
+      if (!best || freqs[a] > best.freq) best = { key: a, freq: freqs[a] };
+    });
+    return best;
+  }
+
+  global.Policy = {
+    tables: FLOP_POLICY.tables,
+    tableOf: tableOf,
+    lookup: lookup,
+    validate: validate,
+    topAction: topAction
+  };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+(function () {
+  'use strict';
+  var COLOR = {
+    bet33: 'var(--small)', bet75: 'var(--big)', check: 'var(--check)',
+    fold: 'var(--fold)', call: 'var(--call)', raise: 'var(--raise)'
+  };
+
+  var problems = Policy.validate(Cards.CLASSES);
+  var cells = 0;
+  Policy.tables.forEach(function (t) {
+    Object.keys(t.rows).forEach(function () { cells += Cards.CLASSES.length; });
+  });
+  document.getElementById('f-cells').textContent = cells + ' 个';
+
+  var st = document.getElementById('status');
+  var txt = document.getElementById('status-text');
+  if (problems.length) {
+    st.className = 'status bad';
+    document.getElementById('f-check').textContent = problems.length + ' 处待修';
+    txt.innerHTML = '发现 ' + problems.length + ' 处问题：<ul>' +
+      problems.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul>';
+  } else {
+    document.getElementById('f-check').textContent = '全部通过';
+    txt.textContent = cells + ' 个三元组求和均为 100，28 行的均值全部落在预期区间内，理由说明齐全。';
+  }
+
+  function cellNode(freqs, actions) {
+    var wrap = document.createElement('div');
+    wrap.className = 'cell';
+    var bar = document.createElement('div');
+    bar.className = 'sbar';
+    actions.forEach(function (a) {
+      if (!freqs[a]) return;
+      var i = document.createElement('i');
+      i.style.width = freqs[a] + '%';
+      i.style.background = COLOR[a];
+      bar.appendChild(i);
+    });
+    wrap.appendChild(bar);
+    var top = Policy.topAction(freqs, actions);
+    var nums = document.createElement('div');
+    nums.className = 'nums';
+    nums.innerHTML = actions.map(function (a) {
+      return a === top.key ? '<b>' + freqs[a] + '</b>' : freqs[a];
+    }).join('·');
+    wrap.appendChild(nums);
+    return wrap;
+  }
+
+  var root = document.getElementById('tables');
+  Policy.tables.forEach(function (t) {
+    var box = document.createElement('div');
+    box.className = 'tbl';
+
+    var h = document.createElement('h2');
+    h.textContent = t.pot + ' · ' + t.role;
+    box.appendChild(h);
+
+    var meta = document.createElement('p');
+    meta.className = 'meta';
+    meta.textContent = t.id + '　·　' + t.pos +
+      (t.facing ? '　·　' + t.facing : '') +
+      '　·　' + t.actions.map(function (a) { return t.labels[a]; }).join(' / ');
+    box.appendChild(meta);
+
+    var leg = document.createElement('div');
+    leg.className = 'legend';
+    t.actions.forEach(function (a) {
+      var s = document.createElement('span');
+      var i = document.createElement('i');
+      i.style.background = COLOR[a];
+      s.appendChild(i);
+      s.appendChild(document.createTextNode(t.labels[a]));
+      leg.appendChild(s);
+    });
+    var s2 = document.createElement('span');
+    s2.textContent = '每格三个数按上面的顺序，加粗的是最高频动作';
+    leg.appendChild(s2);
+    box.appendChild(leg);
+
+    var wrapT = document.createElement('div');
+    wrapT.className = 'grid';
+    var table = document.createElement('table');
+    var structures = Object.keys(t.rows);
+
+    var thead = document.createElement('thead');
+    var hr = document.createElement('tr');
+    hr.appendChild(document.createElement('th'));
+    structures.forEach(function (stk) {
+      var th = document.createElement('th');
+      th.innerHTML = stk.replace(' ', '<br>');
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    var tbody = document.createElement('tbody');
+    Cards.CLASSES.forEach(function (hc) {
+      var tr = document.createElement('tr');
+      var td0 = document.createElement('td');
+      td0.className = 'hcls';
+      td0.textContent = hc;
+      tr.appendChild(td0);
+      structures.forEach(function (stk) {
+        var td = document.createElement('td');
+        var v = t.rows[stk].hands[hc];
+        var f = {};
+        t.actions.forEach(function (a, i) { f[a] = v[i]; });
+        td.appendChild(cellNode(f, t.actions));
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrapT.appendChild(table);
+    box.appendChild(wrapT);
+
+    var why = document.createElement('div');
+    why.className = 'why';
+    structures.forEach(function (stk) {
+      var row = t.rows[stk];
+      var d = document.createElement('div');
+      d.innerHTML = '<div class="k">' + stk + '<small>' + t.aggName + ' ' +
+        (row._mean != null ? row._mean.toFixed(0) + '%' : '—') + '</small></div>' +
+        '<div class="v">' + row.why + '</div>';
+      why.appendChild(d);
+    });
+    box.appendChild(why);
+    root.appendChild(box);
+  });
+
+  // 花色修正的实例
+  var a = Policy.lookup('srp.aggressor', '连接面', '彩虹', '普通听牌');
+  var b = Policy.lookup('srp.aggressor', '连接面', '双色', '普通听牌');
+  document.getElementById('mod-example').textContent =
+    '例：单加注池进攻方，连接面，普通听牌　彩虹 ' +
+    [a.bet33, a.bet75, a.check].join('·') + '　→　双色 ' +
+    [b.bet33, b.bet75, b.check].join('·');
+
+  window.__F3__ = { cells: cells, problems: problems };
+})();
+</script>
