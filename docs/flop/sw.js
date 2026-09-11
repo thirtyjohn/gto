@@ -1,5 +1,5 @@
 /* 离线缓存：整个 App 只有几个文件，全部预缓存，之后完全离线可用。 */
-var CACHE = 'gto-preflop-v4';
+var CACHE = 'gto-flop-v1';
 var ASSETS = [
   './',
   './index.html',

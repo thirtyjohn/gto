@@ -1,0 +1,2879 @@
+<title>翻牌圈训练器</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a1626">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root {
+    --bg: #0a1626; --bg2: #0d1d33; --card: #13293f; --card2: #1a3552; --line: #1f3a58;
+    --text: #e9eff6; --muted: #8ba3bd; --dim: #5d7793;
+    --accent: #1f8ba8; --accent2: #2aa9c9;
+    --felt-a: #2f9b63; --felt-b: #14663c;
+    --raise: #e8703a; --call: #2fa877; --fold: #5c7086;
+    --btn-fold: #c0442b; --btn-call: #1f9d63; --btn-raise: #d9911f;
+    --good: #3ecf8e; --bad: #e5533d; --zone-check: #3c4f66;
+    --f: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    --f-num: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); font-family: var(--f);
+    font-size: 16px; line-height: 1.5; overflow: hidden;
+    -webkit-font-smoothing: antialiased; overscroll-behavior: none;
+  }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+
+  #app { height: 100%; display: flex; flex-direction: column; }
+  .topbar {
+    flex: none; display: grid; grid-template-columns: 56px 1fr 56px; align-items: center;
+    padding-top: env(safe-area-inset-top); height: calc(56px + env(safe-area-inset-top));
+    background: var(--bg2); border-bottom: 1px solid var(--line);
+  }
+  .topbar h1 { margin: 0; font-size: 17px; font-weight: 600; text-align: center; letter-spacing: .02em; }
+  .topbar button { height: 44px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  .icon-btn { font-size: 20px; }
+  .txt-btn { font-size: 15px; color: var(--accent2); }
+
+  .screens { flex: 1; position: relative; min-height: 0; }
+  .screen {
+    position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    display: none; padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .screen.on { display: block; }
+
+  /* 首页 */
+  .grp { padding: 22px 16px 4px; }
+  .grp .gh { font-size: 21px; font-weight: 700; }
+  .grp .gs { font-size: 12.5px; color: var(--muted); margin: 3px 0 12px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .poscard { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 12px; text-align: left; width: 100%; }
+  .poscard:active { background: var(--card2); }
+  .poscard.fresh { opacity: .62; }
+  .poscard .pos { font-size: 24px; font-weight: 700; letter-spacing: .02em; }
+  .poscard .sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; min-height: 16px; }
+  .poscard .tot { font-size: 13px; color: var(--muted); margin-top: 12px; font-family: var(--f-num); }
+  .poscard .tally { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-family: var(--f-num); font-size: 15px; }
+  .tally .ok { color: var(--good); } .tally .no { color: var(--bad); } .tally .sep { color: var(--dim); }
+  .pbar { height: 3px; background: var(--card2); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .pbar i { display: block; height: 100%; background: var(--good); }
+
+  .redobar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;
+    background: linear-gradient(135deg, #1d3a4f, #16304a);
+    border: 1px solid var(--accent); border-radius: 12px; padding: 14px 16px; text-align: left;
+  }
+  .redotitle { font-size: 17px; font-weight: 700; }
+  .redosub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .redogo { flex: none; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; padding: 9px 14px; border-radius: 9px; }
+  .crosslink {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 13px 16px; text-decoration: none; color: inherit;
+  }
+  .crosslink:active { background: var(--card2); }
+
+  /* 场景面 */
+  .sheetwrap { padding: 16px 16px 0; }
+  .facing { font-size: 13.5px; color: var(--muted); margin: 0 0 12px; }
+  .tally-row { display: flex; align-items: center; gap: 10px; font-family: var(--f-num); font-size: 15px; margin: 0 0 16px; color: var(--muted); }
+  .rangepair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+  .rghd { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+  .rghd b { font-size: 14px; }
+  .rghd span { font-family: var(--f-num); font-size: 11.5px; color: var(--muted); }
+  .rgft { font-family: var(--f-num); font-size: 11px; color: var(--dim); margin-top: 5px; }
+  .presetnote { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+
+  .lab { font-family: var(--f-num); font-size: 11px; letter-spacing: .12em; color: var(--accent2); margin: 18px 0 8px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { padding: 7px 14px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+  .gridbox { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 5px; }
+  .grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 1px; }
+  .gcell {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-family: var(--f-num); font-size: 7px; font-weight: 600; letter-spacing: -.04em;
+    background: #33475c; color: #9fb3c6; border-radius: 1px; overflow: hidden;
+  }
+  .gcell.lit { color: #fff; }
+
+  .cta {
+    display: block; width: 100%; padding: 16px; border-radius: 12px; background: var(--accent);
+    color: #fff; font-size: 17px; font-weight: 600; margin: 18px 0 8px; letter-spacing: .02em;
+  }
+  .cta:active { background: #1a7590; }
+  .cta.ghost { background: none; border: 1.5px solid var(--accent); color: var(--accent2); }
+
+  /* 牌桌 */
+  #screen-train { display: none; flex-direction: column; padding-bottom: 0; overflow: hidden; }
+  #screen-train.on { display: flex; }
+  .trainhead { flex: none; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px 4px; }
+  .counter { font-family: var(--f-num); font-size: 20px; font-weight: 700; }
+  .tablebox { flex: 1; min-height: 0; overflow: hidden; padding: 2px 10px 6px; display: flex; align-items: center; justify-content: center; }
+  .felt {
+    position: relative; flex: none; --u: 4px;
+    background: radial-gradient(ellipse at 50% 40%, var(--felt-a), var(--felt-b) 78%);
+    border-radius: 44% / 28%;
+    box-shadow: inset 0 0 0 calc(.7 * var(--u)) rgba(255,255,255,.12), 0 12px 30px rgba(0,0,0,.45);
+  }
+  .felt::after {
+    content: ''; position: absolute; inset: calc(5 * var(--u)) calc(7 * var(--u));
+    border: 1px solid rgba(255,255,255,.12); border-radius: 44% / 28%; pointer-events: none;
+  }
+  .seat { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; z-index: 2; }
+  .seat .badge {
+    width: calc(14.5 * var(--u)); height: calc(14.5 * var(--u)); border-radius: 50%; flex: none;
+    background: #0d2137; border: calc(.55 * var(--u)) solid rgba(255,255,255,.88);
+    display: flex; align-items: center; justify-content: center;
+    font-size: calc(5.2 * var(--u)); font-weight: 700; z-index: 2;
+  }
+  .seat .stack {
+    background: #12314d; border: calc(.5 * var(--u)) solid rgba(255,255,255,.82);
+    border-radius: calc(2 * var(--u));
+    padding: calc(1.5 * var(--u)) calc(2.6 * var(--u)) calc(1.5 * var(--u)) calc(4.6 * var(--u));
+    margin-left: calc(-3.4 * var(--u));
+    font-family: var(--f-num); font-size: calc(4.8 * var(--u)); white-space: nowrap;
+  }
+  .seat.folded { opacity: .3; }
+  .seat.hero .badge { border-color: #fff; box-shadow: 0 0 calc(3 * var(--u)) rgba(255,255,255,.5); }
+  .bet {
+    position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center;
+    gap: calc(1.5 * var(--u)); background: rgba(6,32,20,.88); border-radius: 999px;
+    padding: calc(.9 * var(--u)) calc(2.8 * var(--u)) calc(.9 * var(--u)) calc(1.1 * var(--u));
+    font-family: var(--f-num); font-size: calc(4.5 * var(--u)); white-space: nowrap; z-index: 3;
+  }
+  .bet b { width: calc(3.8 * var(--u)); height: calc(3.8 * var(--u)); border-radius: 50%; flex: none; background: #d8443a; border: calc(.5 * var(--u)) solid #fff; }
+  .dealer {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: calc(6 * var(--u)); height: calc(6 * var(--u)); border-radius: 50%;
+    background: #fff; color: #123; font-size: calc(3.2 * var(--u)); font-weight: 800;
+    display: flex; align-items: center; justify-content: center; z-index: 3;
+  }
+  .dealer.r { left: calc(100% + 1.6 * var(--u)); }
+  .dealer.l { right: calc(100% + 1.6 * var(--u)); }
+  .pot { position: absolute; left: 50%; top: 58%; transform: translate(-50%, -50%); text-align: center; }
+  .pot small { display: block; font-size: calc(3.4 * var(--u)); color: rgba(255,255,255,.82); }
+  .pot span { display: inline-block; margin-top: calc(.8 * var(--u)); background: rgba(6,40,24,.8); border-radius: 999px; padding: calc(.9 * var(--u)) calc(3.5 * var(--u)); font-family: var(--f-num); font-size: calc(5.2 * var(--u)); font-weight: 600; }
+  .board { position: absolute; left: 50%; top: 37%; transform: translate(-50%, -50%); display: flex; gap: calc(1.5 * var(--u)); z-index: 3; }
+  .bcard {
+    width: calc(15 * var(--u)); aspect-ratio: 0.73; background: #fff; border-radius: calc(1.5 * var(--u)); color: #16202b;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-weight: 700; line-height: 1; box-shadow: 0 calc(.6 * var(--u)) calc(2 * var(--u)) rgba(0,0,0,.38);
+  }
+  .bcard .r { font-size: calc(7.6 * var(--u)); } .bcard .s { font-size: calc(5.6 * var(--u)); margin-top: 2px; }
+  .bcard.red, .pcard.red, .mcard.red { color: #c22f26; }
+  .hole { position: absolute; left: 50%; bottom: 17%; transform: translate(-50%, 0); display: flex; gap: calc(1 * var(--u)); z-index: 4; }
+  .pcard {
+    width: calc(16.5 * var(--u)); aspect-ratio: 0.73; background: #fff; border-radius: calc(1.5 * var(--u)); color: #16202b;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-weight: 700; line-height: 1; box-shadow: 0 calc(.8 * var(--u)) calc(2.5 * var(--u)) rgba(0,0,0,.45);
+  }
+  .pcard .r { font-size: calc(8.4 * var(--u)); } .pcard .s { font-size: calc(6.2 * var(--u)); margin-top: 2px; }
+
+  .actions {
+    flex: none; position: relative; z-index: 5;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px;
+    padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+  }
+  .act { padding: 18px 4px; border-radius: 12px; font-size: 16px; font-weight: 700; color: #fff; letter-spacing: .01em; }
+  .act.fold { background: var(--btn-fold); } .act.call { background: var(--btn-call); } .act.raise { background: var(--btn-raise); }
+  .act:active { filter: brightness(1.18); }
+
+  .rangeover { position: absolute; inset: 0; background: rgba(8,20,34,.97); z-index: 30; padding: 16px; overflow-y: auto; }
+
+  /* 揭示面板 */
+  .scrim { position: absolute; inset: 0; background: rgba(4,12,22,.55); z-index: 10; }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; top: 96px; z-index: 11;
+    background: var(--bg); border-top: 1px solid var(--line); border-radius: 18px 18px 0 0;
+    display: flex; flex-direction: column; box-shadow: 0 -12px 30px rgba(0,0,0,.5);
+  }
+  .revhd { flex: none; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .verdict { font-size: 19px; font-weight: 700; }
+  .chosen { font-family: var(--f-num); font-size: 13px; color: var(--muted); }
+  .revbody { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 16px; }
+  .revbody .lab:first-child { margin-top: 14px; }
+  .revfoot { flex: none; padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
+  .revfoot .cta { margin: 0; padding: 15px; }
+
+  .split { display: flex; height: 12px; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+  .split i { display: block; height: 100%; }
+  .splitlab { display: flex; justify-content: space-between; font-family: var(--f-num); font-size: 12px; margin-bottom: 10px; }
+  .brow { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .bn { width: 52px; font-size: 12.5px; color: var(--muted); }
+  .btrk { flex: 1; height: 7px; background: var(--line); border-radius: 2px; position: relative; }
+  .btrk i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; }
+  .bv { width: 66px; text-align: right; font-family: var(--f-num); font-size: 12.5px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 11px 8px; text-align: center; }
+  .tile b { font-family: var(--f-num); font-size: 22px; font-weight: 700; display: block; }
+  .tile span { font-size: 11.5px; color: var(--muted); margin-top: 2px; display: block; }
+
+  .pctbar { display: flex; height: 26px; border-radius: 5px; overflow: hidden; }
+  .pctbar i { display: block; height: 100%; }
+  .mk { position: relative; height: 14px; }
+  .mk i { position: absolute; top: 0; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 7px solid var(--text); }
+  .zlab { display: flex; justify-content: space-between; font-family: var(--f-num); font-size: 11.5px; color: var(--muted); margin-top: -2px; }
+  .zoneline { font-size: 14px; margin: 10px 0 0; }
+  .zoneline b { font-family: var(--f-num); font-size: 17px; }
+
+  .arow { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+  .an { width: 92px; font-size: 13.5px; }
+  .atrk { flex: 1; height: 20px; background: var(--card); border-radius: 4px; position: relative; }
+  .atrk i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+  .av { width: 42px; text-align: right; font-family: var(--f-num); font-size: 15px; }
+  .reason { background: var(--card); border-left: 3px solid var(--accent2); border-radius: 0 8px 8px 0; padding: 11px 13px; margin-top: 12px; font-size: 14px; line-height: 1.65; color: #c3d2e0; }
+
+  /* 结算 */
+  .resulthead { padding: 40px 20px 24px; text-align: center; }
+  .score { font-size: 58px; font-weight: 800; font-family: var(--f-num); letter-spacing: -.02em; }
+  .rating { font-size: 21px; font-weight: 700; margin-top: 4px; }
+  .submeta { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .rlist { padding: 0 16px; }
+  .rlist h3 { display: flex; align-items: center; gap: 9px; font-size: 16px; margin: 26px 0 10px; letter-spacing: .06em; }
+  .rrow { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .mini { display: flex; gap: 3px; flex: none; }
+  .mini.bd { opacity: .72; }
+  .mcard { width: 28px; height: 38px; background: #fff; border-radius: 4px; color: #16202b; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; line-height: 1; }
+  .mcard .r { font-size: 14px; } .mcard .s { font-size: 11px; }
+  .mcard.sm { width: 21px; height: 29px; }
+  .mcard.sm .r { font-size: 11px; } .mcard.sm .s { font-size: 9px; }
+  .rinfo { flex: 1; min-width: 0; }
+  .rgto { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-family: var(--f-num); }
+  .dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+  .rmine { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* 通用 */
+  .pad { padding: 18px 16px; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .labx { font-size: 15px; }
+  .hint { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .seg { display: flex; background: var(--card); border-radius: 9px; padding: 3px; flex: none; }
+  .seg button { padding: 7px 11px; border-radius: 7px; font-size: 13.5px; color: var(--muted); }
+  .seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+  .modal { position: fixed; inset: 0; z-index: 100; padding: 28px; display: flex; align-items: center; justify-content: center; background: rgba(4,12,22,.74); }
+  .modalbox { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; width: 100%; max-width: 320px; }
+  .modalbox p { margin: 0 0 18px; font-size: 15px; }
+  .modalrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mbtn { padding: 13px; border-radius: 9px; background: var(--card2); font-size: 15px; font-weight: 600; }
+  .mbtn.danger { background: var(--btn-fold); color: #fff; }
+  .help h3 { font-size: 16px; margin: 22px 0 6px; }
+  .help p { margin: 0 0 10px; color: var(--muted); font-size: 14.5px; }
+</style>
+
+<div id="app">
+  <header class="topbar">
+    <button id="nav-left" class="icon-btn" aria-label="返回"></button>
+    <h1 id="nav-title">翻牌圈</h1>
+    <button id="nav-right" class="txt-btn"></button>
+  </header>
+  <div class="screens">
+    <section id="screen-home" class="screen on"></section>
+    <section id="screen-sheet" class="screen"></section>
+    <section id="screen-train" class="screen"></section>
+    <section id="screen-result" class="screen"></section>
+    <section id="screen-settings" class="screen"></section>
+    <section id="screen-help" class="screen"></section>
+  </div>
+</div>
+
+<script>
+/* 通用界面与存储原语，翻前与翻后两个应用共用。 */
+(function (global) {
+  'use strict';
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+  function rand(n) { return Math.floor(Math.random() * n); }
+  function shuffled(a) {
+    var c = a.slice();
+    for (var i = c.length - 1; i > 0; i--) {
+      var j = rand(i + 1); var t = c[i]; c[i] = c[j]; c[j] = t;
+    }
+    return c;
+  }
+  function num(x) { return (Math.round(x * 10) / 10).toString(); }
+
+  // 自建确认框：Artifact 的 iframe 沙箱会拦掉 window.confirm
+  function ask(msg, onYes) {
+    var over = el('div', 'modal');
+    var box = el('div', 'modalbox');
+    box.appendChild(el('p', null, msg));
+    var row = el('div', 'modalrow');
+    var no = el('button', 'mbtn', '取消');
+    var yes = el('button', 'mbtn danger', '确定');
+    var close = function () { if (over.parentNode) document.body.removeChild(over); };
+    no.onclick = close;
+    yes.onclick = function () { close(); onYes(); };
+    over.onclick = function (e) { if (e.target === over) close(); };
+    row.appendChild(no); row.appendChild(yes);
+    box.appendChild(row); over.appendChild(box);
+    document.body.appendChild(over);
+  }
+
+  // 个人错误热力图的着色：练过的格子按错误率，没练过的留空
+  function heatFill(rec) {
+    if (!rec || !rec.n) return '#243347';
+    var err = 1 - rec.correct / rec.n;
+    if (err <= 0) return 'rgba(47,168,119,.5)';
+    return 'rgba(229,83,61,' + (0.3 + err * 0.6).toFixed(2) + ')';
+  }
+
+  /* 本机存储：统计、错题本、设置。两个应用各用各的 key。 */
+  function createStore(key, blankFn) {
+    var data = read();
+
+    function read() {
+      try {
+        var raw = JSON.parse(localStorage.getItem(key));
+        if (!raw || !raw.settings) return blankFn();
+        var b = blankFn();
+        raw.stats = raw.stats || {};
+        raw.mistakes = raw.mistakes || [];
+        for (var k in b.settings) if (raw.settings[k] == null) raw.settings[k] = b.settings[k];
+        return raw;
+      } catch (e) { return blankFn(); }
+    }
+
+    function findMistake(id, hand) {
+      for (var i = 0; i < data.mistakes.length; i++) {
+        var m = data.mistakes[i];
+        if (m.id === id && m.key === hand) return i;
+      }
+      return -1;
+    }
+
+    var api = {
+      get data() { return data; },
+      save: function () {
+        try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
+      },
+      reset: function () { data = blankFn(); api.save(); },
+      statOf: function (id) {
+        if (!data.stats[id]) data.stats[id] = { hands: 0, correct: 0, wrong: 0, byHand: {} };
+        return data.stats[id];
+      },
+      aggregate: function (ids) {
+        var t = { hands: 0, correct: 0, wrong: 0 };
+        ids.forEach(function (id) {
+          var s = data.stats[id];
+          if (!s) return;
+          t.hands += s.hands; t.correct += s.correct; t.wrong += s.wrong;
+        });
+        return t;
+      },
+      // 同一手牌只留一条，答错重新计数，连续答对两次移出
+      noteMistake: function (id, hand, chose) {
+        var i = findMistake(id, hand);
+        if (i >= 0) {
+          data.mistakes[i].cleared = 0;
+          data.mistakes[i].chose = chose;
+          data.mistakes[i].ts = Date.now();
+          return;
+        }
+        data.mistakes.push({ id: id, key: hand, chose: chose, ts: Date.now(), cleared: 0 });
+        if (data.mistakes.length > 300) data.mistakes.shift();
+      },
+      clearMistake: function (id, hand) {
+        var i = findMistake(id, hand);
+        if (i < 0) return;
+        data.mistakes[i].cleared = (data.mistakes[i].cleared || 0) + 1;
+        if (data.mistakes[i].cleared >= 2) data.mistakes.splice(i, 1);
+      },
+      mistakesFor: function (ids, valid) {
+        return data.mistakes.filter(function (m) {
+          return ids.indexOf(m.id) >= 0 && (!valid || valid(m.id));
+        });
+      }
+    };
+    return api;
+  }
+
+  global.UI = {
+    el: el, clear: clear, rand: rand, shuffled: shuffled, num: num,
+    ask: ask, heatFill: heatFill, createStore: createStore
+  };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 范围记法解析器
+ * 把 "TT+, AQs+, A5s:75, K9s-K5s, AKo" 这样的字符串展开成 169 手牌的频率表。
+ * 记法：
+ *   77+        对子 77 到 AA
+ *   22-66      对子区间（写成 66-22 也可）
+ *   A8s+       A8s 到 AKs
+ *   K9s-K5s    同一张高牌的连续区间
+ *   AKo        单个手牌
+ *   任意 token 后加 :50 表示该动作频率 50%，省略为 100%
+ */
+(function (global) {
+  'use strict';
+
+  var RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+  var RIDX = {};
+  for (var r = 0; r < RANKS.length; r++) RIDX[RANKS[r]] = r;
+
+  // i = 高位牌索引，j = 低位牌索引；i<j 同花，i>j 非同花，i===j 对子
+  function handKey(i, j) {
+    if (i === j) return RANKS[i] + RANKS[j];
+    if (i < j) return RANKS[i] + RANKS[j] + 's';
+    return RANKS[j] + RANKS[i] + 'o';
+  }
+
+  function comboCount(i, j) {
+    return i === j ? 6 : (i < j ? 4 : 12);
+  }
+
+  // 169 个格子，按 13x13 行列顺序
+  var ALL_HANDS = [];
+  for (var a = 0; a < 13; a++) {
+    for (var b = 0; b < 13; b++) {
+      ALL_HANDS.push({ i: a, j: b, key: handKey(a, b), combos: comboCount(a, b) });
+    }
+  }
+  var COMBO_BY_KEY = {};
+  ALL_HANDS.forEach(function (h) { COMBO_BY_KEY[h.key] = h.combos; });
+
+  var TOTAL_COMBOS = 1326;
+
+  function parseHand(txt) {
+    var m = /^([AKQJT98765432])([AKQJT98765432])(s|o)?$/.exec(txt);
+    if (!m) return null;
+    var hi = RIDX[m[1]], lo = RIDX[m[2]], suit = m[3];
+    if (hi === lo) return suit ? null : { type: 'pair', hi: hi, lo: lo };
+    if (!suit) return null;
+    if (hi > lo) { var t = hi; hi = lo; lo = t; }   // 允许写成 KAs
+    return { type: suit === 's' ? 'suited' : 'offsuit', hi: hi, lo: lo };
+  }
+
+  function keyOf(h) {
+    if (h.type === 'pair') return RANKS[h.hi] + RANKS[h.hi];
+    return RANKS[h.hi] + RANKS[h.lo] + (h.type === 'suited' ? 's' : 'o');
+  }
+
+  function expandToken(token, errors) {
+    var freq = 100;
+    var body = token;
+    var ci = token.indexOf(':');
+    if (ci >= 0) {
+      body = token.slice(0, ci).trim();
+      freq = Number(token.slice(ci + 1).trim());
+      if (!isFinite(freq) || freq < 0 || freq > 100) {
+        errors.push('频率不合法：' + token);
+        return [];
+      }
+    }
+
+    var out = [];
+    var plus = false;
+    if (body.slice(-1) === '+') { plus = true; body = body.slice(0, -1).trim(); }
+
+    if (body.indexOf('-') > 0) {
+      var parts = body.split('-');
+      if (parts.length !== 2) { errors.push('区间格式错误：' + token); return []; }
+      var lhs = parseHand(parts[0].trim()), rhs = parseHand(parts[1].trim());
+      if (!lhs || !rhs) { errors.push('无法识别的手牌：' + token); return []; }
+      if (lhs.type !== rhs.type) { errors.push('区间两端类型不一致：' + token); return []; }
+      if (lhs.type === 'pair') {
+        var p1 = Math.min(lhs.hi, rhs.hi), p2 = Math.max(lhs.hi, rhs.hi);
+        for (var p = p1; p <= p2; p++) out.push(RANKS[p] + RANKS[p]);
+      } else {
+        if (lhs.hi !== rhs.hi) { errors.push('区间高位牌不一致：' + token); return []; }
+        var l1 = Math.min(lhs.lo, rhs.lo), l2 = Math.max(lhs.lo, rhs.lo);
+        for (var l = l1; l <= l2; l++) {
+          out.push(RANKS[lhs.hi] + RANKS[l] + (lhs.type === 'suited' ? 's' : 'o'));
+        }
+      }
+    } else {
+      var h = parseHand(body);
+      if (!h) { errors.push('无法识别的手牌：' + token); return []; }
+      if (plus) {
+        if (h.type === 'pair') {
+          for (var q = h.hi; q >= 0; q--) out.push(RANKS[q] + RANKS[q]);
+        } else {
+          for (var k = h.lo; k > h.hi; k--) {
+            out.push(RANKS[h.hi] + RANKS[k] + (h.type === 'suited' ? 's' : 'o'));
+          }
+        }
+      } else {
+        out.push(keyOf(h));
+      }
+    }
+    return out.map(function (key) { return { key: key, freq: freq }; });
+  }
+
+  function parseRange(str, errors) {
+    var map = {};
+    if (!str) return map;
+    str.split(',').forEach(function (raw) {
+      var token = raw.trim();
+      if (!token) return;
+      expandToken(token, errors).forEach(function (e) {
+        if (!(e.key in COMBO_BY_KEY)) { errors.push('不存在的手牌：' + e.key); return; }
+        if (map[e.key] != null && map[e.key] !== e.freq) {
+          errors.push('手牌 ' + e.key + ' 在同一动作里被赋了两次频率');
+        }
+        map[e.key] = e.freq;
+      });
+    });
+    return map;
+  }
+
+  // 把一个场景展开成完整网格 + 统计
+  function buildScenario(sc) {
+    var errors = [];
+    var raise = parseRange(sc.ranges.raise, errors);
+    var call = parseRange(sc.ranges.call, errors);
+    var noFold = !!sc.noFold;
+
+    var grid = {};
+    var w = { raise: 0, call: 0 };
+
+    ALL_HANDS.forEach(function (h) {
+      var rf = raise[h.key] || 0;
+      var cf = call[h.key] || 0;
+      if (rf + cf > 100) {
+        errors.push('手牌 ' + h.key + ' 频率合计 ' + (rf + cf) + '% 超过 100%');
+        cf = Math.max(0, 100 - rf);
+      }
+      var last = noFold ? 100 - rf - cf : 100 - rf - cf;
+      grid[h.key] = { raise: rf, call: cf, fold: last };
+      w.raise += h.combos * rf / 100;
+      w.call += h.combos * cf / 100;
+    });
+
+    var pctRaise = w.raise / TOTAL_COMBOS * 100;
+    var pctCall = w.call / TOTAL_COMBOS * 100;
+
+    if (sc.expect) {
+      var total = pctRaise + pctCall;
+      if (total < sc.expect[0] || total > sc.expect[1]) {
+        errors.push('入池率 ' + total.toFixed(1) + '% 落在预期区间 ' +
+          sc.expect[0] + '–' + sc.expect[1] + '% 之外');
+      }
+    }
+
+    return {
+      scenario: sc,
+      grid: grid,
+      pct: { raise: pctRaise, call: pctCall, total: pctRaise + pctCall },
+      combos: { raise: w.raise, call: w.call },
+      errors: errors
+    };
+  }
+
+  function buildAll(scenarios) {
+    return scenarios.map(buildScenario);
+  }
+
+  // 按组合数加权抽一手牌；weighting = 'combo' | 'flat'
+  // focus 为真时，纯弃牌区只占 40%，避免整局都在按 Fold
+  function dealHand(built, opts) {
+    opts = opts || {};
+    var pool = [];
+    var foldOnly = [];
+    ALL_HANDS.forEach(function (h) {
+      var g = built.grid[h.key];
+      var wgt = opts.weighting === 'flat' ? 1 : h.combos;
+      var entry = { key: h.key, w: wgt };
+      if (g.raise === 0 && g.call === 0) foldOnly.push(entry); else pool.push(entry);
+    });
+    var useFold = opts.focus === false
+      ? Math.random() < 0.5
+      : Math.random() < 0.4;
+    var src = (useFold && foldOnly.length) ? foldOnly : (pool.length ? pool : foldOnly);
+    var sum = src.reduce(function (s, e) { return s + e.w; }, 0);
+    var pick = Math.random() * sum;
+    for (var i = 0; i < src.length; i++) {
+      pick -= src[i].w;
+      if (pick <= 0) return src[i].key;
+    }
+    return src[src.length - 1].key;
+  }
+
+  // 判定：选择的动作频率 >= 阈值算对
+  function judge(freqs, chosen, threshold) {
+    var t = threshold == null ? 30 : threshold;
+    var f = freqs[chosen] || 0;
+    var best = Math.max(freqs.raise, freqs.call, freqs.fold);
+    if (t === 'strict') return { correct: f >= best && f > 0, freq: f };
+    return { correct: f >= t, freq: f, marginal: f > 0 && f < t };
+  }
+
+  global.Range = {
+    RANKS: RANKS,
+    ALL_HANDS: ALL_HANDS,
+    TOTAL_COMBOS: TOTAL_COMBOS,
+    handKey: handKey,
+    comboCount: comboCount,
+    parseRange: parseRange,
+    buildScenario: buildScenario,
+    buildAll: buildAll,
+    dealHand: dealHand,
+    judge: judge
+  };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 牌桌渲染与自适应。调用方给出座位状态，这里只管画和量。
+ * 翻前与翻后共用：翻后多传一个 board 数组即可。
+ */
+(function (global) {
+  'use strict';
+
+  var el = UI.el, num = UI.num;
+
+  var ORDER = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+  var SUITS = { s: '♠', h: '♥', d: '♦', c: '♣' };
+  var RED = { h: 1, d: 1 };
+
+  // 座位坐标：slot 0 是英雄，逆时针依次是后面行动的位置。
+  // x/y 是座位中心，bx/by 是下注筹码，都是牌桌的百分比。
+  // dside 是按钮位标记贴在座位的哪一侧，它是座位的子元素，跟着座位走，不会因缩放而错位。
+  var SLOTS = [
+    { x: 50, y: 89, bx: 50, by: 62, dside: 'l' },
+    { x: 20, y: 60, bx: 34, by: 50, dside: 'r' },
+    { x: 20, y: 33, bx: 34, by: 43, dside: 'r' },
+    { x: 50, y: 10, bx: 50, by: 18, dside: 'l' },
+    { x: 80, y: 33, bx: 66, by: 43, dside: 'l' },
+    { x: 80, y: 60, bx: 66, by: 50, dside: 'l' }
+  ];
+
+  function cardNode(c, cls) {
+    var n = el('div', cls + (RED[c[1]] ? ' red' : ''));
+    n.appendChild(el('div', 'r', c[0]));
+    n.appendChild(el('div', 's', SUITS[c[1]]));
+    return n;
+  }
+
+  // 把 "A5s" 这样的等价类展开成两张带花色的具体牌
+  function dealCards(key) {
+    var r1 = key[0], r2 = key[1], type = key[2];
+    var s = UI.shuffled(['s', 'h', 'd', 'c']);
+    if (!type) return [r1 + s[0], r2 + s[1]];
+    if (type === 's') return [r1 + s[0], r2 + s[0]];
+    return [r1 + s[0], r2 + s[1]];
+  }
+
+  // 牌桌尺寸由 JS 量算：填满可用区域，但不允许比宽度的 1.67 倍更高。
+  // --u 是牌桌宽度的百分之一，桌上所有元素都按它缩放。
+  function fit(felt, retried) {
+    var box = felt.parentNode;
+    if (!box) return;
+    var cs = window.getComputedStyle(box);
+    var W = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    var H = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (W <= 0 || H <= 0) {
+      // 容器还没拿到尺寸（比如所在页面刚切换过来），下一帧再量一次
+      if (!retried) requestAnimationFrame(function () { fit(felt, true); });
+      return;
+    }
+    var w = Math.min(W, 560);
+    var h = Math.min(H, w / 0.6);
+    felt.style.width = Math.round(w) + 'px';
+    felt.style.height = Math.round(h) + 'px';
+    // 元素尺寸取宽高里更紧的那一维，桌子被压扁时元素跟着缩，不会互相压到
+    felt.style.setProperty('--u', (Math.min(w, h * 0.68) / 100) + 'px');
+  }
+
+  // 横竖屏切换、窗口变化、Safari 地址栏收起都要重新量
+  function watch(getFelt) {
+    var refit = function () {
+      var f = getFelt();
+      if (f) fit(f);
+    };
+    window.addEventListener('resize', refit);
+    window.addEventListener('orientationchange', refit);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', refit);
+  }
+
+  /* state = {
+   *   seats: [{ pos, folded, bet, hero }]  按 ORDER 顺序
+   *   heroPos: 'UTG'
+   *   pot: 1.5
+   *   hole: ['Ac', '5d']
+   *   board: ['Kh','7d','2c']   翻后用，可省略
+   * } */
+  function render(state) {
+    var felt = el('div', 'felt');
+    var idx = {};
+    ORDER.forEach(function (p, i) { idx[p] = i; });
+    var heroIdx = idx[state.heroPos];
+
+    var pot = el('div', 'pot');
+    pot.appendChild(el('small', null, 'Total Pot'));
+    pot.appendChild(el('span', null, num(state.pot) + ' BB'));
+    felt.appendChild(pot);
+
+    if (state.board && state.board.length) {
+      var board = el('div', 'board');
+      state.board.forEach(function (c) { board.appendChild(cardNode(c, 'bcard')); });
+      felt.appendChild(board);
+    }
+
+    for (var slot = 0; slot < 6; slot++) {
+      var pos = ORDER[(heroIdx + slot) % 6];
+      var seat = state.seats[idx[pos]];
+      var S = SLOTS[slot];
+
+      // hidden 的位置整个不画。翻前用变暗表示"刚刚弃牌"，翻后只剩两人，
+      // 再画四个暗圈就只是干扰。
+      if (seat.hidden) continue;
+
+      var node = el('div', 'seat' + (seat.folded ? ' folded' : '') + (seat.hero ? ' hero' : ''));
+      node.style.left = S.x + '%';
+      node.style.top = S.y + '%';
+      node.appendChild(el('div', 'badge', pos));
+      // 已弃牌的人剩多少筹码与决策无关，只留一个变暗的位置圆圈，桌面才干净
+      if (!seat.folded) node.appendChild(el('div', 'stack', num(100 - seat.bet) + ' BB'));
+      if (pos === 'BTN') node.appendChild(el('div', 'dealer ' + S.dside, 'D'));
+      felt.appendChild(node);
+
+      if (seat.bet > 0 && !seat.folded) {
+        var bet = el('div', 'bet');
+        bet.style.left = S.bx + '%';
+        bet.style.top = S.by + '%';
+        bet.appendChild(el('b'));
+        bet.appendChild(el('span', null, num(seat.bet) + ' BB'));
+        felt.appendChild(bet);
+      }
+    }
+
+    var hole = el('div', 'hole');
+    state.hole.forEach(function (c) { hole.appendChild(cardNode(c, 'pcard')); });
+    felt.appendChild(hole);
+
+    return felt;
+  }
+
+  global.Table = {
+    ORDER: ORDER, SUITS: SUITS, RED: RED, SLOTS: SLOTS,
+    cardNode: cardNode, dealCards: dealCards,
+    fit: fit, watch: watch, render: render
+  };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 牌力评估与手牌分类。
+ * 输入是 ['As','Kd'] 这种字符串，与 table.js 用的格式一致。
+ * 输出是说明书第 5 节定义的八类之一。
+ */
+(function (global) {
+  'use strict';
+
+  var RANK_CH = '23456789TJQKA';
+  function val(ch) { return RANK_CH.indexOf(ch) + 2; }
+  function rankOf(card) { return val(card[0]); }
+  function suitOf(card) { return card[1]; }
+
+  var CLASSES = [
+    '超强牌', '强顶对及以上', '弱顶对', '中对底对',
+    '强听牌', '普通听牌', '弱牌有潜力', '空气'
+  ];
+
+  function counts(list) {
+    var c = {};
+    list.forEach(function (v) { c[v] = (c[v] || 0) + 1; });
+    return c;
+  }
+
+  function hasStraight(vals) {
+    var set = {};
+    vals.forEach(function (v) { set[v] = 1; if (v === 14) set[1] = 1; });
+    for (var hi = 14; hi >= 5; hi--) {
+      var ok = true;
+      for (var k = 0; k < 5; k++) if (!set[hi - k]) { ok = false; break; }
+      if (ok) return true;
+    }
+    return false;
+  }
+
+  // 还差一张就成顺时，能成顺的点数有几个。两个及以上算两头顺，一个算卡顺。
+  function straightOuts(vals) {
+    var outs = [];
+    for (var r = 2; r <= 14; r++) {
+      if (hasStraight(vals.concat([r]))) outs.push(r);
+    }
+    return outs;
+  }
+
+  // 某个五张窗口里有没有三个不同点数，且至少用到一张底牌
+  function backdoorStraight(holeVals, allVals) {
+    for (var lo = 2; lo <= 10; lo++) {
+      var inWindow = {}, usesHole = false;
+      allVals.forEach(function (v) {
+        var w = v;
+        if (v === 14 && lo === 2) w = 1;                 // A 当 1 用
+        if (w >= (lo === 2 ? 1 : lo) && w <= lo + 4) inWindow[w] = 1;
+      });
+      holeVals.forEach(function (v) {
+        var w = (v === 14 && lo === 2) ? 1 : v;
+        if (w >= (lo === 2 ? 1 : lo) && w <= lo + 4) usesHole = true;
+      });
+      if (Object.keys(inWindow).length >= 3 && usesHole) return true;
+    }
+    return false;
+  }
+
+  /* 返回一份完整的读牌结果，分类只是其中一项，其余字段用于界面解释。 */
+  function read(hole, board) {
+    var hv = hole.map(rankOf), bv = board.map(rankOf);
+    var hs = hole.map(suitOf), bs = board.map(suitOf);
+    var allV = hv.concat(bv), allS = hs.concat(bs);
+    var vc = counts(allV), sc = counts(allS);
+    var boardTop = Math.max.apply(null, bv);
+
+    var flush = false, flushSuit = null, flushDraw = false, backdoorFlush = false;
+    Object.keys(sc).forEach(function (s) {
+      var inHole = hs.indexOf(s) >= 0;
+      if (sc[s] >= 5) { flush = true; flushSuit = s; }
+      else if (sc[s] === 4 && inHole) flushDraw = true;
+      else if (sc[s] === 3 && inHole) backdoorFlush = true;
+    });
+
+    var straight = hasStraight(allV);
+    var outs = straight ? [] : straightOuts(allV);
+    var oesd = outs.length >= 2, gutshot = outs.length === 1;
+
+    // 只认用到底牌的成对，纯牌面对子不算我们的牌力
+    var quads = false, trips = false, pairRanks = [];
+    Object.keys(vc).map(Number).forEach(function (r) {
+      var usesHole = hv.indexOf(r) >= 0;
+      if (vc[r] === 4 && usesHole) quads = true;
+      else if (vc[r] === 3 && usesHole) trips = true;
+      else if (vc[r] === 2) pairRanks.push({ r: r, usesHole: usesHole });
+    });
+    var ourPairs = pairRanks.filter(function (p) { return p.usesHole; });
+    var twoPair = pairRanks.length >= 2 && ourPairs.length >= 1;
+
+    var res = {
+      flush: flush, straight: straight, quads: quads, trips: trips,
+      twoPair: twoPair, flushDraw: flushDraw, backdoorFlush: backdoorFlush,
+      oesd: oesd, gutshot: gutshot, outs: outs.length,
+      boardTop: boardTop, pair: null, kicker: null
+    };
+
+    if (ourPairs.length === 1 && !trips && !quads && !twoPair) {
+      var pr = ourPairs[0].r;
+      var pocket = hv[0] === hv[1];
+      res.pair = { rank: pr, pocket: pocket };
+      if (pocket) {
+        res.pair.kind = pr > boardTop ? '超对' : '低于顶张的口袋对';
+      } else {
+        res.pair.kind = pr === boardTop ? '顶对'
+          : pr === Math.min.apply(null, bv) ? '底对' : '中对';
+        var other = hv[0] === pr ? hv[1] : hv[0];
+        res.kicker = other;
+      }
+    }
+
+    res.overcards = hv[0] > boardTop && hv[1] > boardTop;
+    res.backdoorStraight = !straight && !oesd && !gutshot &&
+      backdoorStraight(hv, allV);
+    res.cls = classOf(res);
+    return res;
+  }
+
+  function classOf(r) {
+    if (r.flush || r.straight || r.quads || r.trips || r.twoPair) return '超强牌';
+
+    if (r.pair) {
+      if (r.pair.kind === '超对') return '强顶对及以上';
+      if (r.pair.kind === '顶对') return r.kicker >= 10 ? '强顶对及以上' : '弱顶对';
+      return '中对底对';
+    }
+
+    var anyDraw = r.flushDraw || r.oesd || r.gutshot;
+    if (r.flushDraw && (r.oesd || r.gutshot)) return '强听牌';
+    if (anyDraw && r.overcards) return '强听牌';
+    if (r.flushDraw || r.oesd) return '普通听牌';
+    if (r.gutshot || r.overcards || (r.backdoorFlush && r.backdoorStraight)) return '弱牌有潜力';
+    return '空气';
+  }
+
+  function classify(hole, board) { return read(hole, board).cls; }
+
+  global.Cards = {
+    RANK_CH: RANK_CH, CLASSES: CLASSES,
+    val: val, rankOf: rankOf, suitOf: suitOf,
+    hasStraight: hasStraight, read: read, classify: classify
+  };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 牌面分类器。判定规则与说明书第 4 节的表格一一对应。 */
+(function (global) {
+  'use strict';
+
+  var val = Cards.val;
+
+  var STRUCTURES = ['配对面', '同花面', '连接面', 'A 高干燥', 'KQ 高干燥', 'JT 高干燥', '低干燥'];
+  var SUITS = ['彩虹', '双色', '单色'];
+
+  function suitAxis(ss) {
+    var u = {};
+    ss.forEach(function (s) { u[s] = (u[s] || 0) + 1; });
+    var counts = Object.keys(u).map(function (k) { return u[k]; });
+    if (counts.indexOf(3) >= 0) return '单色';
+    if (counts.indexOf(2) >= 0) return '双色';
+    return '彩虹';
+  }
+
+  function structureOf(v) {
+    var s = v.slice().sort(function (a, b) { return b - a; });
+    if (s[0] === s[1] || s[1] === s[2]) return '配对面';
+    var span = s[0] - s[2];
+    if (s[0] === 14) {                        // A 可以当 1 用，取更紧的跨度
+      var alt = [1, s[1], s[2]].sort(function (a, b) { return b - a; });
+      span = Math.min(span, alt[0] - alt[2]);
+    }
+    if (span <= 4) return '连接面';
+    if (s[0] === 14) return 'A 高干燥';
+    if (s[0] >= 12) return 'KQ 高干燥';
+    if (s[0] >= 10) return 'JT 高干燥';
+    return '低干燥';
+  }
+
+  function classify(cards) {
+    var v = cards.map(function (c) { return val(c[0]); });
+    var suit = suitAxis(cards.map(function (c) { return c[1]; }));
+    var st = structureOf(v);
+    if (suit === '单色' && st !== '配对面') st = '同花面';
+    return { structure: st, suit: suit };
+  }
+
+  // 完整的 52 张牌
+  var DECK = [];
+  '23456789TJQKA'.split('').forEach(function (r) {
+    'shdc'.split('').forEach(function (s) { DECK.push(r + s); });
+  });
+
+  // 随机发一副翻牌，避开已经在英雄手里的牌
+  function randomFlop(dead) {
+    var pool = DECK.filter(function (c) { return (dead || []).indexOf(c) < 0; });
+    var out = [];
+    while (out.length < 3) {
+      var i = Math.floor(Math.random() * pool.length);
+      out.push(pool.splice(i, 1)[0]);
+    }
+    return out.sort(function (a, b) { return val(b[0]) - val(a[0]); });
+  }
+
+  // 枚举全部 22100 种翻牌，用于分布校验
+  function enumerate(fn) {
+    for (var a = 0; a < 52; a++) {
+      for (var b = a + 1; b < 52; b++) {
+        for (var c = b + 1; c < 52; c++) {
+          fn([DECK[a], DECK[b], DECK[c]]);
+        }
+      }
+    }
+  }
+
+  global.Board = {
+    STRUCTURES: STRUCTURES, SUITS: SUITS, DECK: DECK,
+    classify: classify, randomFlop: randomFlop, enumerate: enumerate
+  };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 胜率引擎：牌力评估、范围展开、当前强弱、胜率、范围分位。
+ *
+ * 牌用 'As' 'Kd' 这种两字符串，与 table.js 和 cards.js 一致。
+ * 翻牌圈还剩两张公共牌要发，所有"胜率"都指算到河牌。
+ */
+(function (global) {
+  'use strict';
+
+  var RANKS = '23456789TJQKA';
+  var SUITS = 'shdc';
+
+  var DECK = [];
+  for (var r = 0; r < 13; r++) {
+    for (var s = 0; s < 4; s++) DECK.push(RANKS[r] + SUITS[s]);
+  }
+
+  function val(card) { return RANKS.indexOf(card[0]) + 2; }
+  function suit(card) { return card[1]; }
+
+  /* ---------------- 牌力评估 ----------------
+   * 五张牌评分成一个整数，大的赢。分值构造：
+   *   类别 × 15^5 + 关键点数从高到低
+   * 类别：8 同花顺 7 四条 6 葫芦 5 同花 4 顺子 3 三条 2 两对 1 一对 0 高牌
+   */
+  function score5(vs, ss) {
+    var cnt = {}, i;
+    for (i = 0; i < 5; i++) cnt[vs[i]] = (cnt[vs[i]] || 0) + 1;
+
+    var flush = ss[0] === ss[1] && ss[1] === ss[2] && ss[2] === ss[3] && ss[3] === ss[4];
+    var uniq = Object.keys(cnt).map(Number);
+    var straight = 0;
+    if (uniq.length === 5) {
+      var srt = uniq.slice().sort(function (a, b) { return b - a; });
+      if (srt[0] - srt[4] === 4) straight = srt[0];
+      else if (srt[0] === 14 && srt[1] === 5 && srt[4] === 2) straight = 5;  // 轮子
+    }
+    // 先按出现次数排，次数相同按点数排。葫芦的三条排在对子前面。
+    var groups = uniq.slice().sort(function (a, b) { return cnt[b] - cnt[a] || b - a; });
+    var shape = groups.map(function (v) { return cnt[v]; }).join('');
+
+    var cat;
+    if (straight && flush) cat = 8;
+    else if (shape.charAt(0) === '4') cat = 7;
+    else if (shape === '32') cat = 6;
+    else if (flush) cat = 5;
+    else if (straight) cat = 4;
+    else if (shape.charAt(0) === '3') cat = 3;
+    else if (shape.slice(0, 2) === '22') cat = 2;
+    else if (shape.charAt(0) === '2') cat = 1;
+    else cat = 0;
+
+    var key = (cat === 8 || cat === 4) ? [straight] : groups;
+    var v = cat;
+    for (i = 0; i < 5; i++) v = v * 15 + (key[i] || 0);
+    return v;
+  }
+
+  function best5(cards) {
+    return score5(cards.map(val), cards.map(suit));
+  }
+
+  // 七张取最好的五张：枚举 21 个子集
+  var SUB7 = [];
+  (function () {
+    for (var a = 0; a < 7; a++) for (var b = a + 1; b < 7; b++)
+      for (var c = b + 1; c < 7; c++) for (var d = c + 1; d < 7; d++)
+        for (var e = d + 1; e < 7; e++) SUB7.push([a, b, c, d, e]);
+  })();
+
+  function best7(cards) {
+    var vs = cards.map(val), ss = cards.map(suit), best = -1;
+    for (var i = 0; i < 21; i++) {
+      var s = SUB7[i];
+      var sc = score5(
+        [vs[s[0]], vs[s[1]], vs[s[2]], vs[s[3]], vs[s[4]]],
+        [ss[s[0]], ss[s[1]], ss[s[2]], ss[s[3]], ss[s[4]]]
+      );
+      if (sc > best) best = sc;
+    }
+    return best;
+  }
+
+  /* ---------------- 范围展开 ----------------
+   * 把 169 网格的频率表展开成带权重的实体组合，并剔除死牌。
+   */
+  function handKeyOf(c1, c2) {
+    var v1 = val(c1), v2 = val(c2);
+    var hi = v1 >= v2 ? c1 : c2, lo = v1 >= v2 ? c2 : c1;
+    if (val(hi) === val(lo)) return hi[0] + lo[0];
+    return hi[0] + lo[0] + (hi[1] === lo[1] ? 's' : 'o');
+  }
+
+  function expandRange(built, action, dead) {
+    dead = dead || [];
+    var out = [];
+    for (var i = 0; i < 52; i++) {
+      if (dead.indexOf(DECK[i]) >= 0) continue;
+      for (var j = i + 1; j < 52; j++) {
+        if (dead.indexOf(DECK[j]) >= 0) continue;
+        var g = built.grid[handKeyOf(DECK[i], DECK[j])];
+        var f = g ? g[action] : 0;
+        if (f > 0) out.push({ cards: [DECK[i], DECK[j]], w: f / 100 });
+      }
+    }
+    return out;
+  }
+
+  /* ---------------- 当前强弱 ----------------
+   * 精确枚举，不抽样。返回按权重计的领先、打平、落后。
+   */
+  function showdown(hero, board, range) {
+    var mine = best5(hero.concat(board));
+    var ahead = 0, tie = 0, behind = 0, tot = 0;
+    for (var i = 0; i < range.length; i++) {
+      var o = range[i];
+      var theirs = best5(o.cards.concat(board));
+      tot += o.w;
+      if (mine > theirs) ahead += o.w;
+      else if (mine === theirs) tie += o.w;
+      else behind += o.w;
+    }
+    if (!tot) return { ahead: 0, tie: 0, behind: 0, combos: 0, weighted: 0 };
+    return {
+      ahead: ahead / tot * 100, tie: tie / tot * 100, behind: behind / tot * 100,
+      combos: range.length, weighted: tot
+    };
+  }
+
+  /* ---------------- 单挑精确胜率 ----------------
+   * 枚举全部 C(45,2) = 990 种转牌河牌。这是真值，用来校对蒙特卡洛。
+   */
+  function equityExact(hero, villain, board) {
+    var dead = hero.concat(villain).concat(board);
+    var live = DECK.filter(function (c) { return dead.indexOf(c) < 0; });
+    var win = 0, tie = 0, lose = 0, n = 0;
+    for (var i = 0; i < live.length; i++) {
+      for (var j = i + 1; j < live.length; j++) {
+        var run = [live[i], live[j]];
+        var m = best7(hero.concat(board).concat(run));
+        var t = best7(villain.concat(board).concat(run));
+        n++;
+        if (m > t) win++; else if (m === t) tie++; else lose++;
+      }
+    }
+    return { equity: (win + tie / 2) / n * 100, win: win, tie: tie, lose: lose, runouts: n };
+  }
+
+  /* ---------------- 对范围的胜率 ----------------
+   * 组合数乘以转牌河牌的枚举量太大（约 55 万次七张评估），所以抽样。
+   * 按权重接受组合，保证混合频率被正确采样。
+   */
+  function equityVsRange(hero, board, range, samples) {
+    samples = samples || 8000;
+    var dead = hero.concat(board);
+    var live = DECK.filter(function (c) { return dead.indexOf(c) < 0; });
+    var win = 0, tie = 0, n = 0, guard = 0, cap = samples * 40;
+    while (n < samples && guard < cap) {
+      guard++;
+      var o = range[(Math.random() * range.length) | 0];
+      if (!o) break;
+      if (o.w < 1 && Math.random() > o.w) continue;
+      var i = (Math.random() * live.length) | 0;
+      var j = (Math.random() * live.length) | 0;
+      if (i === j) continue;
+      var t1 = live[i], t2 = live[j];
+      if (o.cards.indexOf(t1) >= 0 || o.cards.indexOf(t2) >= 0) continue;
+      var m = best7(hero.concat(board).concat([t1, t2]));
+      var v = best7(o.cards.concat(board).concat([t1, t2]));
+      n++;
+      if (m > v) win++; else if (m === v) tie++;
+    }
+    var eq = n ? (win + tie / 2) / n * 100 : 0;
+    // 二项分布的标准误，用于界面上决定小数位
+    return { equity: eq, samples: n, stderr: n ? Math.sqrt(eq * (100 - eq) / n) : 0 };
+  }
+
+  /* ---------------- 范围分位 ----------------
+   * 把我方范围的每个组合按"现在领先率"排序，得出某手牌的百分位。
+   * 这是极化的依据：顶端取价值，底端当诈唬，中间过牌。
+   * 每个牌面只需算一次，结果缓存。
+   */
+  var pctCache = {};
+
+  function rangeLadder(board, heroBuilt, heroAction, oppBuilt, oppAction) {
+    var ck = board.join('') + '|' + heroAction + '|' + oppAction;
+    if (pctCache[ck]) return pctCache[ck];
+
+    var mine = expandRange(heroBuilt, heroAction, board);
+    var rows = mine.map(function (m) {
+      var opp = expandRange(oppBuilt, oppAction, board.concat(m.cards));
+      var sd = showdown(m.cards, board, opp);
+      return { key: m.cards.slice().sort().join(''), w: m.w, ahead: sd.ahead };
+    });
+    rows.sort(function (a, b) { return a.ahead - b.ahead; });
+    var total = rows.reduce(function (s, x) { return s + x.w; }, 0);
+    var acc = 0;
+    rows.forEach(function (x) { x.below = acc; acc += x.w; });
+
+    var out = { rows: rows, total: total };
+    pctCache[ck] = out;
+    return out;
+  }
+
+  function percentileOf(cards, ladder) {
+    var k = cards.slice().sort().join('');
+    for (var i = 0; i < ladder.rows.length; i++) {
+      if (ladder.rows[i].key === k) {
+        return {
+          percentile: ladder.rows[i].below / ladder.total * 100,
+          ahead: ladder.rows[i].ahead,
+          inRange: true
+        };
+      }
+    }
+    return { percentile: null, ahead: null, inRange: false };
+  }
+
+  function clearCache() { pctCache = {}; }
+
+  global.Equity = {
+    DECK: DECK, RANKS: RANKS, SUITS: SUITS,
+    val: val, suit: suit, handKeyOf: handKeyOf,
+    score5: score5, best5: best5, best7: best7,
+    expandRange: expandRange, showdown: showdown,
+    equityExact: equityExact, equityVsRange: equityVsRange,
+    rangeLadder: rangeLadder, percentileOf: percentileOf, clearCache: clearCache
+  };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 分区模型：把胜率与范围分位变成动作建议。
+ *
+ * 设计原则是把"我定的"和"算出来的"分得干干净净：
+ *
+ *   自由常数只有两个，写在 CONST 里，可在设置里改：
+ *     valueWidth  进攻方价值区占范围的比例
+ *     raiseWidth  防守方加注区占范围的比例
+ *
+ *   其余全部由数学导出，没有调参空间：
+ *     诈唬区宽度  = 价值区宽度 × 诈唬比 ÷ (1 − 诈唬比)，诈唬比由下注尺度的赔率决定
+ *     弃牌区宽度  = 1 − 最小防守频率，同样由所面对的下注尺度决定
+ *     分位         由 equity.js 按当前领先率排序算出
+ *
+ * 不做的事：不推导"下注总频率"。四种推导方式都试过并失败，记录在
+ * docs/flop-strategy.html 的第一节。分区边界是明说的常数，不假装是推出来的。
+ */
+(function (global) {
+  'use strict';
+
+  var CONST = {
+    valueWidth: 50,   // 进攻方：按当前领先率排序，顶部这么多比例走价值下注
+    raiseWidth: 18,   // 防守方：顶部这么多比例走加注
+    edge: 5           // 边界容差：距离边界这么近时，相邻两个动作都判对
+  };
+
+  /* ---------------- 纯数学部分 ---------------- */
+
+  // 下注 f 倍底池时，为了让对手的跟注无差异，诈唬应占下注总量的这个比例。
+  // 对手跟 f 要赢 1+f，所需胜率 f/(1+2f)，这也正是诈唬占比。
+  function bluffShare(f) { return f / (1 + 2 * f); }
+
+  // 面对 f 倍底池的下注，最小防守频率。防守不足对方任意两张牌诈唬都赚。
+  function mdf(f) { return 1 / (1 + f); }
+
+  // 价值区宽度定了，诈唬区宽度就定了
+  function bluffWidth(valueWidth, f) {
+    var b = bluffShare(f);
+    return valueWidth * b / (1 - b);
+  }
+
+  /* ---------------- 进攻方分区 ---------------- */
+  /* percentile 是这手牌在我方范围里按当前领先率排的位置，0 最弱 100 最强。
+   * 返回落在哪个区，以及该区对应的动作与建议尺度。 */
+  function aggressorZones(smallFrac, bigFrac, opts) {
+    var V = (opts && opts.valueWidth) || CONST.valueWidth;
+    // 诈唬用哪个尺度，宽度就按哪个尺度算。两档各自的诈唬容量取加权。
+    var wSmall = bluffWidth(V, smallFrac);
+    var wBig = bluffWidth(V, bigFrac);
+    return {
+      valueFrom: 100 - V,
+      bluffTo: (wSmall + wBig) / 2,
+      bluffWidthSmall: wSmall,
+      bluffWidthBig: wBig,
+      valueWidth: V
+    };
+  }
+
+  /* ---------------- 防守方分区 ---------------- */
+  function defenderZones(facingFrac, opts) {
+    var R = (opts && opts.raiseWidth) || CONST.raiseWidth;
+    var foldWidth = (1 - mdf(facingFrac)) * 100;
+    return {
+      foldTo: foldWidth,
+      raiseFrom: 100 - R,
+      foldWidth: foldWidth,
+      raiseWidth: R,
+      mdf: mdf(facingFrac) * 100
+    };
+  }
+
+  /* ---------------- 尺度选择 ----------------
+   * 大注占下注量的比例由牌面结构决定。干燥面几乎全用小注，
+   * 连接面与同花面需要更多大注来收保护费。双色面再加一档。
+   * 这是第三处判断，但它只影响尺度不影响是否下注，而且一眼可议。 */
+  var BIG_SHARE = {
+    'A 高干燥': 15, 'KQ 高干燥': 15, 'JT 高干燥': 20, '低干燥': 20,
+    '配对面': 15, '连接面': 45, '同花面': 40
+  };
+
+  function bigShare(structure, suitAxis) {
+    var b = BIG_SHARE[structure];
+    if (b == null) b = 25;
+    if (suitAxis === '双色') b += 10;
+    return Math.min(b, 60);
+  }
+
+  /* ---------------- 主入口 ---------------- */
+  /* 进攻方。传入分位、牌面分类、两档尺度，返回分区判定与三个动作的建议权重。
+   * 建议权重不是"频率"，是这手牌该怎么打的表达：落在价值区就该下注。 */
+  function adviseAggressor(pct, board, sizes, opts) {
+    var z = aggressorZones(sizes.small, sizes.big, opts);
+    var big = bigShare(board.structure, board.suit);
+    var zone, why;
+
+    if (pct >= z.valueFrom) {
+      zone = 'value';
+      why = '这手牌排在你范围的顶部，下注取价值';
+    } else if (pct <= z.bluffTo) {
+      zone = 'bluff';
+      why = '这手牌排在你范围的底部，没有摊牌价值，正是该诈唬的位置';
+    } else {
+      zone = 'check';
+      why = '这手牌不上不下，下注会被更好的跟、更差的弃，过牌保住摊牌价值';
+    }
+
+    var w;
+    if (zone === 'check') w = { bet33: 0, bet75: 0, check: 100 };
+    else w = { bet33: Math.round(100 - big), bet75: Math.round(big), check: 0 };
+
+    return {
+      zone: zone, zones: z, why: why, weights: w,
+      near: nearBoundary(pct, [z.bluffTo, z.valueFrom], opts)
+    };
+  }
+
+  /* 防守方。facing 是所面对的下注占底池的比例。 */
+  function adviseDefender(pct, facingFrac, opts) {
+    var z = defenderZones(facingFrac, opts);
+    var zone, why;
+
+    if (pct <= z.foldTo) {
+      zone = 'fold';
+      why = '这手牌排在你范围的底部，赔率不够，弃牌';
+    } else if (pct >= z.raiseFrom) {
+      zone = 'raise';
+      why = '这手牌排在你范围的顶部，加注取价值';
+    } else {
+      zone = 'call';
+      why = '够格继续但不够格加注，跟注保住摊牌价值';
+    }
+
+    var w = zone === 'fold' ? { fold: 100, call: 0, raise: 0 }
+      : zone === 'raise' ? { fold: 0, call: 0, raise: 100 }
+      : { fold: 0, call: 100, raise: 0 };
+
+    return {
+      zone: zone, zones: z, why: why, weights: w,
+      near: nearBoundary(pct, [z.foldTo, z.raiseFrom], opts)
+    };
+  }
+
+  // 距离任一边界不超过容差时，相邻动作也判对。分区边界是我定的常数，
+  // 不该因为差一个百分点就把人判错。
+  function nearBoundary(pct, bounds, opts) {
+    var e = (opts && opts.edge != null) ? opts.edge : CONST.edge;
+    for (var i = 0; i < bounds.length; i++) {
+      if (Math.abs(pct - bounds[i]) <= e) return true;
+    }
+    return false;
+  }
+
+  /* 判对错：动作落在本区即对；贴边时相邻区的动作也算对。 */
+  function judge(advice, chosen, role) {
+    var order = role === 'defender' ? ['fold', 'call', 'raise'] : ['bluff', 'check', 'value'];
+    var actionZone = role === 'defender' ? chosen
+      : (chosen === 'check' ? 'check' : (advice.zone === 'value' ? 'value' : 'bluff'));
+
+    if (role === 'defender') {
+      if (chosen === advice.zone) return { correct: true, marginal: false };
+      if (advice.near && Math.abs(order.indexOf(chosen) - order.indexOf(advice.zone)) === 1) {
+        return { correct: true, marginal: true };
+      }
+      return { correct: false, marginal: false };
+    }
+
+    // 进攻方：下注即算命中价值区或诈唬区，过牌算命中过牌区
+    var hit = (chosen === 'check') ? (advice.zone === 'check')
+      : (advice.zone === 'value' || advice.zone === 'bluff');
+    if (hit) return { correct: true, marginal: false };
+    if (advice.near) return { correct: true, marginal: true };
+    return { correct: false, marginal: false };
+  }
+
+  global.Strategy = {
+    CONST: CONST,
+    bluffShare: bluffShare, mdf: mdf, bluffWidth: bluffWidth, bigShare: bigShare,
+    aggressorZones: aggressorZones, defenderZones: defenderZones,
+    adviseAggressor: adviseAggressor, adviseDefender: adviseDefender,
+    judge: judge
+  };
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 6-max 100BB 现金局 · 翻前范围数据集
+ * 36 个场景。ranges.raise / ranges.call 用范围记法书写，未列出的手牌为弃牌。
+ * expect 是入池率的预期区间，构建时超出会报警，用于挡住手滑写错的范围。
+ */
+(function (global) {
+  'use strict';
+
+  var SCENARIOS = [
+
+    /* ==================== Open Raise ==================== */
+    {
+      id: 'open.utg', group: 'Open Raise', hero: 'UTG', vs: null,
+      title: 'UTG 开池', facing: '前面全部弃牌',
+      labels: { raise: 'Raise 2.5BB', call: 'Call 1BB' },
+      sizing: { raise: 2.5, call: 1 },
+      expect: [15, 20],
+      ranges: {
+        raise: '44+, 33:50, 22:50, A8s+, A7s:25, A6s:25, A5s, A4s, A3s:50, A2s:25, ' +
+               'KTs+, K9s:50, QTs+, Q9s:25, JTs, J9s:50, T9s, T8s:25, 98s, 97s:25, ' +
+               '87s:75, 76s:50, 65s:50, 54s:25, ' +
+               'AJo+, ATo:50, KQo, KJo:50, KTo:25, QJo:25',
+        call: ''
+      }
+    },
+    {
+      id: 'open.hj', group: 'Open Raise', hero: 'HJ', vs: null,
+      title: 'HJ 开池', facing: '前面全部弃牌',
+      labels: { raise: 'Raise 2.5BB', call: 'Call 1BB' },
+      sizing: { raise: 2.5, call: 1 },
+      expect: [20, 25],
+      ranges: {
+        raise: '22+, A2s+, K8s+, K7s:50, Q9s+, Q8s:50, J9s+, J8s:50, T8s+, T7s:25, ' +
+               '97s+, 86s+, 76s, 65s, 54s, ' +
+               'ATo+, A9o:25, KJo+, KTo:50, QJo, QTo:25, JTo:25',
+        call: ''
+      }
+    },
+    {
+      id: 'open.co', group: 'Open Raise', hero: 'CO', vs: null,
+      title: 'CO 开池', facing: '前面全部弃牌',
+      labels: { raise: 'Raise 2.5BB', call: 'Call 1BB' },
+      sizing: { raise: 2.5, call: 1 },
+      expect: [26, 32],
+      ranges: {
+        raise: '22+, A2s+, K6s+, K5s:50, K4s:25, K3s:25, Q8s+, Q7s:50, J8s+, J7s:25, ' +
+               'T8s+, T7s:50, 97s+, 96s:25, 86s+, 85s:25, 75s+, 65s, 64s:25, 54s, ' +
+               'A8o+, A7o:25, KTo+, K9o:25, QTo+, Q9o:25, JTo, J9o:25, T9o:25',
+        call: ''
+      }
+    },
+    {
+      id: 'open.btn', group: 'Open Raise', hero: 'BTN', vs: null,
+      title: 'BTN 开池', facing: '前面全部弃牌',
+      labels: { raise: 'Raise 2.5BB', call: 'Call 1BB' },
+      sizing: { raise: 2.5, call: 1 },
+      expect: [42, 50],
+      ranges: {
+        raise: '22+, A2s+, K2s+, Q2s+, J6s+, J5s:50, J4s:25, T6s+, T5s:50, ' +
+               '96s+, 95s:25, 85s+, 84s:25, 75s+, 74s:25, 64s+, 54s, 53s:25, ' +
+               'A2o+, K8o+, K7o:50, Q9o+, J9o+, T9o, T8o:25, 98o, 87o:25',
+        call: ''
+      }
+    },
+    {
+      id: 'open.sb', group: 'Open Raise', hero: 'SB', vs: null,
+      title: 'SB 开池', facing: '前面全部弃牌，BB 在后',
+      labels: { raise: 'Raise 3BB', call: 'Limp 1BB' },
+      sizing: { raise: 3, call: 1 },
+      expect: [40, 50],
+      note: '唯一跛入有正频率的位置，范围表三色',
+      ranges: {
+        raise: '55+, 44:50, A9s+, A5s, A4s, A3s:50, A2s:50, KTs+, K9s:50, K8s:25, ' +
+               'QTs+, JTs, T9s, 98s:50, 87s:50, ' +
+               'A9o+, A8o:50, KJo+, KTo:50, QJo, QTo:25, JTo:25',
+        call: '33-22, 44:50, A8s-A6s, A3s:50, A2s:50, K9s:50, K8s:75, K7s-K5s, Q9s-Q6s, ' +
+              'J9s-J7s, T8s-T6s, 98s:50, 97s-95s, 87s:50, 86s-85s, 76s-75s, 65s, 54s, ' +
+              'A8o:50, A7o-A2o, KTo:50, K9o-K7o, QTo:75, Q9o-Q8o, JTo:75, J9o, T9o, 98o'
+      }
+    },
+
+    /* ==================== vs Limp ==================== */
+    {
+      id: 'vslimp.bb.vs_sb', group: 'vs Limp', hero: 'BB', vs: 'SB',
+      title: 'BB 应对 SB 跛入', facing: 'SB 跛入 1BB',
+      labels: { raise: 'Raise 4BB', call: 'Check' },
+      sizing: { raise: 4, call: 0 },
+      noFold: true, expect: [20, 35],
+      note: '免费看翻牌，没有弃牌选项，未加注的手牌全部过牌',
+      ranges: {
+        raise: '66+, 55:50, A7s+, A5s, A4s, A3s:50, K9s+, K8s:50, Q9s+, Q8s:50, ' +
+               'J9s+, T8s+, 97s+, 87s, 76s, 65s:50, ' +
+               'A9o+, A8o:50, A5o:25, KTo+, K9o:50, QTo+, JTo, T9o:50',
+        call: ''
+      }
+    },
+
+    /* ==================== 3 Bet ==================== */
+    {
+      id: '3bet.hj.vs_utg', group: '3 Bet', hero: 'HJ', vs: 'UTG',
+      title: 'HJ 面对 UTG 开池', facing: 'UTG 加注 2.5BB',
+      labels: { raise: 'Raise 7.5BB', call: 'Call 2.5BB' },
+      sizing: { raise: 7.5, call: 2.5 },
+      expect: [6, 10],
+      ranges: {
+        raise: 'TT+, 99:50, AQs+, AJs:25, A5s:50, A4s:25, KQs:25, AKo, AQo:50',
+        call: '99:50, 88, 77, AJs:75, ATs:50, KQs:50, KJs:50, QJs:50, JTs:50, AQo:25, KQo:25'
+      }
+    },
+    {
+      id: '3bet.co.vs_utg', group: '3 Bet', hero: 'CO', vs: 'UTG',
+      title: 'CO 面对 UTG 开池', facing: 'UTG 加注 2.5BB',
+      labels: { raise: 'Raise 7.5BB', call: 'Call 2.5BB' },
+      sizing: { raise: 7.5, call: 2.5 },
+      expect: [7, 12],
+      ranges: {
+        raise: 'TT+, 99:50, AQs+, AJs:25, A5s:75, A4s:50, KQs:25, AKo, AQo:50',
+        call: '99:50, 88, 77, 66:50, AJs:75, ATs:50, KQs:50, KJs:50, QJs:50, JTs:50, ' +
+              'T9s:25, AQo:25, AJo:25, KQo:50'
+      }
+    },
+    {
+      id: '3bet.co.vs_hj', group: '3 Bet', hero: 'CO', vs: 'HJ',
+      title: 'CO 面对 HJ 开池', facing: 'HJ 加注 2.5BB',
+      labels: { raise: 'Raise 7.5BB', call: 'Call 2.5BB' },
+      sizing: { raise: 7.5, call: 2.5 },
+      expect: [9, 15],
+      ranges: {
+        raise: '99+, 88:50, AQs+, AJs:50, A5s, A4s:50, A3s:25, KQs:50, K5s:25, AKo, AQo:75',
+        call: '88:50, 77, 66, 55, AJs:50, ATs, A9s:25, KQs:50, KJs, KTs:50, QJs, QTs:25, ' +
+              'JTs, T9s:50, 98s:25, AQo:25, AJo:50, KQo:50'
+      }
+    },
+    {
+      id: '3bet.btn.vs_utg', group: '3 Bet', hero: 'BTN', vs: 'UTG',
+      title: 'BTN 面对 UTG 开池', facing: 'UTG 加注 2.5BB',
+      labels: { raise: 'Raise 7.5BB', call: 'Call 2.5BB' },
+      sizing: { raise: 7.5, call: 2.5 },
+      expect: [9, 15],
+      ranges: {
+        raise: 'TT+, 99:50, AQs+, AJs:25, A5s:75, A4s:50, KQs:25, AKo, AQo:50',
+        call: '99:50, 88, 77, 66, AJs:75, ATs, A9s:25, KQs:50, KJs, KTs:50, QJs, QTs:25, ' +
+              'JTs, T9s, 98s:50, AQo:25, AJo:50, KQo:75'
+      }
+    },
+    {
+      id: '3bet.btn.vs_hj', group: '3 Bet', hero: 'BTN', vs: 'HJ',
+      title: 'BTN 面对 HJ 开池', facing: 'HJ 加注 2.5BB',
+      labels: { raise: 'Raise 7.5BB', call: 'Call 2.5BB' },
+      sizing: { raise: 7.5, call: 2.5 },
+      expect: [12, 19],
+      ranges: {
+        raise: '99+, 88:50, AQs+, AJs:50, A5s, A4s:75, A3s:25, KQs:50, K5s:25, AKo, AQo:75',
+        call: '88:50, 77, 66, 55, 44, AJs:50, ATs, A9s:50, KQs:50, KJs, KTs, QJs, QTs, ' +
+              'JTs, T9s, 98s, 87s:50, AQo:25, AJo, ATo:25, KQo, KJo:25'
+      }
+    },
+    {
+      id: '3bet.btn.vs_co', group: '3 Bet', hero: 'BTN', vs: 'CO',
+      title: 'BTN 面对 CO 开池', facing: 'CO 加注 2.5BB',
+      labels: { raise: 'Raise 7.5BB', call: 'Call 2.5BB' },
+      sizing: { raise: 7.5, call: 2.5 },
+      expect: [18, 27],
+      ranges: {
+        raise: '88+, 77:50, ATs+, A5s, A4s, A3s:50, KQs, KJs:50, K5s:50, K4s:25, ' +
+               'Q9s:25, JTs:25, AKo, AQo, AJo:50, KQo:25',
+        call: '77:50, 66-22, A9s, A8s:50, KJs:50, KTs, K9s:50, K8s:50, QJs, QTs, Q9s:75, ' +
+              'JTs:75, J9s, T9s, T8s:50, 98s, 97s:25, 87s, 76s:50, 65s:50, ' +
+              'AJo:50, ATo, A9o:25, KQo:75, KJo:50, QJo:50, JTo:25'
+      }
+    },
+    {
+      id: '3bet.sb.vs_utg', group: '3 Bet', hero: 'SB', vs: 'UTG',
+      title: 'SB 面对 UTG 开池', facing: 'UTG 加注 2.5BB',
+      labels: { raise: 'Raise 10BB', call: 'Call 2.5BB' },
+      sizing: { raise: 10, call: 2.5 },
+      expect: [6, 11],
+      note: '无位置，跟注范围窄，主要是 3bet 或弃牌',
+      ranges: {
+        raise: '99+, 88:50, AQs+, AJs:50, A5s:75, A4s:50, KQs, AKo, AQo:75',
+        call: '88:50, 77, 66:50, AJs:50, ATs:50, KJs:50, QJs:25, JTs:25, AJo:25'
+      }
+    },
+    {
+      id: '3bet.sb.vs_hj', group: '3 Bet', hero: 'SB', vs: 'HJ',
+      title: 'SB 面对 HJ 开池', facing: 'HJ 加注 2.5BB',
+      labels: { raise: 'Raise 10BB', call: 'Call 2.5BB' },
+      sizing: { raise: 10, call: 2.5 },
+      expect: [8, 14],
+      ranges: {
+        raise: '88+, 77:50, AJs+, A5s, A4s:75, A3s:25, KQs, KJs:50, AKo, AQo, AJo:25',
+        call: '77:50, 66, 55:50, ATs:50, KJs:50, QJs:50, JTs:50, AJo:25, KQo:50'
+      }
+    },
+    {
+      id: '3bet.sb.vs_co', group: '3 Bet', hero: 'SB', vs: 'CO',
+      title: 'SB 面对 CO 开池', facing: 'CO 加注 2.5BB',
+      labels: { raise: 'Raise 10BB', call: 'Call 2.5BB' },
+      sizing: { raise: 10, call: 2.5 },
+      expect: [11, 18],
+      ranges: {
+        raise: '77+, 66:50, ATs+, A5s, A4s, A3s:50, A2s:25, KTs+, K5s:25, QJs:50, ' +
+               'JTs:25, AKo, AQo, AJo:75, KQo:50',
+        call: '66:50, 55, 44, A9s:50, QTs:50, JTs:25, T9s:25, AJo:25, KQo:25, KJo:25'
+      }
+    },
+    {
+      id: '3bet.sb.vs_btn', group: '3 Bet', hero: 'SB', vs: 'BTN',
+      title: 'SB 面对 BTN 开池', facing: 'BTN 加注 2.5BB',
+      labels: { raise: 'Raise 10BB', call: 'Call 2.5BB' },
+      sizing: { raise: 10, call: 2.5 },
+      expect: [18, 28],
+      ranges: {
+        raise: '55+, 44:50, A8s+, A5s, A4s, A3s, A2s:50, KTs+, K7s:50, K6s:25, ' +
+               'QTs+, Q9s:50, JTs, J9s:50, T9s, 98s:50, 87s:50, 76s:25, ' +
+               'AKo, AQo, AJo, ATo:75, A9o:25, KQo, KJo:50, QJo:25',
+        call: '44:50, 33, 22, A7s:50, A6s:50, A2s:50, K9s:50, K8s:25, Q9s:50, J9s:50, ' +
+              'T8s:25, 98s:50, ATo:25, KJo:25, QJo:25, JTo:25'
+      }
+    },
+    {
+      id: '3bet.bb.vs_utg', group: '3 Bet', hero: 'BB', vs: 'UTG',
+      title: 'BB 面对 UTG 开池', facing: 'UTG 加注 2.5BB',
+      labels: { raise: 'Raise 11BB', call: 'Call 1.5BB' },
+      sizing: { raise: 11, call: 1.5 },
+      expect: [22, 32],
+      note: '底池赔率最好，跟注范围最宽',
+      ranges: {
+        raise: 'TT+, 99:50, AQs+, AJs:25, A5s:75, A4s:50, KQs:25, AKo, AQo:50',
+        call: '99:50, 88-22, AJs:75, ATs, A9s, A8s, A7s, A6s, A5s:25, A3s, A2s, ' +
+              'KQs:75, KJs, KTs, K9s, QJs, QTs, Q9s, Q8s:50, JTs, J9s, J8s:50, ' +
+              'T9s, T8s, T7s:50, 98s, 97s, 96s:50, 87s, 86s:50, 76s, 75s:50, ' +
+              '65s, 64s:50, 54s, 53s:50, ' +
+              'AQo:50, AJo, ATo, KQo, KJo, KTo:50, QJo:50, QTo:25, JTo:50'
+      }
+    },
+    {
+      id: '3bet.bb.vs_hj', group: '3 Bet', hero: 'BB', vs: 'HJ',
+      title: 'BB 面对 HJ 开池', facing: 'HJ 加注 2.5BB',
+      labels: { raise: 'Raise 11BB', call: 'Call 1.5BB' },
+      sizing: { raise: 11, call: 1.5 },
+      expect: [28, 40],
+      ranges: {
+        raise: '99+, 88:50, AQs+, AJs:50, A5s, A4s:75, A3s:25, KQs:50, K5s:25, AKo, AQo:75',
+        call: '88:50, 77-22, AJs:50, ATs, A9s, A8s, A7s, A6s, A3s:75, A2s, KQs:50, ' +
+              'KJs, KTs, K9s, K8s, K7s:50, QJs, QTs, Q9s, Q8s, Q7s:50, JTs, J9s, J8s, ' +
+              'J7s:50, T9s, T8s, T7s:50, 98s, 97s, 96s, 95s:50, 87s, 86s, 85s:50, ' +
+              '76s, 75s, 74s:50, 65s, 64s:50, 54s, 53s:50, ' +
+              'AQo:25, AJo, ATo, A9o, KQo, KJo, KTo, K9o:50, QJo, QTo, Q9o:25, ' +
+              'JTo, J9o:25, T9o:50'
+      }
+    },
+    {
+      id: '3bet.bb.vs_co', group: '3 Bet', hero: 'BB', vs: 'CO',
+      title: 'BB 面对 CO 开池', facing: 'CO 加注 2.5BB',
+      labels: { raise: 'Raise 11BB', call: 'Call 1.5BB' },
+      sizing: { raise: 11, call: 1.5 },
+      expect: [36, 50],
+      ranges: {
+        raise: '88+, 77:50, AJs+, A5s, A4s, A3s:50, KQs, KJs:50, K5s:50, K4s:25, ' +
+               'Q9s:25, J9s:25, AKo, AQo, AJo:50, KQo:25',
+        call: '77:50, 66-22, ATs, A9s, A8s, A7s, A6s, A3s:50, A2s, KJs:50, KTs, K9s, ' +
+              'K8s, K7s:50, K6s:50, K5s:50, K4s:50, K3s:50, K2s:50, QJs, QTs, Q9s:75, ' +
+              'Q8s, Q7s:50, Q6s:50, Q5s:50, JTs, J9s:75, J8s, J7s:50, J6s:50, ' +
+              'T9s, T8s, T7s:50, T6s:50, 98s, 97s, 96s:50, 95s:50, 87s, 86s, 85s:50, ' +
+              '76s, 75s, 74s:50, 65s, 64s:50, 63s:50, 54s, 53s:50, 43s:50, ' +
+              'AJo:50, ATo, A9o, A8o, A7o:50, A6o:50, A5o, A4o, A3o:50, A2o:50, ' +
+              'KQo:75, KJo, KTo, K9o:50, K8o, K7o:50, QJo, QTo, Q9o:50, Q8o:50, ' +
+              'JTo, J9o:50, J8o:50, T9o, T8o:50, 98o:25, 97o:25, 87o:25'
+      }
+    },
+    {
+      id: '3bet.bb.vs_btn', group: '3 Bet', hero: 'BB', vs: 'BTN',
+      title: 'BB 面对 BTN 开池', facing: 'BTN 加注 2.5BB',
+      labels: { raise: 'Raise 11BB', call: 'Call 1.5BB' },
+      sizing: { raise: 11, call: 1.5 },
+      expect: [48, 62],
+      ranges: {
+        raise: '66+, 55:50, A9s+, A5s, A4s, A3s, A2s:50, KTs+, K9s:50, K5s:50, K4s:25, ' +
+               'QTs+, Q9s:50, JTs, J9s:50, T9s, 98s, 87s:50, 76s:50, ' +
+               'AJo+, ATo:75, A9o:25, KQo, KJo:75, QJo:50, JTo:25',
+        call: '55:50, 44-22, A8s, A7s, A6s, A2s:50, K9s:50, K8s, K7s, K6s, K5s:50, ' +
+              'K3s, K2s, Q9s:50, Q8s, Q7s, Q6s, Q5s, Q4s:50, Q3s, Q2s, ' +
+              'J9s:50, J8s, J7s, J6s:50, J5s, J4s:50, ' +
+              'T8s, T7s, T6s:50, T5s:50, 97s, 96s, 95s:50, 94s:50, ' +
+              '87s:50, 86s, 85s:50, 84s:50, 76s:50, 75s, 74s:50, 73s:50, ' +
+              '65s, 64s, 63s:50, 54s, 53s, 52s:50, 43s:50, 42s:50, 32s:50, ' +
+              'ATo:25, A9o:75, A8o, A7o, A6o, A5o, A4o, A3o:50, A2o:50, ' +
+              'KJo:25, KTo, K9o, K8o:50, K7o:50, K6o:50, K5o:50, ' +
+              'QJo:50, QTo, Q9o, Q8o:50, Q7o:50, JTo:75, J9o, J8o:50, J7o:50, ' +
+              'T9o, T8o:50, T7o:50, 98o, 97o:50, 96o:50, 87o, 86o:50, ' +
+              '76o:50, 75o:50, 65o:50, 64o:50, 54o:50'
+      }
+    },
+    {
+      id: '3bet.bb.vs_sb', group: '3 Bet', hero: 'BB', vs: 'SB',
+      title: 'BB 面对 SB 开池', facing: 'SB 加注 3BB',
+      labels: { raise: 'Raise 12BB', call: 'Call 2BB' },
+      sizing: { raise: 12, call: 2 },
+      expect: [55, 72],
+      note: '单挑局面，防守频率最高',
+      ranges: {
+        raise: '44+, 33:50, A2s+, K8s+, K7s:50, Q9s+, Q8s:50, J9s+, T9s, 98s, 87s, ' +
+               '76s:50, A7o+, A6o:50, A5o:50, KTo+, K9o:50, QJo, QTo:50, JTo:50',
+        call: '33:50, 22, K7s:50, K6s-K2s, Q8s:50, Q7s-Q2s, J8s-J2s, T8s-T2s, ' +
+              '97s-92s, 86s-82s, 76s:50, 75s-72s, 65s-62s, 54s-52s, 43s-42s, 32s, ' +
+              'A6o:50, A5o:50, A4o-A2o, K9o:50, K8o-K2o, QTo:50, Q9o-Q6o, ' +
+              'JTo:50, J9o-J7o, T9o-T7o, 98o-96o, 87o-86o, 76o, 65o, 54o'
+      }
+    },
+
+    /* ==================== 4 Bet ==================== */
+    {
+      id: '4bet.utg.vs_hj', group: '4 Bet', hero: 'UTG', vs: 'HJ',
+      title: 'UTG 被 HJ 3bet', facing: 'HJ 再加注到 7.5BB',
+      labels: { raise: 'Raise 17BB', call: 'Call 5BB' },
+      sizing: { raise: 17, call: 5 },
+      expect: [3, 7],
+      ranges: {
+        raise: 'QQ+, JJ:50, AKs, AKo:75, A5s:50, A4s:25',
+        call: 'JJ:50, TT, 99:50, AQs, AJs:50, KQs:50, AKo:25'
+      }
+    },
+    {
+      id: '4bet.utg.vs_co', group: '4 Bet', hero: 'UTG', vs: 'CO',
+      title: 'UTG 被 CO 3bet', facing: 'CO 再加注到 7.5BB',
+      labels: { raise: 'Raise 17BB', call: 'Call 5BB' },
+      sizing: { raise: 17, call: 5 },
+      expect: [4, 8],
+      ranges: {
+        raise: 'QQ+, JJ:50, AKs, AKo:75, A5s:50, A4s:50, A3s:25',
+        call: 'JJ:50, TT, 99, AQs, AJs:50, ATs:25, KQs:50, KJs:25, AQo:25'
+      }
+    },
+    {
+      id: '4bet.utg.vs_btn', group: '4 Bet', hero: 'UTG', vs: 'BTN',
+      title: 'UTG 被 BTN 3bet', facing: 'BTN 再加注到 7.5BB',
+      labels: { raise: 'Raise 17BB', call: 'Call 5BB' },
+      sizing: { raise: 17, call: 5 },
+      expect: [5, 10],
+      ranges: {
+        raise: 'QQ+, JJ:50, AKs, AKo, A5s:75, A4s:50, A3s:25, KQs:25',
+        call: 'JJ:50, TT, 99, 88:50, AQs, AJs, ATs:50, KQs:50, KJs:50, QJs:25, JTs:25, AQo:50'
+      }
+    },
+    {
+      id: '4bet.utg.vs_sb', group: '4 Bet', hero: 'UTG', vs: 'SB',
+      title: 'UTG 被 SB 3bet', facing: 'SB 再加注到 10BB',
+      labels: { raise: 'Raise 22BB', call: 'Call 7.5BB' },
+      sizing: { raise: 22, call: 7.5 },
+      expect: [4, 9],
+      ranges: {
+        raise: 'QQ+, JJ:50, AKs, AKo, A5s:75, A4s:50, KQs:25',
+        call: 'JJ:50, TT, 99, 88:50, AQs, AJs, ATs:50, KQs:50, KJs:50, QJs:25, AQo:50'
+      }
+    },
+    {
+      id: '4bet.utg.vs_bb', group: '4 Bet', hero: 'UTG', vs: 'BB',
+      title: 'UTG 被 BB 3bet', facing: 'BB 再加注到 11BB',
+      labels: { raise: 'Raise 24BB', call: 'Call 8.5BB' },
+      sizing: { raise: 24, call: 8.5 },
+      expect: [5, 11],
+      ranges: {
+        raise: 'QQ+, JJ:50, AKs, AKo, A5s, A4s:50, A3s:25, KQs:25',
+        call: 'JJ:50, TT, 99, 88, 77:50, AQs, AJs, ATs, KQs:50, KJs:50, QJs:50, ' +
+              'JTs:50, T9s:25, AQo:50, AJo:25'
+      }
+    },
+    {
+      id: '4bet.hj.vs_co', group: '4 Bet', hero: 'HJ', vs: 'CO',
+      title: 'HJ 被 CO 3bet', facing: 'CO 再加注到 7.5BB',
+      labels: { raise: 'Raise 17BB', call: 'Call 5BB' },
+      sizing: { raise: 17, call: 5 },
+      expect: [4, 9],
+      ranges: {
+        raise: 'QQ+, JJ:50, AKs, AKo:75, A5s:50, A4s:50',
+        call: 'JJ:50, TT, 99, AQs, AJs:50, KQs:50, KJs:25, AKo:25, AQo:25'
+      }
+    },
+    {
+      id: '4bet.hj.vs_btn', group: '4 Bet', hero: 'HJ', vs: 'BTN',
+      title: 'HJ 被 BTN 3bet', facing: 'BTN 再加注到 7.5BB',
+      labels: { raise: 'Raise 17BB', call: 'Call 5BB' },
+      sizing: { raise: 17, call: 5 },
+      expect: [5, 11],
+      ranges: {
+        raise: 'QQ+, JJ:50, AKs, AKo, A5s:75, A4s:50, A3s:25, KQs:25',
+        call: 'JJ:50, TT, 99, 88:50, AQs, AJs, ATs:50, KQs:50, KJs:50, QJs:25, JTs:25, AQo:50'
+      }
+    },
+    {
+      id: '4bet.hj.vs_sb', group: '4 Bet', hero: 'HJ', vs: 'SB',
+      title: 'HJ 被 SB 3bet', facing: 'SB 再加注到 10BB',
+      labels: { raise: 'Raise 22BB', call: 'Call 7.5BB' },
+      sizing: { raise: 22, call: 7.5 },
+      expect: [4, 10],
+      ranges: {
+        raise: 'QQ+, JJ:50, AKs, AKo, A5s:75, A4s:50, KQs:25',
+        call: 'JJ:50, TT, 99, 88:50, AQs, AJs, ATs:50, KQs:50, KJs:50, QJs:25, AQo:50'
+      }
+    },
+    {
+      id: '4bet.hj.vs_bb', group: '4 Bet', hero: 'HJ', vs: 'BB',
+      title: 'HJ 被 BB 3bet', facing: 'BB 再加注到 11BB',
+      labels: { raise: 'Raise 24BB', call: 'Call 8.5BB' },
+      sizing: { raise: 24, call: 8.5 },
+      expect: [6, 13],
+      ranges: {
+        raise: 'QQ+, JJ:50, AKs, AKo, A5s, A4s:75, A3s:25, KQs:25, K5s:25',
+        call: 'JJ:50, TT, 99, 88, 77:50, AQs, AJs, ATs, A9s:25, KQs:50, KJs, ' +
+              'QJs:50, JTs:50, T9s:25, AQo:50, AJo:25'
+      }
+    },
+    {
+      id: '4bet.co.vs_btn', group: '4 Bet', hero: 'CO', vs: 'BTN',
+      title: 'CO 被 BTN 3bet', facing: 'BTN 再加注到 7.5BB',
+      labels: { raise: 'Raise 17BB', call: 'Call 5BB' },
+      sizing: { raise: 17, call: 5 },
+      expect: [7, 14],
+      ranges: {
+        raise: 'QQ+, JJ:75, TT:25, AKs, AKo, A5s, A4s:50, A3s:25, KQs:25, K5s:25',
+        call: 'JJ:25, TT:50, 99, 88, 77:50, AQs, AJs, ATs, KQs:50, KJs, KTs:50, ' +
+              'QJs, JTs:50, T9s:25, AQo:50, AJo:25'
+      }
+    },
+    {
+      id: '4bet.co.vs_sb', group: '4 Bet', hero: 'CO', vs: 'SB',
+      title: 'CO 被 SB 3bet', facing: 'SB 再加注到 10BB',
+      labels: { raise: 'Raise 22BB', call: 'Call 7.5BB' },
+      sizing: { raise: 22, call: 7.5 },
+      expect: [6, 13],
+      ranges: {
+        raise: 'QQ+, JJ:75, AKs, AKo, A5s, A4s:50, A3s:25, KQs:25',
+        call: 'JJ:25, TT, 99, 88, 77:50, AQs, AJs, ATs, KQs:50, KJs, KTs:25, ' +
+              'QJs:50, JTs:50, AQo:50, AJo:25'
+      }
+    },
+    {
+      id: '4bet.co.vs_bb', group: '4 Bet', hero: 'CO', vs: 'BB',
+      title: 'CO 被 BB 3bet', facing: 'BB 再加注到 11BB',
+      labels: { raise: 'Raise 24BB', call: 'Call 8.5BB' },
+      sizing: { raise: 24, call: 8.5 },
+      expect: [8, 16],
+      ranges: {
+        raise: 'QQ+, JJ:75, TT:25, AKs, AKo, A5s, A4s, A3s:50, KQs:50, K5s:50, K4s:25',
+        call: 'JJ:25, TT:50, 99, 88, 77, 66:50, AQs, AJs, ATs, A9s:50, KQs:50, KJs, ' +
+              'KTs, QJs, QTs:50, JTs, T9s:50, 98s:25, AQo, AJo:50, KQo:25'
+      }
+    },
+    {
+      id: '4bet.btn.vs_sb', group: '4 Bet', hero: 'BTN', vs: 'SB',
+      title: 'BTN 被 SB 3bet', facing: 'SB 再加注到 10BB',
+      labels: { raise: 'Raise 22BB', call: 'Call 7.5BB' },
+      sizing: { raise: 22, call: 7.5 },
+      expect: [9, 17],
+      ranges: {
+        raise: 'QQ+, JJ:75, AKs, AKo, A5s, A4s:75, A3s:50, KQs:25, K5s:50',
+        call: 'JJ:25, TT, 99, 88, 77, 66:50, AQs, AJs, ATs, A9s:50, KQs:50, KJs, KTs, ' +
+              'QJs, QTs:50, JTs, T9s:50, AQo, AJo:50, KQo:50'
+      }
+    },
+    {
+      id: '4bet.btn.vs_bb', group: '4 Bet', hero: 'BTN', vs: 'BB',
+      title: 'BTN 被 BB 3bet', facing: 'BB 再加注到 11BB',
+      labels: { raise: 'Raise 24BB', call: 'Call 8.5BB' },
+      sizing: { raise: 24, call: 8.5 },
+      expect: [14, 24],
+      note: '开池最宽，被 3bet 后的跟注范围也最宽',
+      ranges: {
+        raise: 'QQ+, JJ:75, TT:25, AKs, AKo, A5s, A4s, A3s:50, A2s:25, KQs:25, K5s:50, K4s:25',
+        call: 'JJ:25, TT:50, 99-22, AQs, AJs, ATs, A9s, A8s:50, KQs:75, KJs, KTs, ' +
+              'K9s:50, QJs, QTs, Q9s:25, JTs, J9s:50, T9s, 98s, 87s:50, 76s:25, ' +
+              'AQo, AJo:75, ATo:25, KQo, KJo:50'
+      }
+    },
+    {
+      id: '4bet.sb.vs_bb', group: '4 Bet', hero: 'SB', vs: 'BB',
+      title: 'SB 被 BB 3bet', facing: 'BB 再加注到 12BB',
+      labels: { raise: 'Raise 26BB', call: 'Call 9BB' },
+      sizing: { raise: 26, call: 9 },
+      expect: [7, 14],
+      note: 'SB 开池范围本身只有 19.6%，8.7% 的绝对防守量已经是开池范围的 44%',
+      ranges: {
+        raise: 'JJ+, TT:50, AQs+, AKo, AQo:50, A5s, A4s:75, A3s:25, KQs:50',
+        call: 'TT:50, 99, 88, 77:50, AJs, ATs, A9s:25, KQs:50, KJs, KTs:50, QJs, ' +
+              'QTs:25, JTs:50, T9s:25, AQo:50, AJo:25'
+      }
+    }
+  ];
+
+  global.SCENARIOS = SCENARIOS;
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 翻牌圈八个训练场景。
+ *
+ * 双方范围全部来自翻前那份 data/ranges.js，没有新造任何范围：
+ *   heroRange / oppRange 指向某个翻前场景 id 与其中的某个动作。
+ *
+ * 底池与筹码按翻前尺度推出，写死在这里便于核对：
+ *   单加注池：开池 2.5 + 跟注 2.5 + 死掉的小盲 0.5 = 5.5 BB，双方各剩 97.5
+ *   3bet 池：3bet 到 11 + 跟注 11 + 死掉的小盲 0.5 = 22.5 BB，双方各剩 89
+ */
+(function (global) {
+  'use strict';
+
+  var SRP = { pot: 5.5, stack: 97.5, small: 0.33, big: 0.75 };
+  var TBP = { pot: 22.5, stack: 89, small: 0.33, big: 0.75 };
+
+  function agg(id, group, hero, opp, heroR, heroA, oppR, oppA, cfg, line) {
+    return {
+      id: id, group: group, role: 'aggressor', hero: hero, opp: opp,
+      pos: hero === 'BB' ? '无位置' : '有位置', line: line,
+      pot: cfg.pot, stack: cfg.stack, sizes: { small: cfg.small, big: cfg.big },
+      heroRange: { id: heroR, action: heroA },
+      oppRange: { id: oppR, action: oppA },
+      actions: ['bet33', 'bet75', 'check']
+    };
+  }
+  function def(id, group, hero, opp, heroR, heroA, oppR, oppA, cfg, line) {
+    return {
+      id: id, group: group, role: 'defender', hero: hero, opp: opp,
+      pos: hero === 'BB' ? '无位置' : '有位置', line: line,
+      pot: cfg.pot, stack: cfg.stack,
+      facing: cfg.small,                    // v1 只训练面对 33% 底池的下注
+      raiseMult: 3,                         // 加注到对手下注额的三倍
+      heroRange: { id: heroR, action: heroA },
+      oppRange: { id: oppR, action: oppA },
+      actions: ['fold', 'call', 'raise']
+    };
+  }
+
+  var SCEN = [
+    agg('srp.btn.agg', '单加注池', 'BTN', 'BB',
+      'open.btn', 'raise', '3bet.bb.vs_btn', 'call', SRP,
+      '你在 BTN 开池 2.5BB，BB 跟注'),
+    def('srp.bb.def.btn', '单加注池', 'BB', 'BTN',
+      '3bet.bb.vs_btn', 'call', 'open.btn', 'raise', SRP,
+      'BTN 开池 2.5BB，你在 BB 跟注'),
+
+    agg('srp.co.agg', '单加注池', 'CO', 'BB',
+      'open.co', 'raise', '3bet.bb.vs_co', 'call', SRP,
+      '你在 CO 开池 2.5BB，BB 跟注'),
+    def('srp.bb.def.co', '单加注池', 'BB', 'CO',
+      '3bet.bb.vs_co', 'call', 'open.co', 'raise', SRP,
+      'CO 开池 2.5BB，你在 BB 跟注'),
+
+    agg('srp.utg.agg', '单加注池', 'UTG', 'BB',
+      'open.utg', 'raise', '3bet.bb.vs_utg', 'call', SRP,
+      '你在 UTG 开池 2.5BB，BB 跟注'),
+    def('srp.bb.def.utg', '单加注池', 'BB', 'UTG',
+      '3bet.bb.vs_utg', 'call', 'open.utg', 'raise', SRP,
+      'UTG 开池 2.5BB，你在 BB 跟注'),
+
+    agg('3bp.bb.agg', '3Bet 池', 'BB', 'BTN',
+      '3bet.bb.vs_btn', 'raise', '4bet.btn.vs_bb', 'call', TBP,
+      '你在 BB 3bet 到 11BB，BTN 跟注'),
+    def('3bp.btn.def', '3Bet 池', 'BTN', 'BB',
+      '4bet.btn.vs_bb', 'call', '3bet.bb.vs_btn', 'raise', TBP,
+      'BB 3bet 到 11BB，你在 BTN 跟注')
+  ];
+
+  /* 对手范围预设。默认 GTO 就是翻前那份数据本身；
+   * 其余三档用范围记法另写，与翻前范围同一套写法，可在分析模式里改。 */
+  var PRESETS = {
+    'GTO': null,
+    '紧': {
+      label: '只玩强牌，跟注范围窄',
+      ranges: {
+        '3bet.bb.vs_btn': '77+, A9s+, KTs+, QTs+, JTs, T9s, AQo+, KQo',
+        '3bet.bb.vs_co': '77+, A9s+, KTs+, QTs+, JTs, AQo+, KQo',
+        '3bet.bb.vs_utg': '88+, ATs+, KJs+, QJs, AQo+',
+        'open.btn': '55+, A8s+, KTs+, QTs+, JTs, T9s, ATo+, KQo',
+        'open.co': '66+, A9s+, KTs+, QTs+, JTs, AJo+, KQo',
+        'open.utg': '88+, ATs+, KJs+, QJs, AQo+',
+        '4bet.btn.vs_bb': 'TT+, AQs+, KQs, AKo'
+      }
+    },
+    '松': {
+      label: '什么都跟，范围很宽',
+      ranges: {
+        '3bet.bb.vs_btn': '22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, ' +
+                          'A2o+, K7o+, Q8o+, J8o+, T8o+, 98o, 87o, 76o',
+        '3bet.bb.vs_co': '22+, A2s+, K2s+, Q5s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, 54s, ' +
+                         'A2o+, K8o+, Q9o+, J9o+, T9o, 98o',
+        '3bet.bb.vs_utg': '22+, A2s+, K5s+, Q8s+, J8s+, T8s+, 97s+, 87s, 76s, 65s, ' +
+                          'A5o+, K9o+, QTo+, JTo',
+        'open.btn': '22+, A2s+, K2s+, Q2s+, J2s+, T4s+, 94s+, 84s+, 74s+, 63s+, 53s+, 43s, ' +
+                    'A2o+, K5o+, Q7o+, J7o+, T7o+, 97o+, 87o, 76o, 65o',
+        'open.co': '22+, A2s+, K4s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, 54s, ' +
+                   'A4o+, K8o+, Q9o+, J9o+, T9o, 98o',
+        'open.utg': '22+, A2s+, K8s+, Q9s+, J9s+, T9s, 98s, 87s, A9o+, KTo+, QJo',
+        '4bet.btn.vs_bb': '55+, A8s+, KTs+, QTs+, JTs, T9s, ATo+, KQo'
+      }
+    },
+    '站街鱼': {
+      label: '任意两张都跟，几乎不弃牌',
+      ranges: {
+        '3bet.bb.vs_btn': '22+, A2s+, K2s+, Q2s+, J2s+, T2s+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+, 32s, ' +
+                          'A2o+, K2o+, Q4o+, J6o+, T6o+, 96o+, 86o+, 75o+, 65o, 54o',
+        '3bet.bb.vs_co': '22+, A2s+, K2s+, Q2s+, J2s+, T2s+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+, 32s, ' +
+                         'A2o+, K2o+, Q5o+, J7o+, T7o+, 97o+, 87o, 76o, 65o',
+        '3bet.bb.vs_utg': '22+, A2s+, K2s+, Q3s+, J5s+, T6s+, 95s+, 85s+, 75s+, 64s+, 54s, ' +
+                          'A2o+, K5o+, Q8o+, J8o+, T8o+, 98o, 87o',
+        'open.btn': '22+, A2s+, K2s+, Q2s+, J2s+, T2s+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+, 32s, ' +
+                    'A2o+, K2o+, Q2o+, J4o+, T5o+, 95o+, 85o+, 75o+, 64o+, 54o',
+        'open.co': '22+, A2s+, K2s+, Q2s+, J3s+, T5s+, 95s+, 85s+, 74s+, 64s+, 53s+, ' +
+                   'A2o+, K4o+, Q6o+, J7o+, T7o+, 97o+, 87o, 76o',
+        'open.utg': '22+, A2s+, K5s+, Q7s+, J8s+, T8s+, 97s+, 87s, 76s, 65s, A7o+, K9o+, QTo+, JTo',
+        '4bet.btn.vs_bb': '22+, A2s+, K9s+, QTs+, JTs, T9s, A9o+, KJo+'
+      }
+    }
+  };
+
+  global.FLOP_SCENARIOS = SCEN;
+  global.OPP_PRESETS = PRESETS;
+})(typeof window !== 'undefined' ? window : this);
+</script>
+<script>
+/* 翻牌圈训练器 · 界面与训练流程 */
+(function () {
+  'use strict';
+
+  var el = UI.el, clear = UI.clear, rand = UI.rand, shuffled = UI.shuffled;
+  var num = UI.num, ask = UI.ask, heatFill = UI.heatFill;
+  var E = Equity, S = Strategy;
+
+  var BY_ID = {};
+  FLOP_SCENARIOS.forEach(function (s) { BY_ID[s.id] = s; });
+
+  var PRE = {};   // 翻前范围，按 id
+  Range.buildAll(SCENARIOS).forEach(function (b) { PRE[b.scenario.id] = b; });
+
+  /* ---------------- 存储 ---------------- */
+  function blank() {
+    return {
+      stats: {}, mistakes: [],
+      settings: { hands: 20, feedback: 'exam', preset: 'GTO', valueWidth: 50, raiseWidth: 18 }
+    };
+  }
+  var St = UI.createStore('gto.flop.v1', blank);
+  function statOf(id) { return St.statOf(id); }
+  function aggregate(ids) { return St.aggregate(ids); }
+  function saveStore() { St.save(); }
+  function mistakesFor(ids) {
+    return St.mistakesFor(ids, function (id) { return !!BY_ID[id]; });
+  }
+
+  /* ---------------- 对手范围预设 ---------------- */
+  var presetCache = {};
+  function rangeFor(ref, presetName) {
+    var p = OPP_PRESETS[presetName];
+    if (!p || !p.ranges || !p.ranges[ref.id]) return PRE[ref.id];
+    var ck = presetName + '|' + ref.id;
+    if (!presetCache[ck]) {
+      presetCache[ck] = Range.buildScenario({
+        id: ck, ranges: { raise: '', call: p.ranges[ref.id] },
+        labels: { raise: '', call: '' }, sizing: {}
+      });
+    }
+    return presetCache[ck];
+  }
+  // 预设里写的是一条范围字符串，存在 call 槽里，所以取值动作要换
+  function actionFor(ref, presetName) {
+    var p = OPP_PRESETS[presetName];
+    return (p && p.ranges && p.ranges[ref.id]) ? 'call' : ref.action;
+  }
+
+  function heroBuilt(sc) { return PRE[sc.heroRange.id]; }
+  function heroAction(sc) { return sc.heroRange.action; }
+  function oppBuilt(sc) { return rangeFor(sc.oppRange, St.data.settings.preset); }
+  function oppAction(sc) { return actionFor(sc.oppRange, St.data.settings.preset); }
+
+  /* ---------------- 尺度与文案 ---------------- */
+  function betAmt(sc, frac) { return Math.round(sc.pot * frac * 10) / 10; }
+  function actionLabel(sc, key) {
+    if (sc.role === 'aggressor') {
+      if (key === 'bet33') return '下注 ' + betAmt(sc, sc.sizes.small) + 'BB';
+      if (key === 'bet75') return '下注 ' + betAmt(sc, sc.sizes.big) + 'BB';
+      return '过牌';
+    }
+    var faced = betAmt(sc, sc.facing);
+    if (key === 'fold') return '弃牌';
+    if (key === 'call') return '跟注 ' + faced + 'BB';
+    return '加注 ' + (Math.round(faced * sc.raiseMult * 10) / 10) + 'BB';
+  }
+  var ZONE_CN = { value: '价值区', check: '过牌区', bluff: '诈唬区', fold: '弃牌区', call: '跟注区', raise: '加注区' };
+  var ZONE_COLOR = {
+    value: 'var(--btn-fold)', check: 'var(--zone-check)', bluff: 'var(--btn-raise)',
+    fold: 'var(--zone-check)', call: 'var(--btn-call)', raise: 'var(--btn-fold)'
+  };
+
+  /* ---------------- 牌桌状态 ---------------- */
+  var ORDER = Table.ORDER;
+  function tableState(sc, acted) {
+    var idx = {};
+    ORDER.forEach(function (p, i) { idx[p] = i; });
+    // 翻牌圈只剩两人，其余位置整个不画
+    var seats = ORDER.map(function (p) {
+      return { pos: p, folded: false, hidden: true, bet: 0, hero: p === sc.hero };
+    });
+    seats[idx[sc.hero]].hidden = false;
+    seats[idx[sc.opp]].hidden = false;
+    // 翻牌圈底池已经形成，翻前投入不再单独显示，只显示本圈的下注
+    if (sc.role === 'defender') {
+      seats[idx[sc.opp]].bet = betAmt(sc, sc.facing);
+    }
+    if (acted && acted.amount) seats[idx[sc.hero]].bet = acted.amount;
+    var extra = seats.reduce(function (s, x) { return s + x.bet; }, 0);
+    return { seats: seats, pot: sc.pot + extra };
+  }
+
+  /* ---------------- 计算 ---------------- */
+  // 把战胜我的组合按牌型分组
+  function beatBreakdown(hero, board, range) {
+    var my5 = E.best5(hero.concat(board));
+    var bv = board.map(function (c) { return E.val(c); }).sort(function (a, b) { return b - a; });
+    var g = {}, tot = 0, ahead = 0, tie = 0;
+    range.forEach(function (o) {
+      tot += o.w;
+      var th = E.best5(o.cards.concat(board));
+      if (th < my5) { ahead += o.w; return; }
+      if (th === my5) { tie += o.w; return; }
+      var all = o.cards.concat(board).map(function (c) { return E.val(c); });
+      var cnt = {};
+      all.forEach(function (v) { cnt[v] = (cnt[v] || 0) + 1; });
+      var trips = Object.keys(cnt).filter(function (k) { return cnt[k] >= 3; });
+      var pairs = Object.keys(cnt).filter(function (k) { return cnt[k] === 2; });
+      var r = Cards.read(o.cards, board);
+      var name;
+      if (r.flush) name = '同花';
+      else if (r.straight) name = '顺子';
+      else if (trips.length) name = '三条';
+      else if (pairs.length >= 2) name = '两对';
+      else if (pairs.length === 1) {
+        var p = +pairs[0];
+        name = p === bv[0] ? '顶对' : p === bv[1] ? '中对' : p === bv[2] ? '底对' : '口袋对';
+      } else name = '高牌';
+      g[name] = (g[name] || 0) + o.w;
+    });
+    var list = Object.keys(g).map(function (k) {
+      return { name: k, w: g[k], pct: g[k] / tot * 100 };
+    }).sort(function (a, b) { return b.w - a.w; });
+    return {
+      list: list, total: tot, combos: range.length,
+      ahead: ahead / tot * 100, tie: tie / tot * 100,
+      behind: (tot - ahead - tie) / tot * 100
+    };
+  }
+
+  function analyse(sc, board, hole) {
+    var oppRange = E.expandRange(oppBuilt(sc), oppAction(sc), board.concat(hole));
+    var bd = beatBreakdown(hole, board, oppRange);
+    var eq = E.equityVsRange(hole, board, oppRange, 6000);
+    var ladder = E.rangeLadder(board, heroBuilt(sc), heroAction(sc), oppBuilt(sc), oppAction(sc));
+    var p = E.percentileOf(hole, ladder);
+    var bcls = Board.classify(board);
+    var opts = { valueWidth: St.data.settings.valueWidth, raiseWidth: St.data.settings.raiseWidth };
+    var adv = sc.role === 'aggressor'
+      ? S.adviseAggressor(p.percentile, bcls, sc.sizes, opts)
+      : S.adviseDefender(p.percentile, sc.facing, opts);
+    return {
+      breakdown: bd, equity: eq.equity, stderr: eq.stderr,
+      ahead: bd.ahead, delta: eq.equity - bd.ahead,
+      pct: p.percentile, board: bcls, advice: adv,
+      hand: Cards.read(hole, board)
+    };
+  }
+
+  /* ---------------- 导航 ---------------- */
+  var view = { name: 'home' };
+  var navLeft = document.getElementById('nav-left');
+  var navRight = document.getElementById('nav-right');
+  var navTitle = document.getElementById('nav-title');
+  var SCREENS = ['home', 'sheet', 'train', 'result', 'settings', 'help'];
+
+  function show(name, opts) {
+    view = { name: name, opts: opts || {} };
+    SCREENS.forEach(function (n) {
+      document.getElementById('screen-' + n).classList.toggle('on', n === name);
+    });
+    document.getElementById('screen-' + name).scrollTop = 0;
+    if (name === 'home') renderHome();
+    if (name === 'sheet') renderSheet();
+    if (name === 'settings') renderSettings();
+    if (name === 'help') renderHelp();
+  }
+  function setNav(title, left, right) {
+    navTitle.textContent = title;
+    navLeft.style.fontSize = '';
+    navLeft.textContent = left ? left.label : '';
+    navLeft.onclick = left ? left.fn : null;
+    navLeft.style.visibility = left ? 'visible' : 'hidden';
+    navRight.textContent = right ? right.label : '';
+    navRight.onclick = right ? right.fn : null;
+    navRight.style.visibility = right ? 'visible' : 'hidden';
+  }
+
+  /* ---------------- 首页 ---------------- */
+  function renderHome() {
+    setNav('翻牌圈',
+      { label: '⚙', fn: function () { show('settings'); } },
+      { label: '?', fn: function () { show('help'); } });
+    navLeft.className = 'icon-btn';
+    navRight.className = 'icon-btn';
+
+    var root = document.getElementById('screen-home');
+    clear(root);
+
+    if (St.data.mistakes.length) {
+      var w = el('div', 'grp');
+      var bar = el('button', 'redobar');
+      var left = el('div');
+      left.appendChild(el('div', 'redotitle', '错题本'));
+      left.appendChild(el('div', 'redosub', St.data.mistakes.length + ' 手待清　·　连续答对两次自动移出'));
+      bar.appendChild(left);
+      bar.appendChild(el('div', 'redogo', '开始复盘'));
+      bar.onclick = function () {
+        var q = shuffled(St.data.mistakes).slice(0, 20);
+        startSession(q[0] ? BY_ID[q[0].id] : null, q, '错题复盘');
+      };
+      w.appendChild(bar);
+      root.appendChild(w);
+    }
+
+    var groups = [];
+    FLOP_SCENARIOS.forEach(function (s) {
+      if (groups.indexOf(s.group) < 0) groups.push(s.group);
+    });
+    root.appendChild(crossLink('翻前训练器', '起手牌范围，36 个位置场景', '../index.html'));
+    groups.forEach(function (g) {
+      var sec = el('div', 'grp');
+      sec.appendChild(el('div', 'gh', g));
+      sec.appendChild(el('div', 'gs', g === '单加注池'
+        ? '开池被跟，底池 5.5 BB' : 'BB 3bet 被跟，底池 22.5 BB'));
+      var cards = el('div', 'cards');
+      FLOP_SCENARIOS.filter(function (s) { return s.group === g; }).forEach(function (s) {
+        var t = aggregate([s.id]);
+        var card = el('button', 'poscard' + (t.hands ? '' : ' fresh'));
+        card.appendChild(el('div', 'pos', s.hero));
+        card.appendChild(el('div', 'sub',
+          (s.role === 'aggressor' ? '进攻方' : '防守方') + ' · ' + s.pos +
+          (s.group === '单加注池' ? ' · vs ' + s.opp : '')));
+        card.appendChild(el('div', 'tot', 'Total Hands: ' + t.hands));
+        var tally = el('div', 'tally');
+        tally.appendChild(el('span', 'ok', '✔ ' + t.correct));
+        tally.appendChild(el('span', 'sep', '/'));
+        tally.appendChild(el('span', 'no', '✖ ' + t.wrong));
+        card.appendChild(tally);
+        var pb = el('div', 'pbar');
+        var fi = el('i');
+        fi.style.width = (t.hands ? t.correct / t.hands * 100 : 0) + '%';
+        pb.appendChild(fi);
+        card.appendChild(pb);
+        card.onclick = function () { show('sheet', { id: s.id }); };
+        cards.appendChild(card);
+      });
+      sec.appendChild(cards);
+      root.appendChild(sec);
+    });
+  }
+
+  // 两个应用互相放一个入口，换着练时点一下就过去
+  function crossLink(title, sub, href) {
+    var w = el('div', 'grp');
+    var a = el('a', 'crosslink');
+    a.href = href;
+    var left = el('div');
+    left.appendChild(el('div', 'redotitle', title));
+    left.appendChild(el('div', 'redosub', sub));
+    a.appendChild(left);
+    a.appendChild(el('div', 'redogo', '打开'));
+    w.appendChild(a);
+    return w;
+  }
+
+  /* ---------------- 范围网格 ---------------- */
+  function rangeGrid(built, action, heat) {
+    var box = el('div', 'gridbox');
+    var grid = el('div', 'grid');
+    Range.ALL_HANDS.forEach(function (h) {
+      var g = built.grid[h.key];
+      var f = g ? g[action] : 0;
+      var rec = heat ? heat[h.key] : null;
+      var cell = el('div', 'gcell' + ((heat ? (rec && rec.n) : f >= 50) ? ' lit' : ''), h.key);
+      cell.style.background = heat ? heatFill(rec)
+        : f === 0 ? '#33475c'
+        : 'linear-gradient(to top, #33475c 0 ' + (100 - f) + '%, var(--btn-call) ' + (100 - f) + '% 100%)';
+      grid.appendChild(cell);
+    });
+    box.appendChild(grid);
+    return box;
+  }
+  function rangePct(built, action) {
+    var w = 0;
+    Range.ALL_HANDS.forEach(function (h) {
+      var g = built.grid[h.key];
+      if (g) w += h.combos * g[action] / 100;
+    });
+    return { pct: w / 1326 * 100, combos: Math.round(w) };
+  }
+
+  /* ---------------- 场景面 ---------------- */
+  function renderSheet() {
+    var sc = BY_ID[view.opts.id];
+    setNav(sc.group + ' · ' + sc.hero, { label: '✕', fn: function () { show('home'); } }, null);
+    navLeft.className = 'icon-btn';
+
+    var root = document.getElementById('screen-sheet');
+    clear(root);
+    var w = el('div', 'sheetwrap');
+
+    w.appendChild(el('p', 'facing', sc.line + '。底池 ' + sc.pot + 'BB，你' + sc.pos + '。'));
+
+    var t = aggregate([sc.id]);
+    var row = el('div', 'tally-row');
+    row.appendChild(el('span', null, 'Total Hands: ' + t.hands));
+    var okS = el('span', 'ok', '✔ ' + t.correct); okS.style.color = 'var(--good)';
+    var noS = el('span', 'no', '✖ ' + t.wrong); noS.style.color = 'var(--bad)';
+    row.appendChild(okS); row.appendChild(el('span', 'sep', '/')); row.appendChild(noS);
+    w.appendChild(row);
+
+    // 双方范围
+    var hb = heroBuilt(sc), ha = heroAction(sc);
+    var ob = oppBuilt(sc), oa = oppAction(sc);
+    var hp = rangePct(hb, ha), op = rangePct(ob, oa);
+    var pair = el('div', 'rangepair');
+    [['你的范围', hb, ha, hp], ['对手范围', ob, oa, op]].forEach(function (r) {
+      var col = el('div');
+      var hd = el('div', 'rghd');
+      hd.appendChild(el('b', null, r[0]));
+      hd.appendChild(el('span', null, r[3].pct.toFixed(1) + '%'));
+      col.appendChild(hd);
+      col.appendChild(rangeGrid(r[1], r[2]));
+      col.appendChild(el('div', 'rgft', r[3].combos + ' 组合'));
+      pair.appendChild(col);
+    });
+    w.appendChild(pair);
+
+    // 对手预设
+    w.appendChild(el('div', 'lab', '对手类型'));
+    var chips = el('div', 'chips');
+    Object.keys(OPP_PRESETS).forEach(function (k) {
+      var c = el('button', 'chip' + (St.data.settings.preset === k ? ' on' : ''), k);
+      c.onclick = function () {
+        St.data.settings.preset = k; saveStore();
+        E.clearCache(); renderSheet();
+      };
+      chips.appendChild(c);
+    });
+    w.appendChild(chips);
+    var pd = OPP_PRESETS[St.data.settings.preset];
+    w.appendChild(el('p', 'presetnote', pd && pd.label
+      ? pd.label : '按翻前解法整理的标准范围'));
+
+    var go = el('button', 'cta', '开始训练');
+    go.onclick = function () { startSession(sc, null, null); };
+    w.appendChild(go);
+
+    var wrongs = mistakesFor([sc.id]);
+    if (wrongs.length) {
+      var redo = el('button', 'cta ghost', '只练错题 · ' + wrongs.length + ' 手');
+      redo.onclick = function () { startSession(sc, shuffled(wrongs).slice(0, 20), '错题复盘'); };
+      w.appendChild(redo);
+    }
+    root.appendChild(w);
+  }
+
+  /* ---------------- 训练 ---------------- */
+  var session = null;
+
+  function startSession(sc, queue, title) {
+    session = {
+      sc: sc, queue: queue || null, i: 0, answers: [],
+      total: queue ? queue.length : St.data.settings.hands,
+      title: title || (sc.group + ' · ' + sc.hero)
+    };
+    show('train');
+    nextHand();
+  }
+
+  function dealHand(sc) {
+    var mine = E.expandRange(heroBuilt(sc), heroAction(sc), []);
+    var pick = mine[rand(mine.length)];
+    var guard = 0;
+    while (pick.w < 1 && Math.random() > pick.w && guard++ < 60) pick = mine[rand(mine.length)];
+    var board = Board.randomFlop(pick.cards);
+    return { hole: byRank(pick.cards), board: board };
+  }
+
+  // 展开范围时牌是按牌堆顺序出来的，显示前按点数从大到小排
+  function byRank(cards) {
+    return cards.slice().sort(function (a, b) { return E.val(b) - E.val(a); });
+  }
+
+  function nextHand() {
+    var sc = session.sc, hole, board;
+    if (session.queue) {
+      var q = session.queue[session.i];
+      sc = BY_ID[q.id] || sc;
+      session.sc = sc;
+      hole = q.hole; board = q.board;
+    } else {
+      var d = dealHand(sc);
+      hole = d.hole; board = d.board;
+    }
+    session.cur = { sc: sc, hole: hole, board: board, result: null };
+    renderTrain();
+    // 牌桌先画出来，分位阶梯在后台算，用户抬手时通常已经算完
+    setTimeout(function () {
+      if (session && session.cur && session.cur.board === board) {
+        E.rangeLadder(board, heroBuilt(sc), heroAction(sc), oppBuilt(sc), oppAction(sc));
+      }
+    }, 0);
+  }
+
+  function renderTrain() {
+    var c = session.cur, sc = c.sc;
+    setNav(session.title,
+      { label: '✕', fn: quitSession },
+      { label: '范围', fn: function () { toggleRange(sc); } });
+    navLeft.className = 'icon-btn';
+    navRight.className = 'txt-btn';
+
+    var root = document.getElementById('screen-train');
+    clear(root);
+
+    var head = el('div', 'trainhead');
+    head.appendChild(el('div', 'counter', (session.i + 1) + ' / ' + session.total));
+    var pot = el('div', 'counter', '底池 ' + tableState(sc).pot + ' BB');
+    pot.style.cssText = 'font-size:14px;color:var(--muted);font-weight:500';
+    head.appendChild(pot);
+    root.appendChild(head);
+
+    var box = el('div', 'tablebox');
+    var st = tableState(sc);
+    var felt = Table.render({
+      seats: st.seats, heroPos: sc.hero, pot: st.pot,
+      hole: c.hole, board: c.board
+    });
+    box.appendChild(felt);
+    root.appendChild(box);
+
+    var acts = el('div', 'actions');
+    sc.actions.forEach(function (k) {
+      var cls = sc.role === 'aggressor'
+        ? (k === 'bet33' ? 'raise' : k === 'bet75' ? 'fold' : 'call')
+        : (k === 'fold' ? 'fold' : k === 'call' ? 'call' : 'raise');
+      var b = el('button', 'act ' + cls, actionLabel(sc, k));
+      b.onclick = function () { answer(k); };
+      acts.appendChild(b);
+    });
+    root.appendChild(acts);
+
+    Table.fit(felt);
+  }
+
+  function answer(chosen) {
+    if (!session || session.done || session.cur.result) return;
+    var c = session.cur, sc = c.sc;
+    var a = analyse(sc, c.board, c.hole);
+    var v = S.judge(a.advice, chosen, sc.role);
+    c.result = { chosen: chosen, analysis: a, verdict: v };
+
+    var s = statOf(sc.id);
+    s.hands++;
+    if (v.correct) s.correct++; else s.wrong++;
+    var key = a.board.structure + ' / ' + a.hand.cls;
+    var bh = s.byHand[key] || (s.byHand[key] = { n: 0, correct: 0 });
+    bh.n++;
+    if (v.correct) { bh.correct++; St.clearMistake(sc.id, handKey(c)); }
+    else St.noteMistake(sc.id, handKey(c), chosen);
+    saveStore();
+
+    session.answers.push({
+      id: sc.id, hole: c.hole, board: c.board,
+      chosen: chosen, correct: v.correct, marginal: v.marginal, a: a
+    });
+    renderReveal();
+  }
+
+  function handKey(c) { return c.hole.join('') + '|' + c.board.join(''); }
+
+  /* ---------------- 揭示面板 ---------------- */
+  function renderReveal() {
+    var c = session.cur, sc = c.sc, r = c.result, a = r.analysis;
+    var root = document.getElementById('screen-train');
+
+    var scrim = el('div', 'scrim');
+    root.appendChild(scrim);
+    var sheet = el('div', 'sheet');
+
+    // 判定条
+    var hd = el('div', 'revhd');
+    var vr = el('div', 'verdict', r.verdict.correct
+      ? (r.verdict.marginal ? '✔ 对（贴边）' : '✔ 正确') : '✖ 错误');
+    vr.style.color = r.verdict.correct ? 'var(--good)' : 'var(--bad)';
+    hd.appendChild(vr);
+    hd.appendChild(el('div', 'chosen', '你选了 ' + actionLabel(sc, r.chosen)));
+    sheet.appendChild(hd);
+
+    var body = el('div', 'revbody');
+
+    // 一、对手组合
+    body.appendChild(el('div', 'lab', '对手可能的组合　' + Math.round(a.breakdown.total) + ' 个'));
+    var split = el('div', 'split');
+    var sb = el('i'); sb.style.cssText = 'width:' + a.breakdown.behind + '%;background:var(--bad)';
+    var st2 = el('i'); st2.style.cssText = 'width:' + a.breakdown.tie + '%;background:var(--dim)';
+    var sa = el('i'); sa.style.cssText = 'width:' + a.breakdown.ahead + '%;background:var(--good)';
+    split.appendChild(sb); split.appendChild(st2); split.appendChild(sa);
+    body.appendChild(split);
+    var sl = el('div', 'splitlab');
+    var e1 = el('span', null, '比你强 ' + a.breakdown.behind.toFixed(1) + '%');
+    e1.style.color = 'var(--bad)';
+    var e2 = el('span', null, '比你弱 ' + a.breakdown.ahead.toFixed(1) + '%');
+    e2.style.color = 'var(--good)';
+    sl.appendChild(e1); sl.appendChild(e2);
+    body.appendChild(sl);
+
+    var maxW = a.breakdown.list.length ? a.breakdown.list[0].pct : 1;
+    a.breakdown.list.slice(0, 5).forEach(function (g) {
+      var row = el('div', 'brow');
+      row.appendChild(el('span', 'bn', g.name));
+      var trk = el('span', 'btrk');
+      var fi = el('i');
+      fi.style.cssText = 'width:' + (g.pct / maxW * 100) + '%;background:var(--bad)';
+      trk.appendChild(fi);
+      row.appendChild(trk);
+      row.appendChild(el('span', 'bv', Math.round(g.w) + ' · ' + g.pct.toFixed(0) + '%'));
+      body.appendChild(row);
+    });
+    if (!a.breakdown.list.length) {
+      body.appendChild(el('p', 'presetnote', '没有任何组合比你强'));
+    }
+
+    // 二、胜率
+    body.appendChild(el('div', 'lab', '你的胜率'));
+    var tiles = el('div', 'tiles');
+    [[a.ahead.toFixed(0) + '%', '现在领先', null],
+     [a.equity.toFixed(0) + '%', '算到河牌', null],
+     [(a.delta >= 0 ? '+' : '') + a.delta.toFixed(0), '后续增减',
+      a.delta >= 0 ? 'var(--good)' : 'var(--bad)']].forEach(function (t) {
+      var d = el('div', 'tile');
+      var b = el('b', null, t[0]);
+      if (t[2]) { b.style.color = t[2]; d.style.borderColor = t[2]; }
+      d.appendChild(b);
+      d.appendChild(el('span', null, t[1]));
+      tiles.appendChild(d);
+    });
+    body.appendChild(tiles);
+    body.appendChild(el('p', 'presetnote',
+      a.board.structure + ' · ' + a.board.suit + '　你的牌：' + a.hand.cls));
+
+    // 三、分位
+    body.appendChild(el('div', 'lab', '你在自己范围里'));
+    var z = a.advice.zones;
+    var bar = el('div', 'pctbar');
+    if (sc.role === 'aggressor') {
+      seg(bar, z.bluffTo, 'repeating-linear-gradient(45deg,var(--btn-raise),var(--btn-raise) 5px,#a86f18 5px,#a86f18 10px)');
+      seg(bar, z.valueFrom - z.bluffTo, 'var(--zone-check)');
+      seg(bar, 100 - z.valueFrom, 'var(--btn-fold)');
+    } else {
+      seg(bar, z.foldTo, 'var(--zone-check)');
+      seg(bar, z.raiseFrom - z.foldTo, 'var(--btn-call)');
+      seg(bar, 100 - z.raiseFrom, 'var(--btn-fold)');
+    }
+    body.appendChild(bar);
+    var mk = el('div', 'mk');
+    var tri = el('i');
+    tri.style.left = a.pct + '%';
+    mk.appendChild(tri);
+    body.appendChild(mk);
+    var zl = el('div', 'zlab');
+    if (sc.role === 'aggressor') {
+      zl.appendChild(el('span', null, '诈唬 0–' + z.bluffTo.toFixed(0)));
+      zl.appendChild(el('span', null, '过牌 ' + z.bluffTo.toFixed(0) + '–' + z.valueFrom.toFixed(0)));
+      zl.appendChild(el('span', null, '价值 ' + z.valueFrom.toFixed(0) + '–100'));
+    } else {
+      zl.appendChild(el('span', null, '弃牌 0–' + z.foldTo.toFixed(0)));
+      zl.appendChild(el('span', null, '跟注 ' + z.foldTo.toFixed(0) + '–' + z.raiseFrom.toFixed(0)));
+      zl.appendChild(el('span', null, '加注 ' + z.raiseFrom.toFixed(0) + '–100'));
+    }
+    body.appendChild(zl);
+    var pl = el('p', 'zoneline');
+    pl.innerHTML = '排在第 <b>' + a.pct.toFixed(0) + '%</b>，落在' +
+      '<b style="color:' + ZONE_COLOR[a.advice.zone] + '">' + ZONE_CN[a.advice.zone] + '</b>';
+    body.appendChild(pl);
+
+    // 四、建议
+    body.appendChild(el('div', 'lab', '建议'));
+    sc.actions.forEach(function (k) {
+      var w = a.advice.weights[k] || 0;
+      var row = el('div', 'arow');
+      row.appendChild(el('span', 'an', actionLabel(sc, k)));
+      var trk = el('span', 'atrk');
+      var fi = el('i');
+      var col = sc.role === 'aggressor'
+        ? (k === 'bet33' ? 'var(--btn-raise)' : k === 'bet75' ? 'var(--btn-fold)' : 'var(--btn-call)')
+        : (k === 'fold' ? 'var(--fold)' : k === 'call' ? 'var(--btn-call)' : 'var(--btn-fold)');
+      fi.style.cssText = 'width:' + w + '%;background:' + col;
+      trk.appendChild(fi);
+      row.appendChild(trk);
+      var v = el('span', 'av', w + '%');
+      if (w >= 50) v.style.fontWeight = '700'; else v.style.color = 'var(--muted)';
+      row.appendChild(v);
+      body.appendChild(row);
+    });
+    body.appendChild(el('div', 'reason', reasonText(sc, a)));
+
+    sheet.appendChild(body);
+
+    var foot = el('div', 'revfoot');
+    var nx = el('button', 'cta', session.i + 1 >= session.total ? '看结算' : '下一手');
+    nx.onclick = function () {
+      session.i++;
+      if (session.i >= session.total) finishSession();
+      else nextHand();
+    };
+    foot.appendChild(nx);
+    sheet.appendChild(foot);
+    root.appendChild(sheet);
+  }
+
+  function seg(parent, width, bg) {
+    var i = el('i');
+    i.style.cssText = 'width:' + width + '%;background:' + bg;
+    parent.appendChild(i);
+  }
+
+  /* 一句话理由。分区给骨架，后续增减给补充，两者必须说同一件事，
+   * 不能出现"下注取价值"后面接"这是靠摊牌价值的牌"这种自相矛盾。 */
+  function reasonText(sc, a) {
+    var d = Math.round(a.delta);
+    var z = a.advice.zone;
+
+    if (z === 'value') {
+      if (d <= -12) {
+        return '这手牌现在领先 ' + a.ahead.toFixed(0) + '% 的组合，排在你范围前列，所以下注。' +
+          '但它到河牌还会掉 ' + Math.abs(d) + ' 个点，牌力靠的是现在而不是将来，' +
+          '所以用小注：既拿到价值，也不必在被加注时为难。';
+      }
+      if (d >= 8) {
+        return '这手牌既排在你范围的顶部，又还能再涨 ' + d + ' 个点，' +
+          '是可以用大注的牌，被跟被加都不怕。';
+      }
+      return '这手牌排在你范围的顶部，领先 ' + a.ahead.toFixed(0) + '% 的组合，下注取价值。';
+    }
+
+    if (z === 'bluff') {
+      if (d >= 8) {
+        return '你只赢 ' + a.ahead.toFixed(0) + '% 的组合，但这正是该下注的位置。' +
+          '你在自己范围的底部，没有摊牌价值，而这手牌到河牌还能涨 ' + d + ' 个点，' +
+          '诈唬被跟也还有后手。';
+      }
+      return '你只赢 ' + a.ahead.toFixed(0) + '% 的组合，也没有什么发展空间。' +
+        '正因为毫无摊牌价值，它才适合拿来诈唬，好牌要留着过牌。';
+    }
+
+    if (z === 'check') {
+      if (d <= -12) {
+        return '这手牌不上不下：现在领先 ' + a.ahead.toFixed(0) + '% 的组合，' +
+          '到河牌却要掉 ' + Math.abs(d) + ' 个点。下注只会被更好的跟、被更差的弃，' +
+          '过牌把这点摊牌价值保住。';
+      }
+      if (d >= 8) {
+        return '这手牌在范围中段，但还能涨 ' + d + ' 个点。' +
+          '过牌可以免费看下一张，等真的成牌再收钱。';
+      }
+      return '这手牌在范围中段，下注会被更好的跟、被更差的弃，过牌保住摊牌价值。';
+    }
+
+    if (z === 'fold') {
+      return '你只赢 ' + a.ahead.toFixed(0) + '% 的组合' +
+        (d >= 8 ? '，虽然还有 ' + d + ' 个点的成长空间，但' : '，而且') +
+        '赔率不够，这手牌排在你防守范围的最底部，弃掉。';
+    }
+    if (z === 'raise') {
+      return '这手牌排在你范围的顶部，领先 ' + a.ahead.toFixed(0) + '% 的组合，' +
+        '加注取价值，也把对手的听牌赶走。';
+    }
+    return '够格继续但不够格加注。你领先 ' + a.ahead.toFixed(0) + '% 的组合，' +
+      '跟注保住摊牌价值，把加注留给更强的牌。';
+  }
+
+  function toggleRange(sc) {
+    var root = document.getElementById('screen-train');
+    var open = root.querySelector('.rangeover');
+    if (open) { root.removeChild(open); return; }
+    var over = el('div', 'rangeover');
+    over.appendChild(el('div', 'lab', '对手范围　' + St.data.settings.preset));
+    over.appendChild(rangeGrid(oppBuilt(sc), oppAction(sc)));
+    over.appendChild(el('div', 'lab', '你的范围'));
+    over.appendChild(rangeGrid(heroBuilt(sc), heroAction(sc)));
+    var close = el('button', 'cta ghost', '关闭');
+    close.onclick = function () { root.removeChild(over); };
+    over.appendChild(close);
+    root.appendChild(over);
+  }
+
+  function quitSession() {
+    var done = function () { session = null; show('home'); };
+    if (session && session.i > 0) {
+      ask('退出会放弃本局成绩。已答的 ' + session.i + ' 手仍计入累计统计。', done);
+    } else done();
+  }
+
+  /* ---------------- 结算 ---------------- */
+  function ratingOf(p) {
+    if (p >= 100) return 'Perfect';
+    if (p >= 90) return 'Excellent';
+    if (p >= 75) return 'Good';
+    if (p >= 60) return 'Fair';
+    return 'Needs Work';
+  }
+
+  function finishSession() {
+    var right = session.answers.filter(function (x) { return x.correct; });
+    var wrong = session.answers.filter(function (x) { return !x.correct; });
+    var pct = session.answers.length ? right.length / session.answers.length * 100 : 0;
+
+    setNav(session.title, { label: '✕', fn: function () { show('home'); } }, null);
+    navLeft.className = 'icon-btn';
+
+    var root = document.getElementById('screen-result');
+    clear(root);
+
+    var head = el('div', 'resulthead');
+    head.appendChild(el('div', 'score', right.length + ' / ' + session.answers.length));
+    head.appendChild(el('div', 'rating', ratingOf(pct)));
+    var marg = session.answers.filter(function (x) { return x.marginal; }).length;
+    if (marg) head.appendChild(el('div', 'submeta', '其中 ' + marg + ' 手贴着分区边界，两边都算对'));
+    root.appendChild(head);
+
+    var pad = el('div', 'rlist');
+    var sc = session.sc;
+    var again = el('button', 'cta', '再来一局');
+    again.onclick = function () { startSession(sc, null, null); };
+    pad.appendChild(again);
+
+    if (wrong.length) {
+      var redo = el('button', 'cta ghost', '立刻重练这 ' + wrong.length + ' 手错题');
+      redo.onclick = function () {
+        startSession(sc, wrong.map(function (x) {
+          return { id: x.id, hole: x.hole, board: x.board };
+        }), '错题复盘');
+      };
+      pad.appendChild(redo);
+    }
+    var close = el('button', 'cta ghost', '返回');
+    close.onclick = function () { show('home'); };
+    pad.appendChild(close);
+
+    if (wrong.length) pad.appendChild(listBlock('✖ 打错的手牌', 'var(--bad)', wrong));
+    if (right.length) pad.appendChild(listBlock('✔ 打对的手牌', 'var(--good)', right));
+    root.appendChild(pad);
+
+    session.done = true;
+    show('result');
+  }
+
+  function listBlock(title, color, rows) {
+    var wrap = el('div');
+    var h = el('h3', null, title);
+    h.style.color = color;
+    wrap.appendChild(h);
+    rows.forEach(function (x) {
+      var sc = BY_ID[x.id];
+      var r = el('div', 'rrow');
+      var mini = el('div', 'mini');
+      x.hole.forEach(function (c) { mini.appendChild(Table.cardNode(c, 'mcard')); });
+      r.appendChild(mini);
+      var bd = el('div', 'mini bd');
+      x.board.forEach(function (c) { bd.appendChild(Table.cardNode(c, 'mcard sm')); });
+      r.appendChild(bd);
+      var info = el('div', 'rinfo');
+      var top = el('div', 'rgto');
+      var dot = el('div', 'dot');
+      dot.style.background = ZONE_COLOR[x.a.advice.zone];
+      top.appendChild(dot);
+      top.appendChild(el('span', null, ZONE_CN[x.a.advice.zone] + ' · 分位 ' + x.a.pct.toFixed(0) + '%'));
+      info.appendChild(top);
+      info.appendChild(el('div', 'rmine', '你选了 ' + actionLabel(sc, x.chosen) +
+        (x.marginal ? '（贴边）' : '')));
+      r.appendChild(info);
+      wrap.appendChild(r);
+    });
+    return wrap;
+  }
+
+  /* ---------------- 设置 ---------------- */
+  function renderSettings() {
+    setNav('设置', { label: '‹', fn: function () { show('home'); } }, null);
+    navLeft.className = 'icon-btn';
+    navLeft.style.fontSize = '28px';
+
+    var root = document.getElementById('screen-settings');
+    clear(root);
+    var pad = el('div', 'pad');
+
+    pad.appendChild(seg2('每局手数', '一局练多少手', [10, 20, 50], St.data.settings.hands,
+      function (v) { St.data.settings.hands = v; saveStore(); renderSettings(); }));
+
+    pad.appendChild(seg2('价值区宽度', '进攻方顶部多少比例走价值下注。这是整套模型唯一的方向盘',
+      [40, 50, 60], St.data.settings.valueWidth,
+      function (v) { St.data.settings.valueWidth = v; saveStore(); renderSettings(); }));
+
+    pad.appendChild(seg2('加注区宽度', '防守方顶部多少比例走加注',
+      [12, 18, 25], St.data.settings.raiseWidth,
+      function (v) { St.data.settings.raiseWidth = v; saveStore(); renderSettings(); }));
+
+    pad.appendChild(seg2('对手类型', '默认 GTO。改了之后所有胜率与建议都会重算',
+      Object.keys(OPP_PRESETS), St.data.settings.preset,
+      function (v) { St.data.settings.preset = v; saveStore(); E.clearCache(); renderSettings(); }));
+
+    var wipe = el('button', 'cta ghost', '清空全部统计');
+    wipe.style.marginTop = '26px';
+    wipe.onclick = function () {
+      ask('清空全部训练统计与错题记录，无法恢复。', function () {
+        St.reset(); show('home');
+      });
+    };
+    pad.appendChild(wipe);
+
+    var t = aggregate(FLOP_SCENARIOS.map(function (s) { return s.id; }));
+    var sum = el('p', null, '累计 ' + t.hands + ' 手　正确 ' + t.correct + '　错误 ' + t.wrong +
+      (t.hands ? '　正确率 ' + (t.correct / t.hands * 100).toFixed(1) + '%' : ''));
+    sum.style.cssText = 'color:var(--muted);font-size:13.5px;text-align:center;margin-top:14px';
+    pad.appendChild(sum);
+    root.appendChild(pad);
+  }
+
+  function seg2(label, hint, opts, cur, onPick) {
+    var row = el('div', 'row');
+    var left = el('div');
+    left.appendChild(el('div', 'labx', label));
+    left.appendChild(el('div', 'hint', hint));
+    row.appendChild(left);
+    var s = el('div', 'seg');
+    opts.forEach(function (o) {
+      var b = el('button', o === cur ? 'on' : '', String(o));
+      b.onclick = function () { onPick(o); };
+      s.appendChild(b);
+    });
+    row.appendChild(s);
+    return row;
+  }
+
+  /* ---------------- 说明 ---------------- */
+  function renderHelp() {
+    setNav('说明', { label: '‹', fn: function () { show('home'); } }, null);
+    navLeft.className = 'icon-btn';
+    navLeft.style.fontSize = '28px';
+    var root = document.getElementById('screen-help');
+    clear(root);
+    var pad = el('div', 'pad help');
+    [['这是什么', '翻牌圈的决策训练器。八个场景，覆盖单加注池与 3bet 池，进攻方与防守方两个视角。对手范围来自翻前训练器那份数据。'],
+     ['它不是 GTO', '界面上不会出现 GTO 三个字，这是故意的。翻牌的节点数是千万级，只有 solver 能解。这里展示的胜率、组合分解、范围分位全部是精确计算，但把它们变成动作建议靠的是两个明说的常数，不是解出来的均衡。'],
+     ['四个数字怎么看', '现在领先是你此刻战胜对手多少组合；算到河牌是把转牌河牌发完的胜率；后续增减是两者之差，正数说明你是听牌，负数说明你靠摊牌价值；范围分位是你这手牌在自己整条范围里的排名。'],
+     ['为什么分位比胜率重要', '胜率相近的两手牌打法可能完全相反。中等牌力胜率不低但该过牌，因为下注只会被更好的跟、更差的弃；范围底部的牌胜率很低却该下注，因为它唯一的赢法就是让对手弃牌。分位决定你在极化结构里的位置。'],
+     ['贴边是什么意思', '分区边界是人定的常数，不该因为差一个百分点就把人判错。距离边界 5 个百分点以内时，相邻区的动作也算对。'],
+     ['想调松紧', '设置里可以换对手类型。注意松不等于弱：一个什么 K 都跟的人，在 K 高面上的顶对比 GTO 玩家还多。'],
+     ['数据存在哪', '全部存在这台手机的浏览器里，不上传，不需要注册。']
+    ].forEach(function (b) {
+      pad.appendChild(el('h3', null, b[0]));
+      pad.appendChild(el('p', null, b[1]));
+    });
+    root.appendChild(pad);
+  }
+
+  /* ---------------- 启动 ---------------- */
+  Table.watch(function () { return document.querySelector('#screen-train .felt'); });
+  show('home');
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+})();
+</script>

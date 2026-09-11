@@ -99,6 +99,10 @@
       var seat = state.seats[idx[pos]];
       var S = SLOTS[slot];
 
+      // hidden 的位置整个不画。翻前用变暗表示"刚刚弃牌"，翻后只剩两人，
+      // 再画四个暗圈就只是干扰。
+      if (seat.hidden) continue;
+
       var node = el('div', 'seat' + (seat.folded ? ' folded' : '') + (seat.hero ? ' hero' : ''));
       node.style.left = S.x + '%';
       node.style.top = S.y + '%';

@@ -265,6 +265,12 @@
     flex: none; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600;
     padding: 9px 14px; border-radius: 9px;
   }
+  .crosslink {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 13px 16px; text-decoration: none; color: inherit;
+  }
+  .crosslink:active { background: var(--card2); }
 
   /* 分享图兜底：贴在页面上长按保存 */
   .shareout { margin: 4px 0 14px; text-align: center; }
@@ -745,6 +751,10 @@
       var pos = ORDER[(heroIdx + slot) % 6];
       var seat = state.seats[idx[pos]];
       var S = SLOTS[slot];
+
+      // hidden 的位置整个不画。翻前用变暗表示"刚刚弃牌"，翻后只剩两人，
+      // 再画四个暗圈就只是干扰。
+      if (seat.hidden) continue;
 
       var node = el('div', 'seat' + (seat.folded ? ' folded' : '') + (seat.hero ? ' hero' : ''));
       node.style.left = S.x + '%';
@@ -1473,6 +1483,20 @@
       wrap.appendChild(bar);
       root.appendChild(wrap);
     }
+
+    // 两个应用互相放一个入口，换着练时点一下就过去
+    (function () {
+      var w = el('div', 'grp');
+      var a = el('a', 'crosslink');
+      a.href = 'flop/index.html';
+      var left = el('div');
+      left.appendChild(el('div', 'redotitle', '翻牌圈训练器'));
+      left.appendChild(el('div', 'redosub', '翻后决策，八个场景，对手范围取自这里的数据'));
+      a.appendChild(left);
+      a.appendChild(el('div', 'redogo', '打开'));
+      w.appendChild(a);
+      root.appendChild(w);
+    })();
 
     GROUPS.forEach(function (group) {
       var heroes = heroesOf(group);

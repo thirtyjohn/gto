@@ -199,6 +199,20 @@
       root.appendChild(wrap);
     }
 
+    // 两个应用互相放一个入口，换着练时点一下就过去
+    (function () {
+      var w = el('div', 'grp');
+      var a = el('a', 'crosslink');
+      a.href = 'flop/index.html';
+      var left = el('div');
+      left.appendChild(el('div', 'redotitle', '翻牌圈训练器'));
+      left.appendChild(el('div', 'redosub', '翻后决策，八个场景，对手范围取自这里的数据'));
+      a.appendChild(left);
+      a.appendChild(el('div', 'redogo', '打开'));
+      w.appendChild(a);
+      root.appendChild(w);
+    })();
+
     GROUPS.forEach(function (group) {
       var heroes = heroesOf(group);
       if (!heroes.length) return;

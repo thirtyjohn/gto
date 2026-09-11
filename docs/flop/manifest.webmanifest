@@ -1,0 +1,17 @@
+{
+  "name": "翻牌圈训练器",
+  "short_name": "翻牌圈",
+  "description": "6-max 100BB 翻牌圈决策训练，八个场景，对手范围来自翻前数据。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a1626",
+  "theme_color": "#0a1626",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
