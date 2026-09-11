@@ -1,4 +1,5 @@
 <title>翻前 GTO 训练器</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a1626">
@@ -193,11 +194,14 @@
 
   .actions {
     flex: none; position: relative; z-index: 5;
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-    padding: 10px 14px calc(14px + env(safe-area-inset-bottom));
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px;
+    padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
   }
   .actions.two { grid-template-columns: repeat(2, 1fr); }
-  .act { padding: 16px 6px; border-radius: 10px; font-size: 17px; font-weight: 700; color: #fff; }
+  .act {
+    padding: 20px 4px; border-radius: 12px; font-size: 19px; font-weight: 700; color: #fff;
+    letter-spacing: .01em;
+  }
   .act.fold { background: var(--btn-fold); }
   .act.call { background: var(--btn-call); }
   .act.raise { background: var(--btn-raise); }
