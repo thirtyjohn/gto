@@ -50,6 +50,37 @@
     return t;
   }
 
+  /* 错题本：同一手牌只留一条，答错重新计数，连续答对两次移出 */
+  function findMistake(id, key) {
+    for (var i = 0; i < store.mistakes.length; i++) {
+      var m = store.mistakes[i];
+      if (m.id === id && m.key === key) return i;
+    }
+    return -1;
+  }
+  function noteMistake(id, key, chose) {
+    var i = findMistake(id, key);
+    if (i >= 0) {
+      store.mistakes[i].cleared = 0;
+      store.mistakes[i].chose = chose;
+      store.mistakes[i].ts = Date.now();
+      return;
+    }
+    store.mistakes.push({ id: id, key: key, chose: chose, ts: Date.now(), cleared: 0 });
+    if (store.mistakes.length > 300) store.mistakes.shift();
+  }
+  function clearMistake(id, key) {
+    var i = findMistake(id, key);
+    if (i < 0) return;
+    store.mistakes[i].cleared = (store.mistakes[i].cleared || 0) + 1;
+    if (store.mistakes[i].cleared >= 2) store.mistakes.splice(i, 1);
+  }
+  function mistakesFor(ids) {
+    return store.mistakes.filter(function (m) {
+      return ids.indexOf(m.id) >= 0 && BY_ID[m.id];
+    });
+  }
+
   /* ---------------- 小工具 ---------------- */
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -103,18 +134,41 @@
     return 'linear-gradient(to top, #33475c 0 ' + f + '%, var(--call) ' + f + '% ' +
       (f + c) + '%, var(--raise) ' + (f + c) + '% 100%)';
   }
-  function renderGrid(built, onPick) {
+  // 个人错误热力图：练过的格子按错误率着色，没练过的留空
+  function heatFill(rec) {
+    if (!rec || !rec.n) return '#243347';
+    var err = 1 - rec.correct / rec.n;
+    if (err <= 0) return 'rgba(47,168,119,.5)';
+    return 'rgba(229,83,61,' + (0.3 + err * 0.6).toFixed(2) + ')';
+  }
+
+  function renderGrid(built, onPick, heat) {
     var box = el('div', 'gridbox');
     var grid = el('div', 'grid');
     Range.ALL_HANDS.forEach(function (h) {
       var g = built.grid[h.key];
-      var cell = el('div', 'gcell' + (g.raise + g.call >= 50 ? ' lit' : ''), h.key);
-      cell.style.background = fillOf(g);
-      if (onPick) cell.addEventListener('click', function () { onPick(h, g); });
+      var rec = heat ? heat[h.key] : null;
+      var lit = heat ? (rec && rec.n && rec.correct < rec.n) : (g.raise + g.call >= 50);
+      var cell = el('div', 'gcell' + (lit ? ' lit' : ''), h.key);
+      cell.style.background = heat ? heatFill(rec) : fillOf(g);
+      if (onPick) cell.addEventListener('click', function () { onPick(h, g, rec); });
       grid.appendChild(cell);
     });
     box.appendChild(grid);
     return box;
+  }
+
+  function heatLegend() {
+    var wrap = el('div', 'legend');
+    [['rgba(47,168,119,.5)', '全对'], ['rgba(229,83,61,.45)', '偶尔错'],
+     ['rgba(229,83,61,.9)', '常错'], ['#243347', '没练过']].forEach(function (p) {
+      var s = el('span');
+      var i = el('i'); i.style.background = p[0];
+      s.appendChild(i); s.appendChild(el('b', null, p[1]));
+      s.lastChild.style.fontWeight = '400';
+      wrap.appendChild(s);
+    });
+    return wrap;
   }
   function legend(sc) {
     var wrap = el('div', 'legend');
@@ -305,6 +359,23 @@
     var root = document.getElementById('screen-home');
     clear(root);
 
+    if (store.mistakes.length) {
+      var wrap = el('div', 'grp');
+      var bar = el('button', 'redobar');
+      var left = el('div');
+      left.appendChild(el('div', 'redotitle', '错题本'));
+      left.appendChild(el('div', 'redosub',
+        store.mistakes.length + ' 手待清　·　连续答对两次自动移出'));
+      bar.appendChild(left);
+      bar.appendChild(el('div', 'redogo', '开始复盘'));
+      bar.onclick = function () {
+        var q = shuffled(store.mistakes).slice(0, 30);
+        startSession(q.map(function (m) { return m.id; }), q, '错题复盘');
+      };
+      wrap.appendChild(bar);
+      root.appendChild(wrap);
+    }
+
     GROUPS.forEach(function (group) {
       var heroes = heroesOf(group);
       if (!heroes.length) return;
@@ -388,21 +459,47 @@
       wrap.appendChild(el('div', 'mixnote', '混合练习不预览范围表。想先看表，点上面任一个对手位置。'));
     } else {
       var built = BUILT[sc.id];
-      var readout = el('div', 'readout', '点格子查看频率');
-      wrap.appendChild(renderGrid(built, function (h, g) {
+      var st = store.stats[sc.id];
+      var heatOn = !!o.heat;
+
+      var tabs = el('div', 'seg wide');
+      [['GTO 范围', false], ['我的错误', true]].forEach(function (p) {
+        var b = el('button', heatOn === p[1] ? 'on' : '', p[0]);
+        b.onclick = function () { view.opts.heat = p[1]; renderSheet(); };
+        tabs.appendChild(b);
+      });
+      wrap.appendChild(tabs);
+
+      var readout = el('div', 'readout', heatOn ? '点格子查看你的战绩' : '点格子查看频率');
+      wrap.appendChild(renderGrid(built, function (h, g, rec) {
+        if (heatOn) {
+          readout.textContent = rec && rec.n
+            ? h.key + '　练过 ' + rec.n + ' 次　对 ' + rec.correct + '　错 ' + (rec.n - rec.correct)
+            : h.key + '　还没练到过';
+          return;
+        }
         var parts = [h.key];
         if (g.raise) parts.push(word(sc.labels.raise) + ' ' + g.raise + '%');
         if (g.call) parts.push(word(sc.labels.call) + ' ' + g.call + '%');
         if (g.fold) parts.push((sc.noFold ? 'Check' : 'Fold') + ' ' + g.fold + '%');
         readout.textContent = parts.join('　/　');
-      }));
-      wrap.appendChild(legend(sc));
+      }, heatOn ? (st && st.byHand) || {} : null));
+      wrap.appendChild(heatOn ? heatLegend() : legend(sc));
       wrap.appendChild(readout);
     }
 
     var go = el('button', 'cta', 'Start Training');
     go.onclick = function () { startSession(ids); };
     wrap.appendChild(go);
+
+    var wrongList = mistakesFor(ids);
+    if (wrongList.length) {
+      var redo = el('button', 'cta ghost', '只练错题 · ' + wrongList.length + ' 手');
+      redo.onclick = function () {
+        startSession(ids, shuffled(wrongList).slice(0, 30), '错题复盘 · ' + o.hero);
+      };
+      wrap.appendChild(redo);
+    }
     root.appendChild(wrap);
   }
 
@@ -411,20 +508,27 @@
   /* ---------------- 训练 ---------------- */
   var session = null;
 
-  function startSession(ids) {
+  // queue 非空时是错题复盘：按给定的牌逐手发，而不是随机抽
+  function startSession(ids, queue, title) {
     session = {
-      ids: ids, total: store.settings.hands, i: 0, answers: [],
-      title: view.opts ? (view.opts.group.toUpperCase() + ' - ' + view.opts.hero) : 'TRAINING',
-      back: view.opts
+      ids: ids, queue: queue || null, i: 0, answers: [],
+      total: queue ? queue.length : store.settings.hands,
+      title: title || (view.opts && view.opts.group
+        ? view.opts.group.toUpperCase() + ' - ' + view.opts.hero : 'TRAINING')
     };
     show('train');   // 先让牌桌所在的页面可见，容器有了尺寸才量得出牌桌大小
     nextHand();
   }
 
   function nextHand() {
-    var id = session.ids[rand(session.ids.length)];
-    var built = BUILT[id];
-    var key = Range.dealHand(built, {});
+    var id, key;
+    if (session.queue) {
+      id = session.queue[session.i].id;
+      key = session.queue[session.i].key;
+    } else {
+      id = session.ids[rand(session.ids.length)];
+      key = Range.dealHand(BUILT[id], {});
+    }
     session.cur = { id: id, key: key, cards: dealCards(key) };
     renderTrain();
   }
@@ -488,9 +592,8 @@
     if (v.correct) s.correct++; else s.wrong++;
     var bh = s.byHand[session.cur.key] || (s.byHand[session.cur.key] = { n: 0, correct: 0 });
     bh.n++;
-    if (v.correct) bh.correct++;
-    else store.mistakes.push({ id: session.cur.id, key: session.cur.key, chose: action, ts: Date.now() });
-    if (store.mistakes.length > 400) store.mistakes = store.mistakes.slice(-400);
+    if (v.correct) { bh.correct++; clearMistake(session.cur.id, session.cur.key); }
+    else noteMistake(session.cur.id, session.cur.key, action);
     saveStore();
 
     var done = function () {
@@ -522,19 +625,31 @@
     return out.join('　/　');
   }
 
-  function toggleRange(sc) {
+  function toggleRange(sc, heatOn) {
     var root = document.getElementById('screen-train');
     var open = root.querySelector('.rangeover');
-    if (open) { root.removeChild(open); return; }
+    if (open) { root.removeChild(open); if (heatOn === undefined) return; }
+
     var over = el('div', 'rangeover');
-    over.style.cssText = 'position:absolute;inset:0;background:rgba(8,20,34,.97);z-index:30;' +
-      'padding:16px;overflow-y:auto;';
+    var st = store.stats[sc.id];
+
+    var tabs = el('div', 'seg wide');
+    [['GTO 范围', false], ['我的错误', true]].forEach(function (p) {
+      var b = el('button', !!heatOn === p[1] ? 'on' : '', p[0]);
+      b.onclick = function () { toggleRange(sc, p[1]); };
+      tabs.appendChild(b);
+    });
+    over.appendChild(tabs);
+
     var readout = el('div', 'readout', sc.title);
-    over.appendChild(renderGrid(BUILT[sc.id], function (h, g) {
-      readout.textContent = h.key + '　/　' + describe(g, sc);
-    }));
-    over.appendChild(legend(sc));
+    over.appendChild(renderGrid(BUILT[sc.id], function (h, g, rec) {
+      readout.textContent = heatOn
+        ? (rec && rec.n ? h.key + '　练过 ' + rec.n + ' 次　错 ' + (rec.n - rec.correct) : h.key + '　还没练到过')
+        : h.key + '　/　' + describe(g, sc);
+    }, heatOn ? (st && st.byHand) || {} : null));
+    over.appendChild(heatOn ? heatLegend() : legend(sc));
     over.appendChild(readout);
+
     var close = el('button', 'cta ghost', '关闭');
     close.onclick = function () { root.removeChild(over); };
     over.appendChild(close);
@@ -578,6 +693,22 @@
     var ids = session.ids.slice();
     again.onclick = function () { startSession(ids); };
     pad.appendChild(again);
+
+    var wrongNow = wrong.slice();
+    if (wrongNow.length) {
+      var redo = el('button', 'cta ghost', '立刻重练这 ' + wrongNow.length + ' 手错题');
+      redo.onclick = function () {
+        startSession(ids, shuffled(wrongNow).map(function (a) {
+          return { id: a.id, key: a.key };
+        }), '错题复盘');
+      };
+      pad.appendChild(redo);
+    }
+
+    var share = el('button', 'cta ghost', '分享成绩');
+    share.onclick = function () { shareResult(right.length, session.answers.length, pct, wrongNow, share); };
+    pad.appendChild(share);
+
     var close = el('button', 'cta ghost', 'Close');
     close.onclick = function () { show('home'); };
     pad.appendChild(close);
@@ -588,6 +719,120 @@
 
     session.done = true;
     show('result');
+  }
+
+  /* ---------------- 分享长图 ---------------- */
+  var F_TEXT = '-apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", sans-serif';
+  var F_NUM = 'ui-monospace, Menlo, Consolas, monospace';
+
+  function roundRect(x, l, t, w, h, r) {
+    x.beginPath();
+    x.moveTo(l + r, t);
+    x.arcTo(l + w, t, l + w, t + h, r);
+    x.arcTo(l + w, t + h, l, t + h, r);
+    x.arcTo(l, t + h, l, t, r);
+    x.arcTo(l, t, l + w, t, r);
+    x.closePath();
+  }
+
+  function drawCard(x, l, t, w, card) {
+    var h = Math.round(w / 0.73);
+    roundRect(x, l, t, w, h, w * 0.12);
+    x.fillStyle = '#fff'; x.fill();
+    x.fillStyle = RED[card[1]] ? '#c22f26' : '#16202b';
+    x.textAlign = 'center';
+    x.font = '700 ' + Math.round(w * 0.56) + 'px ' + F_TEXT;
+    x.fillText(card[0], l + w / 2, t + h * 0.48);
+    x.font = '700 ' + Math.round(w * 0.42) + 'px ' + F_TEXT;
+    x.fillText(SUITS[card[1]], l + w / 2, t + h * 0.86);
+    return h;
+  }
+
+  function shareResult(correct, total, pct, wrong, btn) {
+    var W = 900, rowH = 96, shown = wrong.slice(0, 7);
+    var H = 620 + (shown.length ? 80 + shown.length * rowH : 0) + 90;
+    var c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    var x = c.getContext('2d');
+
+    x.fillStyle = '#0a1626'; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#0d1d33'; x.fillRect(0, 0, W, 132);
+    x.textAlign = 'center';
+    x.fillStyle = '#8ba3bd';
+    x.font = '600 34px ' + F_TEXT;
+    x.fillText(session.title, W / 2, 82);
+
+    x.fillStyle = '#e9eff6';
+    x.font = '800 170px ' + F_NUM;
+    x.fillText(correct + ' / ' + total, W / 2, 370);
+    x.fillStyle = pct >= 90 ? '#3ecf8e' : pct >= 75 ? '#d9911f' : '#e5533d';
+    x.font = '700 62px ' + F_TEXT;
+    x.fillText(ratingOf(pct), W / 2, 460);
+
+    x.strokeStyle = '#1f3a58'; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(60, 540); x.lineTo(W - 60, 540); x.stroke();
+
+    x.fillStyle = '#8ba3bd';
+    x.font = '500 30px ' + F_TEXT;
+    x.fillText('6-max · 100BB · 翻前 GTO 训练器', W / 2, 592);
+
+    if (shown.length) {
+      var top = 690;
+      x.textAlign = 'left';
+      x.fillStyle = '#e5533d';
+      x.font = '700 32px ' + F_TEXT;
+      x.fillText('打错的手牌　' + wrong.length + ' / ' + total, 60, top - 24);
+      shown.forEach(function (a, i) {
+        var y = top + i * rowH;
+        var sc = BY_ID[a.id];
+        drawCard(x, 60, y, 58, a.cards[0]);
+        drawCard(x, 126, y, 58, a.cards[1]);
+        var best = topAction(a.freqs);
+        x.fillStyle = best.key === 'raise' ? '#e8703a' : best.key === 'call' ? '#2fa877' : '#6b7f95';
+        x.beginPath(); x.arc(212, y + 40, 11, 0, Math.PI * 2); x.fill();
+        x.textAlign = 'left';   // drawCard 里把对齐方式改成了居中，这里必须改回来
+        x.fillStyle = '#e9eff6';
+        x.font = '600 30px ' + F_NUM;
+        x.fillText(actionLabel(best.key, sc).toUpperCase() + ' ' + best.freq + '%', 236, y + 50);
+        x.fillStyle = '#5d7793';
+        x.font = '400 24px ' + F_TEXT;
+        x.fillText('你选了 ' + actionLabel(a.chose, sc), 576, y + 50);
+      });
+      if (wrong.length > shown.length) {
+        x.textAlign = 'center';
+        x.fillStyle = '#5d7793';
+        x.font = '400 26px ' + F_TEXT;
+        x.fillText('还有 ' + (wrong.length - shown.length) + ' 手未列出', W / 2, H - 36);
+      }
+    }
+
+    var text = session.title + '　' + correct + ' / ' + total + '　' + ratingOf(pct);
+    c.toBlob(function (blob) {
+      if (!blob) { fallbackShare(text, btn); return; }
+      var file = null;
+      try { file = new File([blob], 'gto-result.png', { type: 'image/png' }); } catch (e) {}
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], text: text }).catch(function () {});
+        return;
+      }
+      // 分享面板用不了就把图贴在页面上，长按即可保存
+      var old = document.getElementById('share-img');
+      if (old) old.parentNode.removeChild(old);
+      var box = el('div', 'shareout');
+      box.id = 'share-img';
+      box.appendChild(el('p', null, '长按下面的图片保存或转发'));
+      var img = document.createElement('img');
+      img.src = URL.createObjectURL(blob);
+      img.alt = '训练成绩';
+      box.appendChild(img);
+      btn.parentNode.insertBefore(box, btn.nextSibling);
+      box.scrollIntoView({ block: 'nearest' });
+    }, 'image/png');
+  }
+
+  function fallbackShare(text, btn) {
+    if (navigator.share) { navigator.share({ text: text }).catch(function () {}); return; }
+    btn.textContent = text;
   }
 
   function listBlock(title, color, rows) {
