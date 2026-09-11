@@ -1,0 +1,386 @@
+<title>翻牌圈训练器 界面设计</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #0a1626; --bg2: #0d1d33; --card: #13293f; --card2: #1a3552; --line: #1f3a58;
+    --text: #e9eff6; --muted: #8ba3bd; --dim: #5d7793;
+    --accent: #1f8ba8; --accent2: #2aa9c9;
+    --raise: #e8703a; --call: #2fa877; --fold: #5c7086;
+    --btn-fold: #c0442b; --btn-call: #1f9d63; --btn-raise: #d9911f;
+    --good: #3ecf8e; --bad: #e5533d;
+    --f: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    --m: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #060f1a; color: var(--text); font-family: var(--f); }
+
+  .page { padding: 28px 24px 60px; }
+  header { max-width: 860px; margin: 0 auto 30px; }
+  .eyebrow { font-family: var(--m); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent2); margin: 0 0 10px; }
+  h1 { font-size: 30px; margin: 0 0 10px; font-weight: 700; letter-spacing: -.01em; }
+  .dek { color: var(--muted); margin: 0; font-size: 15px; line-height: 1.7; max-width: 62ch; }
+
+  .rail { display: flex; gap: 34px; overflow-x: auto; padding: 8px 0 24px; align-items: flex-start; }
+  .slot { flex: none; width: 390px; }
+  .cap { margin-bottom: 10px; }
+  .cap b { font-size: 15px; font-weight: 700; }
+  .cap span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+  .cap em { font-style: normal; font-family: var(--m); font-size: 10.5px; letter-spacing: .1em; color: var(--accent2); text-transform: uppercase; }
+
+  .phone {
+    width: 390px; height: 844px; background: var(--bg); border-radius: 22px;
+    border: 1px solid #22384f; overflow: hidden; display: flex; flex-direction: column;
+    position: relative; box-shadow: 0 14px 40px rgba(0,0,0,.5);
+  }
+  .topbar { flex: none; height: 56px; background: var(--bg2); border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 56px 1fr 56px; align-items: center; }
+  .topbar .ic { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 20px; }
+  .topbar .tx { display: flex; align-items: center; justify-content: center; color: var(--accent2); font-size: 15px; }
+  .topbar h2 { margin: 0; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: .02em; }
+  .body { flex: 1; min-height: 0; overflow-y: auto; }
+  .mono { font-family: var(--m); }
+
+  .grp { padding: 22px 16px 4px; }
+  .grp .gh { font-size: 21px; font-weight: 700; margin-bottom: 4px; }
+  .grp .gs { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .poscard { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 12px; }
+  .poscard.fresh { opacity: .62; }
+  .poscard .pos { font-size: 24px; font-weight: 700; letter-spacing: .02em; }
+  .poscard .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .poscard .tot { font-family: var(--m); font-size: 13px; color: var(--muted); margin-top: 14px; }
+  .poscard .tally { font-family: var(--m); display: flex; gap: 8px; margin-top: 4px; font-size: 15px; }
+  .ok { color: var(--good); } .no { color: var(--bad); } .sep { color: var(--dim); }
+  .pbar { height: 3px; background: var(--card2); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .pbar i { display: block; height: 100%; background: var(--good); }
+
+  .banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: linear-gradient(135deg,#1d3a4f,#16304a); border: 1px solid var(--accent); border-radius: 12px; padding: 14px 16px; }
+  .banner b { font-size: 17px; } .banner span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .banner i { flex: none; background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; padding: 9px 14px; border-radius: 9px; font-style: normal; }
+
+  .lab { font-family: var(--m); font-size: 11px; letter-spacing: .12em; color: var(--accent2); margin-bottom: 8px; }
+  .cta { display: block; width: 100%; padding: 16px; border-radius: 12px; background: var(--accent); color: #fff; font-size: 17px; font-weight: 600; text-align: center; letter-spacing: .02em; border: 0; font-family: inherit; }
+  .cta.ghost { background: none; border: 1.5px solid var(--accent); color: var(--accent2); }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { padding: 7px 14px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+  .grid13 { display: grid; grid-template-columns: repeat(13, 1fr); gap: 1px; }
+  .gc { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-family: var(--m); font-size: 7px; font-weight: 600; letter-spacing: -.04em; border-radius: 1px; color: #c3d2e0; overflow: hidden; }
+
+  .felt { position: relative; width: 370px; height: 560px; background: radial-gradient(ellipse at 50% 40%, #2f9b63, #14663c 78%); border-radius: 44% / 28%; box-shadow: inset 0 0 0 3px rgba(255,255,255,.12), 0 12px 30px rgba(0,0,0,.45); }
+  .seat { position: absolute; transform: translate(-50%,-50%); display: flex; align-items: center; z-index: 2; }
+  .badge { width: 54px; height: 54px; border-radius: 50%; background: #0d2137; border: 2px solid rgba(255,255,255,.88); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
+  .stack { font-family: var(--m); background: #12314d; border: 2px solid rgba(255,255,255,.82); border-radius: 7px; padding: 6px 10px 6px 18px; margin-left: -13px; font-size: 18px; white-space: nowrap; }
+  .pc { background: #fff; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; line-height: 1; box-shadow: 0 3px 10px rgba(0,0,0,.42); }
+  .red { color: #c22f26; } .blk { color: #16202b; }
+
+  .acts { flex: none; display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; padding: 10px 12px 14px; position: relative; z-index: 5; }
+  .act { padding: 20px 4px; border-radius: 12px; font-size: 17px; font-weight: 700; color: #fff; text-align: center; border: 0; font-family: inherit; line-height: 1.25; }
+  .act.small { background: var(--btn-raise); } .act.big { background: var(--btn-fold); } .act.chk { background: var(--btn-call); }
+
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 118px; background: var(--bg); border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; z-index: 11; display: none; flex-direction: column; box-shadow: 0 -12px 30px rgba(0,0,0,.5); }
+  .sheet.on { display: flex; }
+  .scrim { position: absolute; inset: 0; background: rgba(4,12,22,.55); z-index: 10; display: none; }
+  .scrim.on { display: block; }
+
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 11px 8px; text-align: center; }
+  .tile b { font-family: var(--m); font-size: 22px; font-weight: 700; display: block; }
+  .tile span { font-size: 11.5px; color: var(--muted); margin-top: 2px; display: block; }
+
+  .row { display: flex; align-items: center; gap: 8px; }
+  .trk { flex: 1; height: 7px; background: var(--line); border-radius: 2px; position: relative; }
+  .trk i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--bad); border-radius: 2px; }
+  .arow { display: flex; align-items: center; gap: 10px; }
+  .arow .n { width: 76px; font-size: 13.5px; }
+  .arow .t { flex: 1; height: 20px; background: var(--card); border-radius: 4px; position: relative; }
+  .arow .t i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+  .arow .v { width: 40px; text-align: right; font-family: var(--m); font-size: 15px; }
+
+  .reason { background: var(--card); border-left: 3px solid var(--accent2); border-radius: 0 8px 8px 0; padding: 11px 13px; margin-top: 12px; font-size: 14px; line-height: 1.6; color: #c3d2e0; }
+
+  .pctbar { position: relative; height: 26px; border-radius: 5px; overflow: hidden; display: flex; }
+  .marker { position: relative; height: 14px; }
+  .marker i { position: absolute; top: 0; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 7px solid var(--text); }
+
+  .note { max-width: 860px; margin: 0 auto 26px; background: #0d1d33; border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; padding: 14px 18px; font-size: 14.5px; line-height: 1.75; color: #c3d2e0; }
+  .note b { color: var(--text); }
+  footer { max-width: 860px; margin: 30px auto 0; font-family: var(--m); font-size: 11.5px; color: var(--dim); }
+</style>
+
+<div class="page">
+  <header>
+    <p class="eyebrow">翻后项目 · 界面设计稿</p>
+    <h1>翻牌圈训练器 界面设计</h1>
+    <p class="dek">六块屏幕，手机竖屏 390×844，沿用翻前训练器的全套视觉。面板里所有数字都是真实算出来的，不是填的示意值：牌面 K♦7♥2♣，对手范围取自翻前数据，胜率与分位由引擎算出。</p>
+  </header>
+
+  <div class="note">
+    <b>要你重点确认的是第三和第四块。</b>第三块可以点，三枚动作按钮任选一个，揭示面板会升起来，再点「下一手」收回。第四块是防守方视角的同一套面板，动作换成弃牌、跟注、加注。<b>分位条是整套设计的核心</b>：进攻方两端有颜色（斜纹是诈唬，实色是价值），中间灰色是过牌，极化一眼可见；防守方左灰弃牌、中绿跟注、右红加注。白色三角是你这手牌的位置。
+  </div>
+
+  <div class="rail" id="rail"></div>
+
+  <footer>翻牌圈训练器 · 界面设计稿 · 数据源 data/ranges.js</footer>
+</div>
+
+<script>
+(function () {
+  var R = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+
+  function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.innerHTML = x; return n; }
+  function card(r, s, w, h, fs, ss) {
+    var red = (s === '♥' || s === '♦');
+    return '<div class="pc ' + (red ? 'red' : 'blk') + '" style="width:' + w + 'px;height:' + h + 'px">' +
+      '<div style="font-size:' + fs + 'px">' + r + '</div><div style="font-size:' + ss + 'px;margin-top:2px">' + s + '</div></div>';
+  }
+  function grid(seed, on, mid) {
+    var h = '';
+    for (var i = 0; i < 13; i++) for (var j = 0; j < 13; j++) {
+      var k = i === j ? R[i] + R[j] : i < j ? R[i] + R[j] + 's' : R[j] + R[i] + 'o';
+      var d = Math.max(i, j) + Math.abs(i - j) * (i < j ? 0.7 : 1.5);
+      var bg = d < seed ? on : d < seed + 2 ? mid : '#33475c';
+      h += '<div class="gc" style="background:' + bg + '">' + k.replace(/[so]$/, '') + '</div>';
+    }
+    return '<div class="grid13">' + h + '</div>';
+  }
+  function bar(pct, color) { return '<span class="trk"><i style="width:' + pct + '%;background:' + color + '"></i></span>'; }
+  function arow(name, pct, color, bold) {
+    return '<div class="arow"><span class="n">' + name + '</span><span class="t"><i style="width:' + pct +
+      '%;background:' + color + '"></i></span><span class="v"' + (bold ? ' style="font-weight:700"' : ' style="color:var(--muted)"') + '>' + pct + '%</span></div>';
+  }
+  function tiles(list) {
+    return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' + list.map(function (t) {
+      return '<div class="tile"' + (t.border ? ' style="border-color:' + t.border + '"' : '') + '><b' +
+        (t.color ? ' style="color:' + t.color + '"' : '') + '>' + t.v + '</b><span>' + t.k + '</span></div>';
+    }).join('') + '</div>';
+  }
+  function topbar(left, title, right) {
+    return '<div class="topbar"><div class="ic">' + (left || '') + '</div><h2>' + title +
+      '</h2><div class="' + (right && right.length > 1 ? 'tx' : 'ic') + '">' + (right || '') + '</div></div>';
+  }
+
+  var screens = [];
+
+  /* ---------- 1 首页 ---------- */
+  function posCard(pos, sub, hands, ok, no, fresh) {
+    return '<div class="poscard' + (fresh ? ' fresh' : '') + '"><div class="pos">' + pos + '</div>' +
+      '<div class="sub">' + sub + '</div><div class="tot">Total Hands: ' + hands + '</div>' +
+      '<div class="tally"><span class="ok">✔ ' + ok + '</span><span class="sep">/</span><span class="no">✖ ' + no + '</span></div>' +
+      '<div class="pbar"><i style="width:' + (hands ? Math.round(ok / hands * 100) : 0) + '%"></i></div></div>';
+  }
+  screens.push({
+    t: '首页', s: '八个场景分两组。分析模式单独一个入口，不计分。', tag: '沿用',
+    h: topbar('⚙', '翻牌圈', '?') +
+      '<div class="body">' +
+      '<div style="padding:16px 16px 0"><div class="banner"><div><b>分析模式</b><span>自己摆牌面，改对手范围，不计分</span></div><i>打开</i></div></div>' +
+      '<div class="grp"><div class="gh">单加注池</div><div class="gs">开池被跟，底池 5.5 BB</div><div class="cards">' +
+      posCard('BTN', '进攻方 · 有位置', 180, 141, 39) +
+      posCard('BB', '防守方 · 无位置', 60, 38, 22) +
+      posCard('CO', '进攻方 · 有位置', 0, 0, 0, true) +
+      posCard('UTG', '进攻方 · 有位置', 0, 0, 0, true) +
+      '</div></div>' +
+      '<div class="grp"><div class="gh">3Bet 池</div><div class="gs">BB 3bet 被跟，底池 22 BB</div><div class="cards">' +
+      posCard('BB', '进攻方 · 无位置', 0, 0, 0, true) +
+      posCard('BTN', '防守方 · 有位置', 0, 0, 0, true) +
+      '</div></div><div style="height:24px"></div></div>'
+  });
+
+  /* ---------- 2 场景面 ---------- */
+  var boards = [['A 高干燥', 78], ['KQ 高干燥', 74], ['配对面', 71], ['JT 高干燥', 63], ['低干燥', 61], ['连接面', 52], ['同花面', 41]];
+  screens.push({
+    t: '场景面', s: '开练前先看双方范围。对手预设在这里选，默认 GTO。', tag: '沿用 + 新增范围对比',
+    h: topbar('✕', '单加注池 · BTN', '') +
+      '<div class="body" style="padding:16px 16px 0">' +
+      '<div style="font-size:13.5px;color:var(--muted);margin-bottom:14px">你开池 2.5BB，BB 跟注。底池 5.5BB，你有位置。</div>' +
+      '<div class="mono" style="display:flex;gap:10px;font-size:15px;color:var(--muted);margin-bottom:18px"><span>Total Hands: 180</span><span class="ok">✔ 141</span><span class="sep">/</span><span class="no">✖ 39</span></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px">' +
+      '<div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><b style="font-size:14px">你的范围</b><span class="mono" style="font-size:11.5px;color:var(--muted)">45.2%</span></div>' +
+      '<div style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:5px">' + grid(12, '#e8703a', '#a8532f') + '</div></div>' +
+      '<div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><b style="font-size:14px">对手范围</b><span class="mono" style="font-size:11.5px;color:var(--muted)">36.3%</span></div>' +
+      '<div style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:5px">' + grid(9, '#2fa877', '#1c6a4c') + '</div></div></div>' +
+      '<div class="mono" style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-bottom:20px"><span>BTN 开池 599 组合</span><span>BB 跟注 481 组合</span></div>' +
+      '<div style="margin-bottom:20px"><div class="lab">对手类型</div><div class="chips">' +
+      '<span class="chip on">GTO</span><span class="chip">紧</span><span class="chip">松</span><span class="chip">站街鱼</span><span class="chip" style="border-style:dashed">自定义</span></div></div>' +
+      '<div class="lab">各类牌面上你的下注频率</div><div style="display:flex;flex-direction:column;gap:6px">' +
+      boards.map(function (b) {
+        return '<div class="row"><span style="width:70px;font-size:12.5px;color:var(--muted)">' + b[0] + '</span>' +
+          bar(b[1], '#d9911f') + '<span class="mono" style="width:36px;text-align:right;font-size:12.5px">' + b[1] + '%</span></div>';
+      }).join('') + '</div><div style="height:16px"></div></div>' +
+      '<div style="flex:none;padding:12px 16px 18px"><div class="cta">开始训练</div></div>'
+  });
+
+  /* ---------- 3 牌桌 + 揭示（可点） ---------- */
+  var beatMe = [['高牌', 173, 45, 45], ['中对 7', 65, 17, 17], ['顶对 K', 41, 11, 11], ['其余', 40, 10, 10]];
+  var revealAgg =
+    '<div style="flex:none;padding:14px 16px 10px;border-bottom:1px solid var(--line)">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">' +
+    '<div id="verdict" style="font-size:19px;font-weight:700"></div>' +
+    '<div id="chosen" class="mono" style="font-size:13px;color:var(--muted)"></div></div></div>' +
+    '<div style="flex:1;min-height:0;overflow-y:auto;padding:0 16px 16px">' +
+    '<div style="padding:14px 0 0"><div class="lab">对手可能的组合　383 个</div>' +
+    '<div style="display:flex;height:12px;border-radius:3px;overflow:hidden;margin-bottom:8px"><div style="width:83%;background:var(--bad)"></div><div style="width:17%;background:var(--good)"></div></div>' +
+    '<div class="mono" style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:10px"><span style="color:var(--bad)">比你强 83.0%</span><span style="color:var(--good)">比你弱 17.0%</span></div>' +
+    '<div style="display:flex;flex-direction:column;gap:5px">' +
+    beatMe.map(function (b) {
+      return '<div class="row"><span class="mono" style="width:58px;font-size:12.5px;color:var(--muted)">' + b[0] + '</span>' +
+        bar(b[3] * 2.2, '#e5533d') + '<span class="mono" style="width:62px;text-align:right;font-size:12.5px">' + b[1] + ' · ' + b[2] + '%</span></div>';
+    }).join('') + '</div></div>' +
+    '<div style="padding:18px 0 0"><div class="lab">你的胜率</div>' +
+    tiles([{ v: '15%', k: '现在领先' }, { v: '31%', k: '算到河牌' }, { v: '+15', k: '后续增减', color: '#3ecf8e', border: '#3ecf8e' }]) + '</div>' +
+    '<div style="padding:18px 0 0"><div class="lab">你在自己范围里</div>' +
+    '<div class="pctbar"><div style="width:14%;background:repeating-linear-gradient(45deg,#d9911f,#d9911f 5px,#a86f18 5px,#a86f18 10px)"></div>' +
+    '<div style="width:30%;background:#3c4f66"></div><div style="width:56%;background:#c0442b"></div></div>' +
+    '<div class="marker"><i style="left:7%"></i></div>' +
+    '<div class="mono" style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:-2px"><span>诈唬区 0–14</span><span>过牌区 14–44</span><span>价值区 44–100</span></div>' +
+    '<div style="font-size:14px;margin-top:10px">排在第 <b class="mono" style="font-size:17px">7%</b>，落在<b style="color:#d9911f">诈唬区</b></div></div>' +
+    '<div style="padding:18px 0 0"><div class="lab">建议比例</div><div style="display:flex;flex-direction:column;gap:7px">' +
+    arow('下注 1.8BB', 72, 'var(--btn-raise)', true) + arow('下注 4.1BB', 12, 'var(--btn-fold)') + arow('过牌', 16, 'var(--btn-call)') +
+    '</div><div class="reason">你只赢 17% 的组合，但这正是该下注的位置。你在自己范围的底部，而这手牌到河牌还能涨 15 个点。用它诈唬，把顶对留着过牌。</div></div></div>' +
+    '<div style="flex:none;padding:10px 16px 16px;border-top:1px solid var(--line)"><button class="cta" id="next">下一手</button></div>';
+
+  screens.push({
+    t: '牌桌 + 揭示', s: '可以点。选任一动作，面板从底部升起。', tag: '核心 · 可交互',
+    h: topbar('✕', '单加注池 · BTN', '范围') +
+      '<div style="flex:none;display:flex;justify-content:space-between;align-items:center;padding:12px 18px 4px">' +
+      '<div class="mono" style="font-size:20px;font-weight:700">4 / 20</div>' +
+      '<div class="mono" style="font-size:14px;color:var(--muted);font-weight:500">底池 5.5 BB</div></div>' +
+      '<div style="flex:1;min-height:0;padding:2px 10px 6px;display:flex;align-items:center;justify-content:center"><div class="felt">' +
+      '<div class="seat" style="left:50%;top:10%"><div class="badge">BB</div><div class="stack">97.5 BB</div></div>' +
+      '<div style="position:absolute;left:50%;top:37%;transform:translate(-50%,-50%);display:flex;gap:7px;z-index:3">' +
+      card('K', '♦', 58, 79, 30, 22) + card('7', '♥', 58, 79, 30, 22) + card('2', '♣', 58, 79, 30, 22) + '</div>' +
+      '<div style="position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);text-align:center">' +
+      '<div style="font-size:13px;color:rgba(255,255,255,.82)">Total Pot</div>' +
+      '<div class="mono" style="display:inline-block;margin-top:4px;background:rgba(6,40,24,.8);border-radius:999px;padding:4px 14px;font-size:19px;font-weight:600">5.5 BB</div></div>' +
+      '<div style="position:absolute;left:50%;bottom:17%;transform:translate(-50%,0);display:flex;gap:4px;z-index:4">' +
+      card('9', '♠', 61, 84, 31, 23) + card('8', '♠', 61, 84, 31, 23) + '</div>' +
+      '<div class="seat" style="left:50%;top:89%"><div class="badge" style="border-color:#fff;box-shadow:0 0 11px rgba(255,255,255,.5)">BTN</div><div class="stack">97.5 BB</div>' +
+      '<div style="position:absolute;left:calc(100% + 6px);top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;background:#fff;color:#123;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center">D</div></div>' +
+      '</div></div>' +
+      '<div class="acts"><button class="act small" data-pick="small">下注<br>1.8BB</button>' +
+      '<button class="act big" data-pick="big">下注<br>4.1BB</button>' +
+      '<button class="act chk" data-pick="check">过牌</button></div>' +
+      '<div class="scrim" id="scrim"></div><div class="sheet" id="sheet">' + revealAgg + '</div>'
+  });
+
+  /* ---------- 4 揭示 · 防守方 ---------- */
+  var beatDef = [['顶对 K', 78, 16, 16], ['超对', 24, 5, 5], ['三条', 9, 2, 2], ['两对', 8, 2, 2]];
+  screens.push({
+    t: '揭示面板 · 防守方', s: '同一套面板换视角。动作变成弃牌、跟注、加注，分位条三段跟着换。', tag: '核心',
+    h: topbar('✕', '单加注池 · BB', '范围') +
+      '<div style="flex:none;padding:13px 16px 11px;border-bottom:1px solid var(--line);background:var(--bg2)">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">' +
+      '<div style="font-size:19px;font-weight:700;color:var(--good)">✔ 正确</div>' +
+      '<div class="mono" style="font-size:13px;color:var(--muted)">你选了 跟注 1.8BB</div></div>' +
+      '<div style="display:flex;align-items:center;gap:9px;margin-top:9px">' +
+      '<div style="display:flex;gap:3px">' + card('9', '♦', 28, 38, 14, 11) + card('9', '♣', 28, 38, 14, 11) + '</div>' +
+      '<div style="color:var(--dim);font-size:13px">对</div>' +
+      '<div style="display:flex;gap:3px;opacity:.8">' + card('K', '♦', 24, 33, 12, 9) + card('7', '♥', 24, 33, 12, 9) + card('2', '♣', 24, 33, 12, 9) + '</div>' +
+      '<div class="mono" style="margin-left:auto;font-size:11.5px;color:var(--muted);text-align:right;line-height:1.4">KQ 高干燥<br>彩虹</div></div></div>' +
+      '<div class="body" style="padding:0 16px 16px">' +
+      '<div style="padding:16px 0 0"><div class="lab">对手下注时可能的组合　483 个</div>' +
+      '<div style="display:flex;height:12px;border-radius:3px;overflow:hidden;margin-bottom:8px"><div style="width:24.5%;background:var(--bad)"></div><div style="width:75.5%;background:var(--good)"></div></div>' +
+      '<div class="mono" style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:11px"><span style="color:var(--bad)">比你强 24.5%</span><span style="color:var(--good)">比你弱 75.5%</span></div>' +
+      '<div style="display:flex;flex-direction:column;gap:5px">' +
+      beatDef.map(function (b) {
+        return '<div class="row"><span class="mono" style="width:56px;font-size:12.5px;color:var(--muted)">' + b[0] + '</span>' +
+          bar(b[3] * 5, '#e5533d') + '<span class="mono" style="width:62px;text-align:right;font-size:12.5px">' + b[1] + ' · ' + b[2] + '%</span></div>';
+      }).join('') + '</div></div>' +
+      '<div style="padding:20px 0 0"><div class="lab">你的胜率</div>' +
+      tiles([{ v: '76%', k: '现在领先' }, { v: '64%', k: '算到河牌' }, { v: '−12', k: '后续增减', color: '#e5533d', border: '#e5533d' }]) +
+      '<div style="font-size:13px;color:var(--muted);margin-top:9px;line-height:1.6">你现在领先四分之三的组合，但每张超牌都在削弱你。这是典型的靠摊牌价值跟注的牌，不是加注的牌。</div></div>' +
+      '<div style="padding:20px 0 0"><div class="lab">你在自己范围里</div>' +
+      '<div class="pctbar"><div style="width:22%;background:#3c4f66"></div><div style="width:56%;background:#1f9d63"></div><div style="width:22%;background:#c0442b"></div></div>' +
+      '<div class="marker"><i style="left:71%"></i></div>' +
+      '<div class="mono" style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:-2px"><span>弃牌区</span><span>跟注区</span><span>加注区</span></div>' +
+      '<div style="font-size:14px;margin-top:10px">排在第 <b class="mono" style="font-size:17px">71%</b>，落在<b style="color:var(--good)">跟注区</b></div></div>' +
+      '<div style="padding:20px 0 0"><div class="lab">建议比例</div><div style="display:flex;flex-direction:column;gap:7px">' +
+      arow('弃牌', 0, 'var(--fold)') + arow('跟注 1.8BB', 81, 'var(--btn-call)', true) + arow('加注 5.4BB', 19, 'var(--btn-fold)') +
+      '</div><div class="reason">对手在这类面上下注很宽，你领先他 76% 的组合，弃牌是明显的错误。但你怕的那 16% 顶对不会因为你加注就走，所以跟注保住摊牌价值，把加注留给两对以上。</div></div></div>' +
+      '<div style="flex:none;padding:10px 16px 16px;border-top:1px solid var(--line)"><div class="cta">下一手</div></div>'
+  });
+
+  /* ---------- 5 分析模式 ---------- */
+  function slot(r, s, w) {
+    if (!r) return '<div style="width:44px;height:60px;border-radius:6px;background:#0d2137;border:1px dashed #2d4a68;color:var(--dim);font-size:20px;display:flex;align-items:center;justify-content:center">+</div>';
+    return card(r, s, 44, 60, 21, 16);
+  }
+  screens.push({
+    t: '分析模式', s: '不计分。自己摆牌，改对手范围，改完立刻重算。', tag: '新增',
+    h: topbar('✕', '分析模式', '随机') +
+      '<div class="body" style="padding:16px 16px 20px">' +
+      '<div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-bottom:14px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div class="lab" style="margin:0">公共牌</div>' +
+      '<div class="mono" style="font-size:11.5px;color:var(--muted)">KQ 高干燥 · 彩虹</div></div>' +
+      '<div style="display:flex;gap:6px;margin-bottom:14px">' + slot('K', '♦') + slot('7', '♥') + slot('2', '♣') + slot() + '</div>' +
+      '<div class="lab">你的底牌</div><div style="display:flex;gap:6px">' + slot('9', '♠') + slot('8', '♠') + '</div></div>' +
+      tiles([{ v: '15%', k: '现在领先' }, { v: '31%', k: '算到河牌' }, { v: '7%', k: '范围分位', color: '#d9911f' }]) +
+      '<div style="height:16px"></div>' +
+      '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">' +
+      arow('下注 1.8BB', 72, 'var(--btn-raise)', true) + arow('下注 4.1BB', 12, 'var(--btn-fold)') + arow('过牌', 16, 'var(--btn-call)') + '</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px"><div class="lab" style="margin:0">对手范围　点格子增减</div>' +
+      '<div class="mono" style="font-size:11.5px;color:var(--muted)">36.3% · 481 组合</div></div>' +
+      '<div class="chips" style="margin-bottom:10px"><span class="chip on" style="padding:6px 12px;font-size:13px">GTO</span>' +
+      '<span class="chip" style="padding:6px 12px;font-size:13px">紧</span><span class="chip" style="padding:6px 12px;font-size:13px">松</span>' +
+      '<span class="chip" style="padding:6px 12px;font-size:13px">站街鱼</span></div>' +
+      '<div style="background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px">' +
+      grid(9, '#2fa877', '#1c6a4c').replace(/gap: 1px/, 'gap:2px').replace(/font-size: 7px/g, 'font-size:8px') + '</div>' +
+      '<div style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--muted)">' +
+      '<span class="row" style="gap:6px"><span style="width:11px;height:11px;border-radius:2px;background:#2fa877"></span>跟注</span>' +
+      '<span class="row" style="gap:6px"><span style="width:11px;height:11px;border-radius:2px;background:#1c6a4c"></span>部分频率</span>' +
+      '<span class="row" style="gap:6px"><span style="width:11px;height:11px;border-radius:2px;background:#33475c"></span>弃牌</span></div></div>'
+  });
+
+  /* ---------- 6 结算 ---------- */
+  var wrongs = [
+    { h: [['9', '♠'], ['8', '♠']], b: [['K', '♦'], ['7', '♥'], ['2', '♣']], best: '下注 1.8BB 72%', dot: '#d9911f', chose: '过牌', f: '16%' },
+    { h: [['5', '♣'], ['5', '♦']], b: [['K', '♦'], ['7', '♥'], ['2', '♣']], best: '过牌 61%', dot: '#1f9d63', chose: '下注 1.8BB', f: '27%' },
+    { h: [['A', '♥'], ['Q', '♦']], b: [['J', '♠'], ['T', '♠'], ['4', '♥']], best: '下注 4.1BB 58%', dot: '#c0442b', chose: '下注 1.8BB', f: '24%' }
+  ];
+  screens.push({
+    t: '结算页', s: '沿用翻前的结构，多一行平均偏离度。', tag: '沿用',
+    h: topbar('✕', '单加注池 · BTN', '') +
+      '<div class="body">' +
+      '<div style="padding:40px 20px 26px;text-align:center">' +
+      '<div class="mono" style="font-size:58px;font-weight:800;letter-spacing:-.02em">15 / 20</div>' +
+      '<div style="font-size:21px;font-weight:700;margin-top:4px;color:#d9911f">Good</div>' +
+      '<div style="font-size:13px;color:var(--muted);margin-top:8px">本局平均偏离建议 11 个百分点</div></div>' +
+      '<div style="padding:0 16px"><div class="cta" style="margin-bottom:8px">再来一局</div>' +
+      '<div class="cta ghost" style="margin-bottom:8px">立刻重练这 5 手错题</div>' +
+      '<div class="cta ghost">分享成绩</div>' +
+      '<div style="display:flex;align-items:center;gap:9px;font-size:16px;margin:26px 0 10px;letter-spacing:.06em;color:var(--bad);font-weight:700">✖ 打错的手牌</div>' +
+      wrongs.map(function (w) {
+        return '<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)">' +
+          '<div style="display:flex;gap:3px;flex:none">' + w.h.map(function (c) { return card(c[0], c[1], 30, 41, 15, 12); }).join('') + '</div>' +
+          '<div style="display:flex;gap:2px;flex:none;opacity:.75">' + w.b.map(function (c) { return card(c[0], c[1], 22, 30, 11, 9); }).join('') + '</div>' +
+          '<div style="flex:1;min-width:0"><div class="mono" style="display:flex;align-items:center;gap:7px;font-size:13.5px">' +
+          '<span style="width:10px;height:10px;border-radius:50%;flex:none;background:' + w.dot + '"></span><span>' + w.best + '</span></div>' +
+          '<div style="font-size:12px;color:var(--muted);margin-top:3px">你选了 ' + w.chose + '，建议 ' + w.f + '</div></div></div>';
+      }).join('') + '<div style="height:26px"></div></div></div>'
+  });
+
+  var rail = document.getElementById('rail');
+  screens.forEach(function (s) {
+    var slot = el('div', 'slot');
+    slot.innerHTML = '<div class="cap"><em>' + s.tag + '</em><b style="display:block;margin-top:4px">' + s.t + '</b><span>' + s.s + '</span></div>' +
+      '<div class="phone">' + s.h + '</div>';
+    rail.appendChild(slot);
+  });
+
+  // 第三块的交互
+  var labels = { small: '下注 1.8BB', big: '下注 4.1BB', check: '过牌' };
+  var sheet = document.getElementById('sheet'), scrim = document.getElementById('scrim');
+  document.querySelectorAll('.act[data-pick]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.getAttribute('data-pick'), correct = k === 'small';
+      document.getElementById('verdict').textContent = correct ? '✔ 正确' : '✖ 错误';
+      document.getElementById('verdict').style.color = correct ? 'var(--good)' : 'var(--bad)';
+      document.getElementById('chosen').textContent = '你选了 ' + labels[k];
+      sheet.classList.add('on'); scrim.classList.add('on');
+    });
+  });
+  document.getElementById('next').addEventListener('click', function () {
+    sheet.classList.remove('on'); scrim.classList.remove('on');
+  });
+})();
+</script>

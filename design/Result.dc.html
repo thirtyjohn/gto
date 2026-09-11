@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; }
+    a { color: #2aa9c9; } a:hover { color: #1f8ba8; }
+    .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+    .mc { width: 30px; height: 41px; background: #fff; border-radius: 4px; display: flex;
+      flex-direction: column; align-items: center; justify-content: center; font-weight: 700; line-height: 1; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0a1626; color: #e9eff6; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Noto Sans SC', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <div style="flex: none; height: 56px; background: #0d1d33; border-bottom: 1px solid #1f3a58; display: grid; grid-template-columns: 56px 1fr 56px; align-items: center">
+    <div style="display: flex; align-items: center; justify-content: center; color: #8ba3bd; font-size: 20px">✕</div>
+    <div style="text-align: center; font-size: 17px; font-weight: 600">单加注池 · BTN</div>
+    <div></div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow-y: auto">
+
+    <div style="padding: 40px 20px 26px; text-align: center">
+      <div class="mono" style="font-size: 58px; font-weight: 800; letter-spacing: -.02em">15 / 20</div>
+      <div style="font-size: 21px; font-weight: 700; margin-top: 4px; color: #d9911f">Good</div>
+      <div style="font-size: 13px; color: #8ba3bd; margin-top: 8px">本局平均偏离 GTO 建议 11 个百分点</div>
+    </div>
+
+    <div style="padding: 0 16px">
+      <div style="padding: 16px; border-radius: 12px; background: #1f8ba8; color: #fff; font-size: 17px; font-weight: 600; text-align: center; margin-bottom: 8px">再来一局</div>
+      <div style="padding: 16px; border-radius: 12px; background: none; border: 1.5px solid #1f8ba8; color: #2aa9c9; font-size: 17px; font-weight: 600; text-align: center; margin-bottom: 8px">立刻重练这 5 手错题</div>
+      <div style="padding: 16px; border-radius: 12px; background: none; border: 1.5px solid #1f8ba8; color: #2aa9c9; font-size: 17px; font-weight: 600; text-align: center">分享成绩</div>
+
+      <div style="display: flex; align-items: center; gap: 9px; font-size: 16px; margin: 26px 0 10px; letter-spacing: .06em; color: #e5533d; font-weight: 700">✖ 打错的手牌</div>
+
+      <sc-for list="{{wrong}}" as="w" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid #1f3a58">
+          <div style="display: flex; gap: 3px; flex: none">
+            <div class="mc" style="color: {{w.c1col}}"><div style="font-size: 15px">{{w.r1}}</div><div style="font-size: 12px">{{w.s1}}</div></div>
+            <div class="mc" style="color: {{w.c2col}}"><div style="font-size: 15px">{{w.r2}}</div><div style="font-size: 12px">{{w.s2}}</div></div>
+          </div>
+          <div style="display: flex; gap: 2px; flex: none; opacity: .75">
+            <div class="mc" style="width: 22px; height: 30px; color: {{w.b1col}}"><div style="font-size: 11px">{{w.b1r}}</div><div style="font-size: 9px">{{w.b1s}}</div></div>
+            <div class="mc" style="width: 22px; height: 30px; color: {{w.b2col}}"><div style="font-size: 11px">{{w.b2r}}</div><div style="font-size: 9px">{{w.b2s}}</div></div>
+            <div class="mc" style="width: 22px; height: 30px; color: {{w.b3col}}"><div style="font-size: 11px">{{w.b3r}}</div><div style="font-size: 9px">{{w.b3s}}</div></div>
+          </div>
+          <div style="flex: 1; min-width: 0">
+            <div class="mono" style="display: flex; align-items: center; gap: 7px; font-size: 13.5px">
+              <span style="width: 10px; height: 10px; border-radius: 50%; flex: none; background: {{w.dot}}"></span>
+              <span>{{w.best}}</span>
+            </div>
+            <div style="font-size: 12px; color: #8ba3bd; margin-top: 3px">你选了 {{w.chose}}，建议 {{w.choseFreq}}</div>
+          </div>
+        </div>
+      </sc-for>
+
+      <div style="height: 26px"></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const red = '#c22f26', blk = '#16202b';
+    return {
+      wrong: [
+        { r1: '9', s1: '♠', c1col: blk, r2: '8', s2: '♠', c2col: blk,
+          b1r: 'K', b1s: '♦', b1col: red, b2r: '7', b2s: '♥', b2col: red, b3r: '2', b3s: '♣', b3col: blk,
+          best: '下注 1.8BB 72%', dot: '#d9911f', chose: '过牌', choseFreq: '16%' },
+        { r1: '5', s1: '♣', c1col: blk, r2: '5', s2: '♦', c2col: red,
+          b1r: 'K', b1s: '♦', b1col: red, b2r: '7', b2s: '♥', b2col: red, b3r: '2', b3s: '♣', b3col: blk,
+          best: '过牌 61%', dot: '#1f9d63', chose: '下注 1.8BB', choseFreq: '27%' },
+        { r1: 'A', s1: '♥', c1col: red, r2: 'Q', s2: '♦', c2col: red,
+          b1r: 'J', b1s: '♠', b1col: blk, b2r: 'T', b2s: '♠', b2col: blk, b3r: '4', b3s: '♥', b3col: red,
+          best: '下注 4.1BB 58%', dot: '#c0442b', chose: '下注 1.8BB', choseFreq: '24%' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

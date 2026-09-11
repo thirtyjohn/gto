@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; }
+    a { color: #2aa9c9; } a:hover { color: #1f8ba8; }
+    .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+    .cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      font-family: ui-monospace, Menlo, monospace; font-size: 7px; font-weight: 600;
+      letter-spacing: -.03em; border-radius: 1px; color: #c3d2e0; overflow: hidden; }
+  </style>
+</helmet>
+
+<div style="width: 390px; height: 844px; background: #0a1626; color: #e9eff6; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Noto Sans SC', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <div style="flex: none; height: 56px; background: #0d1d33; border-bottom: 1px solid #1f3a58; display: grid; grid-template-columns: 56px 1fr 56px; align-items: center">
+    <div style="display: flex; align-items: center; justify-content: center; color: #8ba3bd; font-size: 20px">✕</div>
+    <div style="text-align: center; font-size: 17px; font-weight: 600">单加注池 · BTN</div>
+    <div></div>
+  </div>
+
+  <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px 0">
+
+    <div style="font-size: 13.5px; color: #8ba3bd; margin-bottom: 14px">你开池 2.5BB，BB 跟注。底池 5.5BB，你有位置。</div>
+
+    <div class="mono" style="display: flex; align-items: center; gap: 10px; font-size: 15px; color: #8ba3bd; margin-bottom: 18px">
+      <span>Total Hands: 180</span>
+      <span style="color: #3ecf8e">✔ 141</span><span style="color: #5d7793">/</span><span style="color: #e5533d">✖ 39</span>
+    </div>
+
+    <!-- 双方范围 -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 6px">
+      <div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px">
+          <div style="font-size: 14px; font-weight: 700">你的范围</div>
+          <div class="mono" style="font-size: 11.5px; color: #8ba3bd">45.2%</div>
+        </div>
+        <div style="background: #13293f; border: 1px solid #1f3a58; border-radius: 8px; padding: 5px">
+          <div style="display: grid; grid-template-columns: repeat(13, 1fr); gap: 1px">
+            <sc-for list="{{heroCells}}" as="c" hint-placeholder-count="169">
+              <div class="cell" style="background: {{c.bg}}">{{c.k}}</div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px">
+          <div style="font-size: 14px; font-weight: 700">对手范围</div>
+          <div class="mono" style="font-size: 11.5px; color: #8ba3bd">36.3%</div>
+        </div>
+        <div style="background: #13293f; border: 1px solid #1f3a58; border-radius: 8px; padding: 5px">
+          <div style="display: grid; grid-template-columns: repeat(13, 1fr); gap: 1px">
+            <sc-for list="{{oppCells}}" as="c" hint-placeholder-count="169">
+              <div class="cell" style="background: {{c.bg}}">{{c.k}}</div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 20px">
+      <div class="mono" style="font-size: 11.5px; color: #5d7793">BTN 开池 599 组合</div>
+      <div class="mono" style="font-size: 11.5px; color: #5d7793">BB 跟注 481 组合</div>
+    </div>
+
+    <!-- 对手预设 -->
+    <div style="margin-bottom: 20px">
+      <div class="mono" style="font-size: 11px; letter-spacing: .12em; color: #2aa9c9; margin-bottom: 9px">对手类型</div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <div style="padding: 7px 14px; border-radius: 999px; background: #1f8ba8; border: 1px solid #1f8ba8; color: #fff; font-size: 14px; font-weight: 600">GTO</div>
+        <div style="padding: 7px 14px; border-radius: 999px; background: #13293f; border: 1px solid #1f3a58; color: #8ba3bd; font-size: 14px">紧</div>
+        <div style="padding: 7px 14px; border-radius: 999px; background: #13293f; border: 1px solid #1f3a58; color: #8ba3bd; font-size: 14px">松</div>
+        <div style="padding: 7px 14px; border-radius: 999px; background: #13293f; border: 1px solid #1f3a58; color: #8ba3bd; font-size: 14px">站街鱼</div>
+        <div style="padding: 7px 14px; border-radius: 999px; background: #13293f; border: 1px dashed #1f3a58; color: #8ba3bd; font-size: 14px">自定义</div>
+      </div>
+    </div>
+
+    <!-- 牌面类别上的下注频率预览 -->
+    <div style="margin-bottom: 8px">
+      <div class="mono" style="font-size: 11px; letter-spacing: .12em; color: #2aa9c9; margin-bottom: 9px">各类牌面上你的下注频率</div>
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <sc-for list="{{boards}}" as="b" hint-placeholder-count="7">
+          <div style="display: flex; align-items: center; gap: 9px">
+            <span style="width: 70px; font-size: 12.5px; color: #8ba3bd">{{b.name}}</span>
+            <span style="flex: 1; height: 9px; background: #13293f; border-radius: 2px; position: relative">
+              <span style="position: absolute; top: 0; bottom: 0; left: 0; width: {{b.w}}; background: #d9911f; border-radius: 2px"></span>
+            </span>
+            <span class="mono" style="width: 36px; text-align: right; font-size: 12.5px">{{b.pct}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex: none; padding: 12px 16px 18px">
+    <div style="padding: 16px; border-radius: 12px; background: #1f8ba8; color: #fff; font-size: 17px; font-weight: 600; text-align: center; letter-spacing: .02em">开始训练</div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  cells(seed) {
+    const R = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+    const out = [];
+    for (let i = 0; i < 13; i++) {
+      for (let j = 0; j < 13; j++) {
+        const k = i === j ? R[i] + R[j] : i < j ? R[i] + R[j] + 's' : R[j] + R[i] + 'o';
+        // 视觉近似：强牌区填满，边缘渐弱，其余留空
+        const d = Math.max(i, j) + Math.abs(i - j) * (i < j ? 0.7 : 1.5);
+        let bg = '#33475c';
+        if (d < seed) bg = '#e8703a';
+        else if (d < seed + 2) bg = '#a8532f';
+        out.push({ k: k.replace(/[so]$/, ''), bg });
+      }
+    }
+    return out;
+  }
+  renderVals() {
+    return {
+      heroCells: this.cells(12),
+      oppCells: this.cells(9),
+      boards: [
+        { name: 'A 高干燥', pct: '78%', w: '78%' },
+        { name: 'KQ 高干燥', pct: '74%', w: '74%' },
+        { name: '配对面', pct: '71%', w: '71%' },
+        { name: 'JT 高干燥', pct: '63%', w: '63%' },
+        { name: '低干燥', pct: '61%', w: '61%' },
+        { name: '连接面', pct: '52%', w: '52%' },
+        { name: '同花面', pct: '41%', w: '41%' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
