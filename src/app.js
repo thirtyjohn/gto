@@ -169,15 +169,45 @@
   }
 
   // 座位坐标：slot 0 是英雄，逆时针依次是后面行动的位置。
-  // x/y 是座位，bx/by 是下注筹码，dx/dy 是按钮位标记，都是牌桌的百分比。
+  // x/y 是座位中心，bx/by 是下注筹码，都是牌桌的百分比。
+  // dside 是按钮位标记贴在座位的哪一侧，它是座位的子元素，跟着座位走，不会因缩放而错位。
   var SLOTS = [
-    { x: 50, y: 91, bx: 50, by: 66, dx: 63, dy: 86 },
-    { x: 22, y: 72, bx: 35, by: 60, dx: 31, dy: 80 },
-    { x: 22, y: 40, bx: 35, by: 51, dx: 31, dy: 32 },
-    { x: 50, y:  9, bx: 50, by: 24, dx: 36, dy: 14 },
-    { x: 78, y: 40, bx: 65, by: 51, dx: 69, dy: 32 },
-    { x: 78, y: 72, bx: 65, by: 60, dx: 69, dy: 80 }
+    { x: 50, y: 89, bx: 50, by: 62, dside: 'l' },
+    { x: 20, y: 60, bx: 34, by: 50, dside: 'r' },
+    { x: 20, y: 33, bx: 34, by: 43, dside: 'r' },
+    { x: 50, y: 10, bx: 50, by: 18, dside: 'l' },
+    { x: 80, y: 33, bx: 66, by: 43, dside: 'l' },
+    { x: 80, y: 60, bx: 66, by: 50, dside: 'l' }
   ];
+
+  // 牌桌尺寸由 JS 量算：填满可用区域，但不允许比宽度的 1.67 倍更高。
+  // --u 是牌桌宽度的百分之一，桌上所有元素都按它缩放。
+  function fitTable(felt, retried) {
+    var box = felt.parentNode;
+    if (!box) return;
+    var cs = window.getComputedStyle(box);
+    var W = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    var H = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (W <= 0 || H <= 0) {
+      // 容器还没拿到尺寸（比如所在页面刚切换过来），下一帧再量一次
+      if (!retried) requestAnimationFrame(function () { fitTable(felt, true); });
+      return;
+    }
+    var w = Math.min(W, 560);
+    var h = Math.min(H, w / 0.6);
+    felt.style.width = Math.round(w) + 'px';
+    felt.style.height = Math.round(h) + 'px';
+    // 元素尺寸取宽高里更紧的那一维，桌子被压扁时元素跟着缩，不会互相压到
+    felt.style.setProperty('--u', (Math.min(w, h * 0.68) / 100) + 'px');
+  }
+
+  window.addEventListener('resize', refit);
+  window.addEventListener('orientationchange', refit);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', refit);
+  function refit() {
+    var felt = document.querySelector('#screen-train .felt');
+    if (felt) fitTable(felt);
+  }
 
   function renderTable(sc, cards) {
     var st = tableState(sc);
@@ -197,7 +227,9 @@
       node.style.left = S.x + '%';
       node.style.top = S.y + '%';
       node.appendChild(el('div', 'badge', pos));
-      node.appendChild(el('div', 'stack', num(100 - seat.bet) + ' BB'));
+      // 已弃牌的人剩多少筹码与决策无关，只留一个变暗的位置圆圈，桌面才干净
+      if (!seat.folded) node.appendChild(el('div', 'stack', num(100 - seat.bet) + ' BB'));
+      if (pos === 'BTN') node.appendChild(el('div', 'dealer ' + S.dside, 'D'));
       felt.appendChild(node);
 
       if (seat.bet > 0 && !seat.folded) {
@@ -207,12 +239,6 @@
         bet.appendChild(el('b'));
         bet.appendChild(el('span', null, num(seat.bet) + ' BB'));
         felt.appendChild(bet);
-      }
-      if (pos === 'BTN') {
-        var d = el('div', 'dealer', 'D');
-        d.style.left = S.dx + '%';
-        d.style.top = S.dy + '%';
-        felt.appendChild(d);
       }
     }
 
@@ -391,8 +417,8 @@
       title: view.opts ? (view.opts.group.toUpperCase() + ' - ' + view.opts.hero) : 'TRAINING',
       back: view.opts
     };
+    show('train');   // 先让牌桌所在的页面可见，容器有了尺寸才量得出牌桌大小
     nextHand();
-    show('train');
   }
 
   function nextHand() {
@@ -423,7 +449,8 @@
     root.appendChild(head);
 
     var box = el('div', 'tablebox');
-    box.appendChild(renderTable(sc, session.cur.cards));
+    var felt = renderTable(sc, session.cur.cards);
+    box.appendChild(felt);
     root.appendChild(box);
 
     var acts = el('div', 'actions' + (sc.noFold ? ' two' : ''));
@@ -431,6 +458,9 @@
     acts.appendChild(actBtn('call', sc.labels.call, sc));
     acts.appendChild(actBtn('raise', sc.labels.raise, sc));
     root.appendChild(acts);
+
+    // 整屏拼完再量牌桌，否则量到的是还没扣掉按钮栏的高度
+    fitTable(felt);
   }
 
   function actBtn(action, label, sc) {
