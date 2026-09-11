@@ -1,0 +1,17 @@
+{
+  "name": "翻前 GTO 训练器",
+  "short_name": "GTO 翻前",
+  "description": "6-max 100BB 现金局的翻前范围训练器，36 个位置场景。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a1626",
+  "theme_color": "#0a1626",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "./apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

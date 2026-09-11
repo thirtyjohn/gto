@@ -1,0 +1,271 @@
+<title>翻前范围对照表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+  :root {
+    --ground: #eef1ed;
+    --surface: #ffffff;
+    --surface-2: #e6ebe6;
+    --ink: #16211d;
+    --muted: #5f6d66;
+    --line: #d5ddd6;
+    --accent: #0f5348;
+    --accent-soft: #dcece6;
+    --raise: #b8502f;
+    --call: #3f8f5f;
+    --fold-bg: #dfe5e0;
+    --warn: #a8531b;
+    --f-display: "Noto Serif SC", Georgia, "Songti SC", serif;
+    --f-body: "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+      --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+      --accent: #55b69c; --accent-soft: #16302a;
+      --raise: #d9744c; --call: #4f9f6c; --fold-bg: #1e2a25; --warn: #d98f4c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+    --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+    --accent: #55b69c; --accent-soft: #16302a;
+    --raise: #d9744c; --call: #4f9f6c; --fold-bg: #1e2a25; --warn: #d98f4c;
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.7; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 36px 20px 80px; }
+
+  header.top { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 28px; }
+  .eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+  h1 { font-family: var(--f-display); font-size: clamp(26px, 4vw, 36px); margin: 0 0 10px; font-weight: 700; text-wrap: balance; }
+  .dek { color: var(--muted); margin: 0 0 18px; max-width: 62ch; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 26px; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+  .facts b { color: var(--ink); font-weight: 500; }
+
+  .status { padding: 12px 16px; margin: 0 0 28px; font-size: 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+  .status.bad { border-left-color: var(--warn); background: var(--surface); border: 1px solid var(--warn); border-left-width: 3px; }
+  .status b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; display: block; margin-bottom: 4px; color: var(--accent); }
+  .status.bad b { color: var(--warn); }
+  .status ul { margin: 8px 0 0; padding-left: 18px; font-family: var(--f-mono); font-size: 12px; }
+
+  h2 { font-family: var(--f-display); font-size: 20px; margin: 40px 0 4px; font-weight: 700; }
+  h2:first-of-type { margin-top: 0; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+
+  .tw { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); margin: 0 0 28px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 7px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  td.id { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); }
+  .bar { display: inline-block; height: 8px; vertical-align: middle; }
+  .bar i { display: inline-block; height: 8px; }
+  .ok { color: var(--accent); }
+  .no { color: var(--warn); font-weight: 700; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+  .card { background: var(--surface); border: 1px solid var(--line); padding: 14px; break-inside: avoid; }
+  .card.flag { border-color: var(--warn); }
+  .chead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+  .chead h3 { margin: 0; font-size: 15px; font-weight: 700; }
+  .chead .sid { font-family: var(--f-mono); font-size: 10px; color: var(--muted); }
+  .cmeta { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+  .readout { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink); background: var(--surface-2); padding: 5px 8px; margin: 0 0 10px; min-height: 26px; }
+  .grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 1.5px; }
+  .cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-family: var(--f-mono); font-size: clamp(6px, 1.7vw, 9px); background: var(--fold-bg); color: var(--muted); cursor: pointer; border: 0; padding: 0; }
+  .cell.on { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .cell:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .cstat { display: flex; gap: 14px; margin-top: 10px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cstat i { display: inline-block; width: 8px; height: 8px; margin-right: 4px; }
+  .cnote { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); margin: 0 0 20px; }
+  .legend i { display: inline-block; width: 11px; height: 11px; margin-right: 5px; vertical-align: -1px; }
+
+  footer { margin-top: 48px; border-top: 1px solid var(--line); padding-top: 14px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+
+  @media print {
+    body { background: #fff; }
+    .cards { grid-template-columns: repeat(2, 1fr); }
+    .card { border-color: #bbb; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">M1 交付物 · 范围对照表</p>
+    <h1>翻前范围对照表</h1>
+    <p class="dek">36 个场景的完整 GTO 范围，供你逐张核对。色块高度就是动作频率，点任意格子看该手牌的精确分布。确认无误后这份数据直接进 App，不需要再抄一遍。</p>
+    <div class="facts">
+      <div>牌型 <b>NLHE 6-max</b></div>
+      <div>筹码 <b>100 BB</b></div>
+      <div>场景 <b id="f-count">36</b></div>
+      <div>校验 <b id="f-check">运行中</b></div>
+    </div>
+  </header>
+
+  <div class="status" id="status"><b>数据校验</b><span id="status-text">正在展开范围…</span></div>
+
+  <h2>总览</h2>
+  <p class="sub">每行是一个场景的加权频率。预期区间是我按位置写死的合理性边界，超出会标红，用来挡住写错的范围。</p>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr>
+          <th>场景</th><th>ID</th>
+          <th class="n">Raise</th><th class="n">Call</th><th class="n">入池</th>
+          <th class="n">预期</th><th>分布</th>
+        </tr>
+      </thead>
+      <tbody id="summary"></tbody>
+    </table>
+  </div>
+
+  <h2>逐张范围</h2>
+  <p class="sub">行列均按 A K Q J T 9 8 7 6 5 4 3 2 排列。左上三角为同花，右下三角为非同花，对角线为对子。</p>
+  <div class="legend">
+    <span><i style="background:var(--raise)"></i>Raise</span>
+    <span><i style="background:var(--call)"></i>Call / Limp / Check</span>
+    <span><i style="background:var(--fold-bg)"></i>Fold</span>
+    <span>色块自下而上依次是弃牌、跟注、加注</span>
+  </div>
+  <div class="cards" id="cards"></div>
+
+  <footer>翻前 GTO 训练器 · M1 范围对照表 · 数据源 data/ranges.js</footer>
+</div>
+
+<script>
+<!--@include src/range.js-->
+</script>
+<script>
+<!--@include data/ranges.js-->
+</script>
+<script>
+(function () {
+  'use strict';
+  var built = Range.buildAll(SCENARIOS);
+  var allErrors = [];
+  built.forEach(function (b) {
+    b.errors.forEach(function (e) { allErrors.push(b.scenario.id + '：' + e); });
+  });
+
+  document.getElementById('f-count').textContent = built.length;
+  var st = document.getElementById('status');
+  var stText = document.getElementById('status-text');
+  if (allErrors.length) {
+    st.className = 'status bad';
+    document.getElementById('f-check').textContent = allErrors.length + ' 处待修';
+    stText.innerHTML = '发现 ' + allErrors.length + ' 处问题：<ul>' +
+      allErrors.map(function (e) { return '<li>' + e + '</li>'; }).join('') + '</ul>';
+  } else {
+    document.getElementById('f-check').textContent = '全部通过';
+    stText.textContent = '36 个场景全部展开成功，频率合计无越界，入池率全部落在预期区间内。';
+  }
+
+  function pct(x) { return x.toFixed(1) + '%'; }
+
+  // 总览表
+  var tb = document.getElementById('summary');
+  built.forEach(function (b) {
+    var sc = b.scenario;
+    var inBand = !sc.expect || (b.pct.total >= sc.expect[0] && b.pct.total <= sc.expect[1]);
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + sc.title + '</td>' +
+      '<td class="id">' + sc.id + '</td>' +
+      '<td class="n">' + pct(b.pct.raise) + '</td>' +
+      '<td class="n">' + (b.pct.call > 0 ? pct(b.pct.call) : '—') + '</td>' +
+      '<td class="n ' + (inBand ? 'ok' : 'no') + '">' + pct(b.pct.total) + '</td>' +
+      '<td class="n">' + (sc.expect ? sc.expect[0] + '–' + sc.expect[1] + '%' : '—') + '</td>' +
+      '<td><span class="bar">' +
+        '<i style="width:' + (b.pct.raise * 1.4) + 'px;background:var(--raise)"></i>' +
+        '<i style="width:' + (b.pct.call * 1.4) + 'px;background:var(--call)"></i>' +
+      '</span></td>';
+    tb.appendChild(tr);
+  });
+
+  // 逐张范围卡
+  var cards = document.getElementById('cards');
+  built.forEach(function (b) {
+    var sc = b.scenario;
+    var card = document.createElement('div');
+    card.className = 'card' + (b.errors.length ? ' flag' : '');
+
+    var head = document.createElement('div');
+    head.className = 'chead';
+    head.innerHTML = '<h3>' + sc.title + '</h3><span class="sid">' + sc.id + '</span>';
+    card.appendChild(head);
+
+    var meta = document.createElement('p');
+    meta.className = 'cmeta';
+    meta.textContent = sc.facing + '　·　' + sc.labels.raise +
+      (sc.ranges.call ? '　/　' + sc.labels.call : '');
+    card.appendChild(meta);
+
+    var readout = document.createElement('div');
+    readout.className = 'readout';
+    readout.textContent = '点格子查看频率';
+    card.appendChild(readout);
+
+    var grid = document.createElement('div');
+    grid.className = 'grid';
+    Range.ALL_HANDS.forEach(function (h) {
+      var g = b.grid[h.key];
+      var cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'cell' + (g.raise + g.call >= 50 ? ' on' : '');
+      cell.textContent = h.key;
+      var f = g.fold, c = g.call;
+      cell.style.background = (g.raise + g.call === 0)
+        ? 'var(--fold-bg)'
+        : 'linear-gradient(to top, var(--fold-bg) 0 ' + f + '%, var(--call) ' + f + '% ' +
+          (f + c) + '%, var(--raise) ' + (f + c) + '% 100%)';
+      cell.addEventListener('click', function () {
+        var parts = [h.key + ' (' + h.combos + ' 组合)'];
+        if (g.raise) parts.push(sc.labels.raise.split(' ')[0] + ' ' + g.raise + '%');
+        if (g.call) parts.push(sc.labels.call.split(' ')[0] + ' ' + g.call + '%');
+        if (g.fold) parts.push((sc.noFold ? 'Check' : 'Fold') + ' ' + g.fold + '%');
+        readout.textContent = parts.join('　/　');
+      });
+      grid.appendChild(cell);
+    });
+    card.appendChild(grid);
+
+    var stat = document.createElement('div');
+    stat.className = 'cstat';
+    stat.innerHTML =
+      '<span><i style="background:var(--raise)"></i>' + pct(b.pct.raise) + '</span>' +
+      (b.pct.call > 0 ? '<span><i style="background:var(--call)"></i>' + pct(b.pct.call) + '</span>' : '') +
+      '<span>入池 ' + pct(b.pct.total) + '</span>';
+    card.appendChild(stat);
+
+    if (sc.note) {
+      var note = document.createElement('p');
+      note.className = 'cnote';
+      note.textContent = sc.note;
+      card.appendChild(note);
+    }
+    if (b.errors.length) {
+      var err = document.createElement('p');
+      err.className = 'cnote';
+      err.style.color = 'var(--warn)';
+      err.textContent = b.errors.join('；');
+      card.appendChild(err);
+    }
+
+    cards.appendChild(card);
+  });
+
+  window.__REPORT__ = built.map(function (b) {
+    return {
+      id: b.scenario.id, raise: +b.pct.raise.toFixed(1), call: +b.pct.call.toFixed(1),
+      total: +b.pct.total.toFixed(1), expect: b.scenario.expect, errors: b.errors
+    };
+  });
+})();
+</script>

@@ -1,0 +1,586 @@
+<title>翻前 GTO 训练器 PRD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+  :root {
+    --ground: #eef1ed;
+    --surface: #ffffff;
+    --surface-2: #e6ebe6;
+    --ink: #16211d;
+    --muted: #5f6d66;
+    --line: #d5ddd6;
+    --accent: #0f5348;
+    --accent-soft: #dcece6;
+    --raise: #b8502f;
+    --call: #3f8f5f;
+    --fold: #9aa7a0;
+    --fold-bg: #e4e9e5;
+    --on-fill: #ffffff;
+
+    --f-display: "Noto Serif SC", Georgia, "Songti SC", serif;
+    --f-body: "Noto Sans SC", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0c1310;
+      --surface: #121b17;
+      --surface-2: #182420;
+      --ink: #e4ebe6;
+      --muted: #93a49b;
+      --line: #24322c;
+      --accent: #55b69c;
+      --accent-soft: #16302a;
+      --raise: #dd7a52;
+      --call: #5fbc82;
+      --fold: #67766e;
+      --fold-bg: #1b2622;
+      --on-fill: #0c1310;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0c1310;
+    --surface: #121b17;
+    --surface-2: #182420;
+    --ink: #e4ebe6;
+    --muted: #93a49b;
+    --line: #24322c;
+    --accent: #55b69c;
+    --accent-soft: #16302a;
+    --raise: #dd7a52;
+    --call: #5fbc82;
+    --fold: #67766e;
+    --fold-bg: #1b2622;
+    --on-fill: #0c1310;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 16px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 40px 24px 96px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  @media (min-width: 1060px) {
+    .wrap { grid-template-columns: 200px minmax(0, 760px); justify-content: center; align-items: start; }
+    .toc { position: sticky; top: 32px; }
+  }
+
+  /* ---- masthead ---- */
+  .masthead { grid-column: 1 / -1; border-bottom: 2px solid var(--ink); padding-bottom: 22px; }
+  .eyebrow {
+    font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--accent); margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--f-display); font-size: clamp(30px, 5vw, 44px); line-height: 1.2;
+    margin: 0 0 12px; text-wrap: balance; font-weight: 700; letter-spacing: -.01em;
+  }
+  .dek { margin: 0 0 22px; color: var(--muted); max-width: 62ch; font-size: 17px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 28px; font-family: var(--f-mono); font-size: 12.5px; }
+  .facts div { color: var(--muted); }
+  .facts b { color: var(--ink); font-weight: 500; }
+
+  /* ---- toc ---- */
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .toc a {
+    display: flex; gap: 10px; text-decoration: none; color: var(--muted);
+    font-size: 13.5px; line-height: 1.45; padding: 4px 0;
+  }
+  .toc a:hover { color: var(--accent); }
+  .toc a span { font-family: var(--f-mono); font-size: 11px; padding-top: 2px; opacity: .7; }
+  .toc-title {
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink); margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+  }
+
+  /* ---- sections ---- */
+  main { min-width: 0; display: flex; flex-direction: column; gap: 44px; }
+  section { scroll-margin-top: 24px; }
+  h2 {
+    font-family: var(--f-display); font-size: 23px; font-weight: 700; margin: 0 0 6px;
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  h2 i {
+    font-family: var(--f-mono); font-style: normal; font-size: 12px; color: var(--accent);
+    letter-spacing: .05em; flex: none;
+  }
+  h3 { font-size: 15.5px; font-weight: 700; margin: 26px 0 8px; letter-spacing: .01em; }
+  h2 + .lede { color: var(--muted); margin: 0 0 18px; }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 20px; }
+  li { margin: 0 0 5px; }
+  li::marker { color: var(--accent); }
+  code {
+    font-family: var(--f-mono); font-size: .875em; background: var(--surface-2);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  pre {
+    font-family: var(--f-mono); font-size: 12.5px; line-height: 1.65; background: var(--surface);
+    border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink);
+  }
+  strong { font-weight: 700; }
+
+  /* ---- tables ---- */
+  .tw { overflow-x: auto; margin: 0 0 14px; border: 1px solid var(--line); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted); font-weight: 500; white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  .pos {
+    font-family: var(--f-mono); font-size: 12px; font-weight: 600; letter-spacing: .06em;
+    color: var(--ink);
+  }
+
+  /* ---- callouts ---- */
+  .note {
+    background: var(--accent-soft); border-left: 3px solid var(--accent);
+    padding: 14px 16px; font-size: 14.5px; margin: 0 0 14px;
+  }
+  .note p:last-child { margin: 0; }
+  .note b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 4px; }
+
+  .open { border: 1px dashed var(--line); background: var(--surface); padding: 16px 18px; }
+  .open ol { margin: 0; padding-left: 18px; }
+  .open li { margin-bottom: 10px; }
+  .open li:last-child { margin-bottom: 0; }
+  .q { font-weight: 700; }
+
+  /* ---- range grid ---- */
+  .gridcard { background: var(--surface); border: 1px solid var(--line); padding: 18px; margin: 0 0 14px; overflow-x: auto; }
+  .gridhead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+  .gridhead h4 { margin: 0; font-family: var(--f-mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); font-weight: 600; }
+  .gridhead .vpip { font-family: var(--f-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .rgrid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; min-width: 320px; }
+  .rc {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-family: var(--f-mono); font-size: clamp(7px, 1.35vw, 10px); font-weight: 500;
+    color: var(--muted); background: var(--fold-bg); border-radius: 1px; user-select: none;
+  }
+  .rc.hi { color: var(--on-fill); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border-radius: 1px; }
+
+  /* ---- phase strip ---- */
+  .phases { display: grid; gap: 10px; }
+  .phase { display: grid; grid-template-columns: 64px 1fr; gap: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .phase:first-child { border-top: none; padding-top: 0; }
+  .phase .tag { font-family: var(--f-mono); font-size: 12px; color: var(--accent); font-weight: 600; letter-spacing: .06em; }
+  .phase h4 { margin: 0 0 4px; font-size: 14.5px; }
+  .phase p { margin: 0; font-size: 14px; color: var(--muted); }
+
+  footer { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 16px; font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); letter-spacing: .04em; }
+  a { color: var(--accent); }
+  a:focus-visible, .toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">产品说明文档 · v0.2 · 关键决策已确认</p>
+    <h1>翻前 GTO 训练器</h1>
+    <p class="dek">一个只做一件事的德州扑克训练 App：把 6-max 100BB 现金局的翻前 GTO 策略拆成 36 个位置场景，用发牌 + 决策 + 即时判定的循环，把范围练成肌肉记忆。</p>
+    <div class="facts">
+      <div>牌型 <b>NLHE 6-max 现金局</b></div>
+      <div>筹码 <b>100 BB</b></div>
+      <div>阶段 <b>仅 Preflop</b></div>
+      <div>目标端 <b>iPhone</b></div>
+      <div>日期 <b>2026-09-10</b></div>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <p class="toc-title">目录</p>
+    <ol>
+      <li><a href="#s1"><span>01</span>产品定位</a></li>
+      <li><a href="#s2"><span>02</span>牌局假设与术语</a></li>
+      <li><a href="#s3"><span>03</span>场景矩阵</a></li>
+      <li><a href="#s4"><span>04</span>范围数据模型</a></li>
+      <li><a href="#s5"><span>05</span>判定与评分</a></li>
+      <li><a href="#s6"><span>06</span>功能规格</a></li>
+      <li><a href="#s7"><span>07</span>统计与存储</a></li>
+      <li><a href="#s8"><span>08</span>技术方案</a></li>
+      <li><a href="#s9"><span>09</span>装到 iPhone</a></li>
+      <li><a href="#s10"><span>10</span>里程碑</a></li>
+      <li><a href="#s11"><span>11</span>已确认与待定</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <section id="s1">
+      <h2><i>01</i>产品定位</h2>
+      <p class="lede">给已经懂规则、想把翻前打对的玩家，一个能随时掏出手机练 3 分钟的范围训练器。</p>
+      <h3>核心价值</h3>
+      <ul>
+        <li><strong>场景化而非背表。</strong>不是给你一张 13×13 的图让你背，而是把你放在牌桌上：UTG，手上 8♦2♦，前面全弃牌，你怎么办。</li>
+        <li><strong>即时对错 + 频率真相。</strong>每手牌都能立刻知道 GTO 的动作分布，混合策略的手牌会告诉你 <code>Raise 60% / Fold 40%</code>，而不是简单的对错。</li>
+        <li><strong>可量化的进步。</strong>每个位置每种场景独立累计正确率，错的牌进错题本，弱点在 13×13 热力图上一眼可见。</li>
+      </ul>
+      <h3>目标用户</h3>
+      <p>玩过一段时间线上或线下 NLHE、知道位置和 3bet 是什么、但翻前打法凭感觉的中低级别玩家。不面向零基础教学。</p>
+      <h3>明确不做（v1）</h3>
+      <ul>
+        <li>翻后（flop / turn / river）训练。</li>
+        <li>MTT / 短筹码 / ICM / 带 ante 的结构。</li>
+        <li>多人跟注后的挤压（squeeze）与冷 4bet 之外的复杂多路线。</li>
+        <li>账号系统与云同步，数据只存在本机。</li>
+      </ul>
+    </section>
+
+    <section id="s2">
+      <h2><i>02</i>牌局假设与术语</h2>
+      <p class="lede">范围数据只在一套固定假设下成立，这套假设必须先钉死。</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>项目</th><th>取值</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>桌型</td><td>6-max</td><td>位置顺序 UTG · HJ · CO · BTN · SB · BB</td></tr>
+            <tr><td>有效筹码</td><td>100 BB</td><td>所有场景统一</td></tr>
+            <tr><td>盲注结构</td><td>0.5 / 1，无 ante</td><td>不考虑 straddle</td></tr>
+            <tr><td>抽水</td><td>低抽水现金局</td><td>范围据此偏松，见下方说明</td></tr>
+            <tr><td>开池尺度</td><td>2.5 BB</td><td>UTG / HJ / CO / BTN 统一</td></tr>
+            <tr><td>SB 开池</td><td>3.0 BB 或 跛入 1.0 BB</td><td>加注与跛入的混合体系</td></tr>
+            <tr><td>BB 应对跛入</td><td>隔离加注 4.0 BB</td><td>SB 跛入后 BB 的加注 / 过牌决策</td></tr>
+            <tr><td>3bet 尺度</td><td>有位置 3×，无位置 4×</td><td>例：BTN vs CO 开池 = 7.5 BB；BB vs CO = 10 BB</td></tr>
+            <tr><td>4bet 尺度</td><td>有位置 2.2×，无位置 2.5×</td><td>基于对手的 3bet 金额</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <b>关于抽水与范围松紧</b>
+        <p>抽水从底池里抽，惩罚的是赢小底池、靠翻后做牌的投机手牌，同花 A 因为阻断牌和坚果潜力基本不受影响。本数据集按低抽水条件书写，因此小对子、同花连张、单张间隔同花的开池频率高于常见的低级别抽水局图表。以 HJ 为例，本数据集开池 23.2%，市面上按抽水调整过的图表通常是 19% 到 20%，差额几乎全部落在 22、33、K8s、T8s、97s、86s 与 76s 一类手牌上。若日后要改按中等抽水训练，调整集中在这几类牌，不影响数据结构。</p>
+      </div>
+      <h3>三个反复出现的词</h3>
+      <ul>
+        <li><strong>169 手牌</strong>：所有起手牌按同花 / 非同花 / 对子归并后的等价类，正是那张 13×13 的表。</li>
+        <li><strong>组合数（combo）</strong>：对子 6 组，同花 4 组，非同花 12 组，合计 1326。抽牌频率按组合数加权，训练分布才等于真实牌桌分布。</li>
+        <li><strong>混合频率</strong>：GTO 对某些手牌给出的是概率而非唯一动作，例如 UTG 的 <code>A8s</code> 加注 50%、弃牌 50%。</li>
+      </ul>
+    </section>
+
+    <section id="s3">
+      <h2><i>03</i>场景矩阵</h2>
+      <p class="lede">一个「场景」= 英雄位置 + 面临的动作。每个场景对应一套独立的范围数据，共 36 套，全部进入第一版。</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>类别</th><th>英雄面临</th><th>可选动作</th><th class="num">场景数</th></tr></thead>
+          <tbody>
+            <tr><td><b>Open Raise</b></td><td>前面全部弃牌</td><td>Raise / Call（跛入）/ Fold</td><td class="num">5</td></tr>
+            <tr><td><b>3 Bet</b></td><td>前面一人开池，无跟注</td><td>Raise（3bet）/ Call / Fold</td><td class="num">15</td></tr>
+            <tr><td><b>4 Bet</b></td><td>英雄开池后被 3bet</td><td>Raise（4bet）/ Call / Fold</td><td class="num">15</td></tr>
+            <tr><td><b>vs Limp</b></td><td>SB 跛入，英雄在 BB</td><td>Raise（隔离）/ Check</td><td class="num">1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>展开</h3>
+      <ul>
+        <li><strong>Open Raise（5）</strong>：UTG、HJ、CO、BTN、SB。BB 无此场景。</li>
+        <li><strong>3 Bet（15）</strong>：HJ 面对 UTG；CO 面对 2 个位置；BTN 面对 3 个；SB 面对 4 个；BB 面对 5 个。</li>
+        <li><strong>4 Bet（15）</strong>：UTG 被 5 个位置 3bet；HJ 被 4 个；CO 被 3 个；BTN 被 2 个；SB 被 BB 3bet。</li>
+        <li><strong>vs Limp（1）</strong>：BB 面对 SB 跛入。</li>
+      </ul>
+      <div class="note">
+        <b>关于 Call 按钮与 SB 跛入</b>
+        <p>原型图在 Open Raise 场景保留了 <code>Call 1BB</code>（即跛入）。UTG 至 BTN 四个位置的跛入频率恒为 0，选它一律判错，它是一个真实的诱惑项。<strong>SB 是唯一例外</strong>：按已确认的混合体系，SB 的跛入是有正频率的正解动作，它的范围表因此有三种颜色，判定同样走频率阈值规则。BB 面对跛入的应对独立成一个场景。</p>
+      </div>
+      <h3>子场景的进入方式</h3>
+      <p>首页按英雄位置聚合成一张卡（与原型一致）。点进 3 Bet 的 BTN 卡后，先出一层子场景选择：<code>vs UTG</code> / <code>vs HJ</code> / <code>vs CO</code> / <code>混合练习</code>。混合练习按各子场景等权随机，用于考试式复习。Open Raise 卡无子场景，直接开练。</p>
+    </section>
+
+    <section id="s4">
+      <h2><i>04</i>范围数据模型</h2>
+      <p class="lede">每套范围 = 169 个格子 × 每格一个动作频率分布。这是整个 App 唯一的真相来源。</p>
+      <pre>{
+  "id": "3bet.btn.vs_co",
+  "hero": "BTN",
+  "vs": "CO",
+  "facing": { "action": "open", "size": 2.5 },
+  "sizing": { "raise": 7.5, "call": 2.5 },
+  "actions": ["raise", "call", "fold"],
+  "grid": {
+    "AKs": [100, 0, 0],
+    "A5s": [ 75, 25, 0],
+    "KTs": [ 25, 75, 0],
+    "72o": [  0, 0, 100]
+  }
+}</pre>
+      <p>频率以整数百分比存储，三者之和恒等于 100。构建时用脚本校验：每格求和、每套范围的总入池率（VPIP）落在合理区间、频率只取 12.5 的倍数以避免噪声。</p>
+
+      <h3>示例：UTG 开池范围</h3>
+      <p>下面这张图由本页面的真实数据渲染，色块高度即加注频率，也就是 App 内 <b>Table</b> 按钮打开的那张表。</p>
+      <div class="gridcard">
+        <div class="gridhead">
+          <h4>Open Raise · UTG · 2.5 BB</h4>
+          <div class="vpip" id="vpip">加权入池率计算中</div>
+        </div>
+        <div class="rgrid" id="rgrid"></div>
+        <div class="legend">
+          <span><i style="background:var(--raise)"></i>Raise 100%</span>
+          <span><i style="background:linear-gradient(to top, var(--raise) 50%, var(--fold-bg) 50%)"></i>混合频率</span>
+          <span><i style="background:var(--fold-bg)"></i>Fold 100%</span>
+          <span>左上三角 = 同花 · 右下三角 = 非同花 · 对角线 = 对子</span>
+        </div>
+      </div>
+      <div class="note">
+        <b>数据来源</b>
+        <p>范围由标准 6-max 100BB 解法整理而成，并按上表的开池尺度做了一致性对齐。开发第一步会把 36 套范围全部落成 JSON 并出一份可打印的对照表交你审阅，你可以按自己的打法改任意一格，改完 App 立刻生效。</p>
+      </div>
+    </section>
+
+    <section id="s5">
+      <h2><i>05</i>判定与评分</h2>
+      <p class="lede">混合策略下不存在唯一正确答案，判定规则必须写死在文档里。</p>
+      <h3>单手牌判定</h3>
+      <ul>
+        <li>玩家所选动作的 GTO 频率 <strong>≥ 30%</strong> 判为正确，否则判错。</li>
+        <li>纯策略格子（某动作 100%）退化为唯一正确答案，与直觉一致。</li>
+        <li>频率在 <strong>1% 到 29%</strong> 之间的选择判错，但结算页标注为「可接受的低频选择」，与硬错误区分显示。</li>
+        <li>阈值可在设置里调成 <code>严格 = 只认最高频动作</code> 或 <code>宽松 = ≥ 15%</code>。</li>
+      </ul>
+      <h3>一局 20 手</h3>
+      <p>默认每次训练 20 手（原型的 <code>1 / 20</code>），可设为 10 / 20 / 50。抽牌采用分层抽样：60% 来自非纯弃牌区，40% 来自纯弃牌区，避免整局都在按 Fold。同一局内不重复同一手牌。</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>得分</th><th>评级</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr><td class="num">20 / 20</td><td><b>Perfect</b></td><td>该场景可以进入下一个位置</td></tr>
+            <tr><td class="num">18 – 19</td><td><b>Excellent</b></td><td>只差边缘手牌</td></tr>
+            <tr><td class="num">15 – 17</td><td><b>Good</b></td><td>主体正确，边界模糊</td></tr>
+            <tr><td class="num">12 – 14</td><td><b>Fair</b></td><td>建议先看一遍 Table 再练</td></tr>
+            <tr><td class="num">&lt; 12</td><td><b>Needs Work</b></td><td>范围尚未建立</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>反馈时机</h3>
+      <p>两种模式，设置里切换。<strong>考试模式</strong>（默认，与原型一致）：全程不提示，20 手打完在结算页一次性复盘。<strong>教学模式</strong>：每手牌选完立刻弹出正确动作与频率条，点任意处继续。</p>
+    </section>
+
+    <section id="s6">
+      <h2><i>06</i>功能规格</h2>
+      <p class="lede">五个主界面，加两个辅助面。</p>
+
+      <h3>6.1 首页</h3>
+      <ul>
+        <li>按 <b>Open Raise</b> / <b>3 Bet</b> / <b>4 Bet</b> 三段分组，每段内按位置排成两列卡片。</li>
+        <li>每张卡显示：位置名、累计手数、累计正确数、累计错误数（与原型一致），底部一条正确率进度条。</li>
+        <li>未练过的卡显示 <code>0 / 0</code>，视觉上降透明度，与已练过的卡区分。</li>
+        <li>顶部右侧 <b>?</b> 打开说明页；顶部左侧新增总览入口，进入统计面。</li>
+      </ul>
+
+      <h3>6.2 场景面：先看表，再开练</h3>
+      <p>点首页任一张卡，不直接进牌桌，而是先弹出该场景的详情面。自上而下是：场景名与对手位置切换、该场景的累计战绩、完整 13×13 范围表、图例，最底下才是 <b>Start Training</b> 按钮。</p>
+      <p>这一步的价值在于把「看表」和「练表」拆成两个动作。训练前扫一眼范围，训练中就不必再调表；想纯看表复习时也不用被迫开一局。3 Bet 与 4 Bet 的对手位置在这一面用横向标签切换，切换后战绩与范围表同步更新，另有一个<strong>混合</strong>标签，随机抽取该位置的全部子场景。</p>
+
+      <h3>6.3 牌桌训练面</h3>
+      <ul>
+        <li>六人桌俯视图，英雄固定坐底部，按钮位 D 标记按场景转动，各家筹码与已投注额按场景实时显示（原型中 SB 0.5BB、BB 1BB）。</li>
+        <li>左上 <code>N / 20</code> 进度；右上图标切换到该场景的 13×13 范围表；顶部右侧 <b>Table</b> 同为范围表入口（二者合并为一个入口）。</li>
+        <li>底部三枚动作按钮，文案带金额：<code>Fold</code> / <code>Call 2.5BB</code> / <code>Raise 7.5BB</code>。加注尺度由场景固定，不需要玩家输入金额。</li>
+        <li>已弃牌的对手位置变暗并移除手牌，开池者的下注筹码显示在其身前，让场景一眼可读。</li>
+        <li>左上角 <code>×</code> 退出，弹确认框，退出即放弃本局成绩（已答手牌仍计入累计统计）。</li>
+      </ul>
+
+      <h3>6.4 训练中的范围表</h3>
+      <p>13×13 网格，格子按加注频率填充，长按任一格显示该手牌的完整频率分布。右上角开关叠加<strong>个人热力图</strong>：用你在该格的历史错误率着色，把「我到底哪块记不住」变成一张图。</p>
+
+      <h3>6.5 结算面</h3>
+      <ul>
+        <li>大号 <code>18 / 20</code> 与评级词，下方 <b>SHARE</b> 与 <b>CLOSE</b>（与原型一致）。</li>
+        <li><b>INCORRECT</b> 分组在前：每行显示两张牌面、你的选择、GTO 动作与频率条。</li>
+        <li><b>CORRECT</b> 分组在后，同样显示频率，让你知道自己是蒙对还是打对。</li>
+        <li>分享导出一张竖版图片，含得分、场景名、错题缩略图。</li>
+      </ul>
+
+      <h3>6.6 错题本</h3>
+      <p>所有判错的手牌自动入库，按场景归档。支持一键「只练错题」，答对两次后自动移出。这是把训练闭环起来的关键，也是首页统计之外第二个回访理由。</p>
+
+      <h3>6.7 设置</h3>
+      <p>判定阈值、反馈模式、每局手数、是否按组合数加权、清空统计、导出与导入数据（JSON 文件，用于换机）。</p>
+    </section>
+
+    <section id="s7">
+      <h2><i>07</i>统计与存储</h2>
+      <p class="lede">全部数据存在手机本地，不上传，不需要注册。</p>
+      <pre>stats[scenarioId] = {
+  hands: 140, correct: 122, wrong: 18,
+  byHand: { "A9s": { n: 6, correct: 4 }, ... },   // 驱动热力图
+  sessions: [ { ts, score, total }, ... ]          // 驱动趋势
+}
+mistakes = [ { scenarioId, hand, chose, gto, ts, clearedCount } ]
+settings = { threshold, feedbackMode, handsPerSession, weighting }</pre>
+      <div class="tw">
+        <table>
+          <thead><tr><th>指标</th><th>定义</th><th>出现位置</th></tr></thead>
+          <tbody>
+            <tr><td>累计手数</td><td>该场景历史作答总数</td><td>首页卡片</td></tr>
+            <tr><td>正确率</td><td>正确 ÷ 累计手数</td><td>首页卡片、统计面</td></tr>
+            <tr><td>近 20 手正确率</td><td>滑动窗口，反映当前水平</td><td>统计面</td></tr>
+            <tr><td>手牌错误率</td><td>单格错误数 ÷ 单格作答数</td><td>范围表热力图</td></tr>
+            <tr><td>待清错题数</td><td>错题本中未连续答对两次的条目</td><td>首页角标</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>存储用 <code>localStorage</code>，单个 key 存整份 JSON，写入前做体积检查。导出功能保证换手机或清缓存不丢数据。</p>
+    </section>
+
+    <section id="s8">
+      <h2><i>08</i>技术方案</h2>
+      <p class="lede">本机没有 Node 与 npm，也没有 Mac，方案要绕开这两个前提。</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>方案</th><th>能装到 iPhone</th><th>前置条件</th><th>评价</th></tr></thead>
+          <tbody>
+            <tr><td><b>A</b> 单文件 Web App</td><td>Safari 添加到主屏幕</td><td>无</td><td><b>已确认采用</b>。零依赖，改完即用，离线可跑</td></tr>
+            <tr><td><b>B</b> React Native / Expo</td><td>TestFlight 或 App Store</td><td>装 Node、Apple 开发者账号 99 美元/年、EAS 云构建</td><td>体验最原生，链路最长</td></tr>
+            <tr><td><b>C</b> Capacitor 套壳 A</td><td>同上</td><td>同上，但复用 A 的全部代码</td><td>A 做完后的可选升级路径</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>推荐落地方式</h3>
+      <ul>
+        <li>纯前端单页应用，原生 HTML + CSS + JavaScript，无框架无构建步骤，全部逻辑与 36 套范围数据内联在一个文件里。</li>
+        <li>竖屏优先，按 iPhone 安全区适配（刘海与底部横条）。牌桌用 CSS 绘制，不依赖图片资源。</li>
+        <li>加一份 Web App Manifest 与 Service Worker，让它以全屏无地址栏的形态启动，并可完全离线使用。</li>
+        <li>代码分文件组织便于维护，交付时合并成一个可直接打开的 HTML。</li>
+      </ul>
+    </section>
+
+    <section id="s9">
+      <h2><i>09</i>装到 iPhone</h2>
+      <p class="lede">已确认走 GitHub Pages + 添加到主屏幕。落地分四步，最后一步在你的手机上完成。</p>
+      <div class="phases">
+        <div class="phase">
+          <div class="tag">步骤 1</div>
+          <div>
+            <h4>产出 PWA 三件套</h4>
+            <p><code>index.html</code> 承载全部逻辑与范围数据，<code>manifest.webmanifest</code> 声明图标与全屏启动，<code>sw.js</code> 缓存全部资源实现离线。图标用 CSS 生成后导出，不依赖外部素材。</p>
+          </div>
+        </div>
+        <div class="phase">
+          <div class="tag">步骤 2</div>
+          <div>
+            <h4>推到你的 GitHub 仓库</h4>
+            <p>我在本地建好仓库结构并写好提交，你只需要提供仓库名。若你希望不公开，可用 private 仓库配合 Pages（需 GitHub Pro）或改用 Cloudflare Pages，两条都可行。</p>
+          </div>
+        </div>
+        <div class="phase">
+          <div class="tag">步骤 3</div>
+          <div>
+            <h4>开启 Pages 拿到 https 链接</h4>
+            <p>仓库设置里指定分支即可，几十秒后生效。Service Worker 必须在 https 下才注册，这是走托管而非本地文件的原因。</p>
+          </div>
+        </div>
+        <div class="phase">
+          <div class="tag">步骤 4</div>
+          <div>
+            <h4>iPhone 上添加到主屏幕</h4>
+            <p>用 <b>Safari</b> 打开链接（Chrome 不支持添加为独立 App），分享菜单选「添加到主屏幕」。之后点图标全屏启动，飞行模式下照常训练，成绩存在手机本地。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="s10">
+      <h2><i>10</i>里程碑</h2>
+      <p class="lede">按可验收的产物切分，每个里程碑结束时你都能上手点。</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>阶段</th><th>产物</th><th>验收标准</th></tr></thead>
+          <tbody>
+            <tr><td><b>M0</b></td><td>本文档确认</td><td>场景矩阵、判定规则、安装路线三项拍板</td></tr>
+            <tr><td><b>M1</b></td><td>36 套范围数据 + 校验脚本</td><td>四类场景全部落库，附可打印对照表交你审阅</td></tr>
+            <tr><td><b>M2</b></td><td>可玩的训练闭环</td><td>首页 → 牌桌 20 手 → 结算 → 统计回写，跑通 Open Raise</td></tr>
+            <tr><td><b>M3</b></td><td>全部 36 个场景 + 范围表</td><td>子场景选择、Table 视图、SB 三色范围、混合频率显示</td></tr>
+            <tr><td><b>M4</b></td><td>错题本 + 个人热力图 + 设置</td><td>错题闭环、导出导入、判定阈值可调</td></tr>
+            <tr><td><b>M5</b></td><td>PWA 上线并装机</td><td>主屏幕图标启动，飞行模式下可完整训练一局</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="s11">
+      <h2><i>11</i>已确认与仍待定</h2>
+      <p class="lede">前三项你已拍板，写进上面各节；后两项按默认值推进，你随时可以推翻。</p>
+      <h3>已确认</h3>
+      <div class="tw">
+        <table>
+          <thead><tr><th>议题</th><th>结论</th><th>影响</th></tr></thead>
+          <tbody>
+            <tr><td>安装形态</td><td>GitHub Pages + 添加到主屏幕</td><td>做成真 PWA，需要你提供一个仓库名</td></tr>
+            <tr><td>v1 范围</td><td>36 个场景一次做全</td><td>M1 数据量翻倍，4 Bet 提前到 M3</td></tr>
+            <tr><td>SB 体系</td><td>加注 + 跛入混合</td><td>SB 范围表三色，新增 BB 应对跛入场景</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>按默认值推进</h3>
+      <div class="open">
+        <ol>
+          <li><span class="q">界面语言。</span>中文界面 + 英文术语，Open Raise、3 Bet、UTG、BTN 等保持英文，与原型一致。</li>
+          <li><span class="q">范围对照表先审后接。</span>M1 结束时交付一份可打印的 36 张范围表，你确认无误后再接进界面。</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <footer>翻前 GTO 训练器 · 产品说明文档 v0.2 · 确认后进入 M1</footer>
+</div>
+
+<script>
+  var RANKS = ["A","K","Q","J","T","9","8","7","6","5","4","3","2"];
+  // UTG 开池范围：手牌 -> 加注频率(%)，未列出的手牌为 0
+  var UTG = {
+    "AA":100,"KK":100,"QQ":100,"JJ":100,"TT":100,"99":100,"88":100,"77":100,"66":100,"55":100,"44":100,"33":50,"22":50,
+    "AKs":100,"AQs":100,"AJs":100,"ATs":100,"A9s":100,"A8s":50,"A7s":25,"A6s":25,"A5s":100,"A4s":100,"A3s":50,"A2s":25,
+    "KQs":100,"KJs":100,"KTs":100,"K9s":50,
+    "QJs":100,"QTs":100,"Q9s":25,
+    "JTs":100,"J9s":50,
+    "T9s":100,"T8s":25,
+    "98s":100,"97s":25,
+    "87s":75,"76s":50,"65s":50,"54s":25,
+    "AKo":100,"AQo":100,"AJo":100,"ATo":50,
+    "KQo":100,"KJo":50,"KTo":25,
+    "QJo":25,"JTo":10
+  };
+
+  function handName(i, j) {
+    if (i === j) return RANKS[i] + RANKS[j];
+    if (i < j) return RANKS[i] + RANKS[j] + "s";
+    return RANKS[j] + RANKS[i] + "o";
+  }
+
+  var grid = document.getElementById("rgrid");
+  var weighted = 0;
+  for (var i = 0; i < 13; i++) {
+    for (var j = 0; j < 13; j++) {
+      var name = handName(i, j);
+      var f = UTG[name] || 0;
+      var combos = i === j ? 6 : (i < j ? 4 : 12);
+      weighted += combos * f / 100;
+      var cell = document.createElement("div");
+      cell.className = "rc" + (f >= 50 ? " hi" : "");
+      cell.textContent = name.replace(/[so]$/, "");
+      cell.title = name + " · Raise " + f + "% / Fold " + (100 - f) + "%";
+      cell.style.background = f === 0
+        ? "var(--fold-bg)"
+        : "linear-gradient(to top, var(--raise) 0 " + f + "%, var(--fold-bg) " + f + "% 100%)";
+      grid.appendChild(cell);
+    }
+  }
+  document.getElementById("vpip").textContent =
+    "加权入池率 " + (weighted / 1326 * 100).toFixed(1) + "%　·　" + Math.round(weighted) + " / 1326 组合";
+</script>

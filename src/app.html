@@ -1,0 +1,263 @@
+<title>翻前 GTO 训练器</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a1626">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root {
+    --bg: #0a1626;
+    --bg2: #0d1d33;
+    --card: #13293f;
+    --card2: #1a3552;
+    --line: #1f3a58;
+    --text: #e9eff6;
+    --muted: #8ba3bd;
+    --dim: #5d7793;
+    --accent: #1f8ba8;
+    --accent2: #2aa9c9;
+    --felt-a: #2f9b63;
+    --felt-b: #14663c;
+    --raise: #e8703a;
+    --call: #2fa877;
+    --fold: #5c7086;
+    --btn-fold: #c0442b;
+    --btn-call: #1f9d63;
+    --btn-raise: #d9911f;
+    --good: #3ecf8e;
+    --bad: #e5533d;
+    --f: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    --f-num: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); font-family: var(--f);
+    font-size: 16px; line-height: 1.5; overflow: hidden;
+    -webkit-font-smoothing: antialiased; overscroll-behavior: none;
+  }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+
+  /* ---------- shell ---------- */
+  #app { height: 100%; display: flex; flex-direction: column; }
+  .topbar {
+    flex: none; display: grid; grid-template-columns: 56px 1fr 56px; align-items: center;
+    padding-top: env(safe-area-inset-top); height: calc(56px + env(safe-area-inset-top));
+    background: var(--bg2); border-bottom: 1px solid var(--line);
+  }
+  .topbar h1 { margin: 0; font-size: 17px; font-weight: 600; text-align: center; letter-spacing: .02em; }
+  .topbar button { height: 44px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  .topbar button:active { color: var(--text); }
+  .icon-btn { font-size: 20px; }
+  .txt-btn { font-size: 15px; color: var(--accent2); }
+
+  .screens { flex: 1; position: relative; min-height: 0; }
+  .screen {
+    position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    display: none; padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .screen.on { display: block; }
+
+  /* ---------- home ---------- */
+  .grp { padding: 22px 16px 4px; }
+  .grp h2 { margin: 0 0 12px; font-size: 21px; font-weight: 700; letter-spacing: .01em; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .poscard {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 14px 12px; text-align: left; display: block; width: 100%;
+  }
+  .poscard:active { background: var(--card2); }
+  .poscard.fresh { opacity: .62; }
+  .poscard .pos { font-size: 24px; font-weight: 700; letter-spacing: .02em; }
+  .poscard .sub { font-size: 12px; color: var(--muted); margin-top: 2px; min-height: 16px; }
+  .poscard .tot { font-size: 13px; color: var(--muted); margin-top: 14px; font-family: var(--f-num); }
+  .poscard .tally { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-family: var(--f-num); font-size: 15px; }
+  .tally .ok { color: var(--good); } .tally .no { color: var(--bad); } .tally .sep { color: var(--dim); }
+  .pbar { height: 3px; background: var(--card2); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .pbar i { display: block; height: 100%; background: var(--good); }
+
+  /* ---------- sheet (scenario detail) ---------- */
+  .sheetwrap { padding: 16px 16px 0; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 14px; }
+  .chip {
+    flex: none; padding: 7px 14px; border-radius: 999px; background: var(--card);
+    border: 1px solid var(--line); font-size: 14px; color: var(--muted); white-space: nowrap;
+  }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .facing { font-size: 13.5px; color: var(--muted); margin: 0 0 12px; }
+  .tally-row { display: flex; align-items: center; gap: 10px; font-family: var(--f-num); font-size: 15px; margin: 0 0 16px; color: var(--muted); }
+
+  .gridbox { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px; }
+  .grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; }
+  .gcell {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-family: var(--f-num); font-size: 9px; font-weight: 600; letter-spacing: -.03em;
+    background: #33475c; color: #c3d2e0; border-radius: 2px; overflow: hidden;
+  }
+  .gcell.lit { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.45); }
+  .legend { display: flex; justify-content: center; gap: 18px; padding: 14px 0 4px; font-size: 13px; color: var(--muted); }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; }
+  .readout {
+    font-family: var(--f-num); font-size: 12.5px; color: var(--text); text-align: center;
+    min-height: 20px; padding: 8px 0 0;
+  }
+  .mixnote { color: var(--muted); font-size: 14px; text-align: center; padding: 40px 20px; }
+
+  .cta {
+    display: block; width: 100%; padding: 16px; border-radius: 12px; background: var(--accent);
+    color: #fff; font-size: 17px; font-weight: 600; margin: 18px 0 8px; letter-spacing: .02em;
+  }
+  .cta:active { background: #1a7590; }
+  .cta.ghost { background: none; border: 1.5px solid var(--accent); color: var(--accent2); }
+
+  /* ---------- table ---------- */
+  #screen-train { display: none; flex-direction: column; padding-bottom: 0; overflow: hidden; }
+  #screen-train.on { display: flex; }
+  .trainhead { flex: none; display: flex; justify-content: space-between; align-items: center; padding: 12px 18px 4px; }
+  .counter { font-family: var(--f-num); font-size: 20px; font-weight: 700; }
+  .tablebox { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 6px 14px; }
+  .felt {
+    position: relative; aspect-ratio: 0.66;
+    /* 三个约束取最小：容器宽度、桌面上的上限、以及屏幕高度允许的宽度，
+       最后一项保证 iPhone SE 这类矮屏也放得下整张桌子 */
+    width: min(100%, 460px, calc((100vh - 215px) * 0.66));
+    width: min(100%, 460px, calc((100dvh - 215px) * 0.66));
+    background: radial-gradient(ellipse at 50% 42%, var(--felt-a), var(--felt-b) 78%);
+    border-radius: 46% / 30%; box-shadow: inset 0 0 0 3px rgba(255,255,255,.1), 0 12px 30px rgba(0,0,0,.4);
+  }
+  .seat { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 0; }
+  .seat .badge {
+    width: 42px; height: 42px; border-radius: 50%; background: #0d2137; border: 2px solid rgba(255,255,255,.85);
+    display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; z-index: 2;
+  }
+  .seat .stack {
+    background: #12314d; border: 2px solid rgba(255,255,255,.8); border-radius: 7px;
+    padding: 5px 9px 5px 16px; margin-left: -12px; font-family: var(--f-num); font-size: 12.5px; white-space: nowrap;
+  }
+  .seat.folded { opacity: .32; }
+  .seat.hero .badge { border-color: #fff; box-shadow: 0 0 12px rgba(255,255,255,.45); }
+  .bet {
+    position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 5px;
+    background: rgba(6,32,20,.85); border-radius: 999px; padding: 3px 9px 3px 4px;
+    font-family: var(--f-num); font-size: 11.5px; white-space: nowrap; z-index: 3;
+  }
+  .bet b { width: 13px; height: 13px; border-radius: 50%; background: #d8443a; border: 2px solid #fff; }
+  .dealer {
+    position: absolute; transform: translate(-50%, -50%); width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; color: #123; font-size: 11px; font-weight: 800; display: flex;
+    align-items: center; justify-content: center; z-index: 3;
+  }
+  .pot { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); text-align: center; }
+  .pot small { display: block; font-size: 11.5px; color: rgba(255,255,255,.75); }
+  .pot span { display: inline-block; margin-top: 3px; background: rgba(6,40,24,.75); border-radius: 999px; padding: 3px 12px; font-family: var(--f-num); font-size: 13px; }
+  .hole { position: absolute; left: 50%; transform: translate(-50%, 0); display: flex; gap: 3px; z-index: 4; }
+  .pcard {
+    width: 40px; height: 55px; background: #fff; border-radius: 5px; color: #16202b;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-weight: 700; line-height: 1; box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  }
+  .pcard .r { font-size: 21px; }
+  .pcard .s { font-size: 16px; margin-top: 1px; }
+  .pcard.red { color: #c22f26; }
+  .cardback {
+    width: 28px; height: 38px; border-radius: 4px; background: #2a8fb5;
+    border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  }
+  .backs { position: absolute; transform: translate(-50%, -50%); display: flex; z-index: 1; }
+  .backs .cardback + .cardback { margin-left: -14px; }
+
+  .actions {
+    flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    padding: 10px 14px calc(14px + env(safe-area-inset-bottom));
+  }
+  .actions.two { grid-template-columns: repeat(2, 1fr); }
+  .act { padding: 16px 6px; border-radius: 10px; font-size: 17px; font-weight: 700; color: #fff; }
+  .act.fold { background: var(--btn-fold); }
+  .act.call { background: var(--btn-call); }
+  .act.raise { background: var(--btn-raise); }
+  .act:active { filter: brightness(1.18); }
+  .act:disabled { opacity: .5; }
+
+  .flash {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    background: rgba(8,20,34,.94); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 22px; text-align: center; z-index: 20; pointer-events: none;
+  }
+  .flash .verdict { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .flash .detail { font-family: var(--f-num); font-size: 13px; color: var(--muted); }
+  .flash.ok .verdict { color: var(--good); } .flash.no .verdict { color: var(--bad); }
+
+  /* ---------- result ---------- */
+  .resulthead { padding: 46px 20px 30px; text-align: center; }
+  .score { font-size: 58px; font-weight: 800; font-family: var(--f-num); letter-spacing: -.02em; }
+  .rating { font-size: 21px; font-weight: 700; margin-top: 4px; }
+  .rlist { padding: 0 16px; }
+  .rlist h3 { display: flex; align-items: center; gap: 9px; font-size: 16px; margin: 26px 0 10px; letter-spacing: .06em; }
+  .rrow { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .rrow .mini { display: flex; gap: 3px; flex: none; }
+  .mcard {
+    width: 30px; height: 40px; background: #fff; border-radius: 4px; color: #16202b;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; line-height: 1;
+  }
+  .mcard .r { font-size: 15px; } .mcard .s { font-size: 12px; }
+  .mcard.red { color: #c22f26; }
+  .rinfo { flex: 1; min-width: 0; }
+  .rgto { display: flex; align-items: center; gap: 7px; font-size: 14.5px; font-family: var(--f-num); }
+  .dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+  .rmine { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .rsrc { font-size: 11.5px; color: var(--dim); margin-top: 1px; }
+
+  /* ---------- misc ---------- */
+  .pad { padding: 18px 16px; }
+  .empty { color: var(--muted); text-align: center; padding: 60px 24px; font-size: 15px; }
+  .row {
+    display: flex; justify-content: space-between; align-items: center; gap: 14px;
+    padding: 14px 0; border-bottom: 1px solid var(--line);
+  }
+  .row .lab { font-size: 15px; }
+  .row .hint { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .seg { display: flex; background: var(--card); border-radius: 9px; padding: 3px; flex: none; }
+  .seg button { padding: 7px 12px; border-radius: 7px; font-size: 13.5px; color: var(--muted); }
+  .seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+  .modal {
+    position: fixed; inset: 0; z-index: 100; padding: 28px; display: flex;
+    align-items: center; justify-content: center; background: rgba(4,12,22,.74);
+  }
+  .modalbox { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; width: 100%; max-width: 320px; }
+  .modalbox p { margin: 0 0 18px; font-size: 15px; }
+  .modalrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mbtn { padding: 13px; border-radius: 9px; background: var(--card2); font-size: 15px; font-weight: 600; }
+  .mbtn.danger { background: var(--btn-fold); color: #fff; }
+
+  .help h3 { font-size: 16px; margin: 22px 0 6px; }
+  .help p { margin: 0 0 10px; color: var(--muted); font-size: 14.5px; }
+  .help b { color: var(--text); }
+</style>
+
+<div id="app">
+  <header class="topbar">
+    <button id="nav-left" class="icon-btn" aria-label="返回"></button>
+    <h1 id="nav-title">Home</h1>
+    <button id="nav-right" class="txt-btn"></button>
+  </header>
+
+  <div class="screens">
+    <section id="screen-home" class="screen on"></section>
+    <section id="screen-sheet" class="screen"></section>
+    <section id="screen-train" class="screen"></section>
+    <section id="screen-result" class="screen"></section>
+    <section id="screen-settings" class="screen"></section>
+    <section id="screen-help" class="screen"></section>
+  </div>
+</div>
+
+<script>
+<!--@include src/range.js-->
+</script>
+<script>
+<!--@include data/ranges.js-->
+</script>
+<script>
+<!--@include src/app.js-->
+</script>
