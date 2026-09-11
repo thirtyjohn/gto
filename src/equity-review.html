@@ -318,8 +318,19 @@
   if (!mono) fail('范围分位：排序未按领先率单调');
   var lo = ladder.rows[0].below / ladder.total * 100;
   var hi = (ladder.rows[ladder.rows.length - 1].below) / ladder.total * 100;
-  if (lo > 0.01) fail('范围分位：最低分位不是 0，实得 ' + lo.toFixed(2));
-  if (hi < 95) fail('范围分位：最高分位只有 ' + hi.toFixed(1) + '，覆盖不足');
+  // 同分组取中点，所以最弱一组坐在自己组权重的一半处而不是 0 点，最强一组同理
+  if (lo > 2) fail('范围分位：最低分位 ' + lo.toFixed(2) + '，离 0 太远');
+  if (hi < 95 || hi >= 100) fail('范围分位：最高分位 ' + hi.toFixed(1) + '，覆盖不足或越界');
+
+  // 同分必须同分位：这是取中点要保证的性质
+  var tieBad = 0;
+  var byAhead = {};
+  ladder.rows.forEach(function (r) {
+    var k = r.ahead.toFixed(9);
+    if (byAhead[k] == null) byAhead[k] = r.below;
+    else if (byAhead[k] !== r.below) tieBad++;
+  });
+  if (tieBad) fail('范围分位：' + tieBad + ' 个组合与同分组合拿到了不同的分位');
 
   var tPct = document.getElementById('t-pct');
   [['A♣K♥', ['Ac','Kh']], ['5♣5♦', ['5c','5d']], ['A♠4♠', ['As','4s']],
@@ -333,7 +344,7 @@
       '<td class="dim">' + zone + '</td>';
     tPct.appendChild(tr);
   });
-  row(document.getElementById('t-pct'), ['<td colspan="3">分位单调且覆盖 0 到 ' + hi.toFixed(0) + '</td>'], mono && lo <= 0.01 && hi >= 95);
+  row(document.getElementById('t-pct'), ['<td colspan="3">分位单调、同分同位、覆盖 ' + lo.toFixed(1) + ' 到 ' + hi.toFixed(0) + '</td>'], mono && lo <= 2 && hi >= 95 && hi < 100 && !tieBad);
 
   /* ---------- 七、性能 ---------- */
   var perf = [];

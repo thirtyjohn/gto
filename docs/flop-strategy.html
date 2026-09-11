@@ -1284,8 +1284,18 @@
     });
     rows.sort(function (a, b) { return a.ahead - b.ahead; });
     var total = rows.reduce(function (s, x) { return s + x.w; }, 0);
-    var acc = 0;
-    rows.forEach(function (x) { x.below = acc; acc += x.w; });
+
+    // 领先率相同的组合在策略上完全等价，必须拿到同一个分位。
+    // 按排序顺序逐个累加会让它们被数组顺序拉开，所以整组取中点。
+    var i = 0, acc = 0;
+    while (i < rows.length) {
+      var j = i, groupW = 0;
+      while (j < rows.length && rows[j].ahead === rows[i].ahead) { groupW += rows[j].w; j++; }
+      var mid = acc + groupW / 2;
+      for (var k = i; k < j; k++) rows[k].below = mid;
+      acc += groupW;
+      i = j;
+    }
 
     var out = { rows: rows, total: total };
     pctCache[ck] = out;
