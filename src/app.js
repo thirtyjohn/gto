@@ -2,10 +2,12 @@
 (function () {
   'use strict';
 
-  var ORDER = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+  var el = UI.el, clear = UI.clear, rand = UI.rand, shuffled = UI.shuffled;
+  var num = UI.num, ask = UI.ask, heatFill = UI.heatFill;
+  var ORDER = Table.ORDER, SUITS = Table.SUITS, RED = Table.RED;
+  var cardNode = Table.cardNode, dealCards = Table.dealCards;
+
   var GROUPS = ['Open Raise', '3 Bet', '4 Bet', 'vs Limp'];
-  var SUITS = { s: '♠', h: '♥', d: '♦', c: '♣' };
-  var RED = { h: 1, d: 1 };
 
   var BUILT = {};
   Range.buildAll(SCENARIOS).forEach(function (b) { BUILT[b.scenario.id] = b; });
@@ -13,105 +15,20 @@
   SCENARIOS.forEach(function (s) { BY_ID[s.id] = s; });
 
   /* ---------------- 存储 ---------------- */
-  var KEY = 'gto.preflop.v1';
-  var store = loadStore();
-
   function blank() {
     return {
       stats: {}, mistakes: [],
-      settings: { threshold: 30, feedback: 'exam', hands: 20 }
+      settings: { threshold: 30, feedback: "exam", hands: 20 }
     };
   }
-  function loadStore() {
-    try {
-      var raw = JSON.parse(localStorage.getItem(KEY));
-      if (!raw || !raw.settings) return blank();
-      var b = blank();
-      raw.stats = raw.stats || {};
-      raw.mistakes = raw.mistakes || [];
-      for (var k in b.settings) if (raw.settings[k] == null) raw.settings[k] = b.settings[k];
-      return raw;
-    } catch (e) { return blank(); }
-  }
-  function saveStore() {
-    try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {}
-  }
-  function statOf(id) {
-    if (!store.stats[id]) store.stats[id] = { hands: 0, correct: 0, wrong: 0, byHand: {} };
-    return store.stats[id];
-  }
-  function aggregate(ids) {
-    var t = { hands: 0, correct: 0, wrong: 0 };
-    ids.forEach(function (id) {
-      var s = store.stats[id];
-      if (!s) return;
-      t.hands += s.hands; t.correct += s.correct; t.wrong += s.wrong;
-    });
-    return t;
-  }
-
-  /* 错题本：同一手牌只留一条，答错重新计数，连续答对两次移出 */
-  function findMistake(id, key) {
-    for (var i = 0; i < store.mistakes.length; i++) {
-      var m = store.mistakes[i];
-      if (m.id === id && m.key === key) return i;
-    }
-    return -1;
-  }
-  function noteMistake(id, key, chose) {
-    var i = findMistake(id, key);
-    if (i >= 0) {
-      store.mistakes[i].cleared = 0;
-      store.mistakes[i].chose = chose;
-      store.mistakes[i].ts = Date.now();
-      return;
-    }
-    store.mistakes.push({ id: id, key: key, chose: chose, ts: Date.now(), cleared: 0 });
-    if (store.mistakes.length > 300) store.mistakes.shift();
-  }
-  function clearMistake(id, key) {
-    var i = findMistake(id, key);
-    if (i < 0) return;
-    store.mistakes[i].cleared = (store.mistakes[i].cleared || 0) + 1;
-    if (store.mistakes[i].cleared >= 2) store.mistakes.splice(i, 1);
-  }
+  var S = UI.createStore("gto.preflop.v1", blank);
+  function saveStore() { S.save(); }
+  function statOf(id) { return S.statOf(id); }
+  function aggregate(ids) { return S.aggregate(ids); }
+  function noteMistake(id, key, chose) { S.noteMistake(id, key, chose); }
+  function clearMistake(id, key) { S.clearMistake(id, key); }
   function mistakesFor(ids) {
-    return store.mistakes.filter(function (m) {
-      return ids.indexOf(m.id) >= 0 && BY_ID[m.id];
-    });
-  }
-
-  /* ---------------- 小工具 ---------------- */
-  function el(tag, cls, text) {
-    var n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
-    return n;
-  }
-  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
-  function rand(n) { return Math.floor(Math.random() * n); }
-  function shuffled(a) {
-    var c = a.slice();
-    for (var i = c.length - 1; i > 0; i--) { var j = rand(i + 1); var t = c[i]; c[i] = c[j]; c[j] = t; }
-    return c;
-  }
-  function num(x) { return (Math.round(x * 10) / 10).toString(); }
-
-  // 自建确认框：Artifact 的 iframe 沙箱会拦掉 window.confirm
-  function ask(msg, onYes) {
-    var over = el('div', 'modal');
-    var box = el('div', 'modalbox');
-    box.appendChild(el('p', null, msg));
-    var row = el('div', 'modalrow');
-    var no = el('button', 'mbtn', '取消');
-    var yes = el('button', 'mbtn danger', '确定');
-    var close = function () { if (over.parentNode) document.body.removeChild(over); };
-    no.onclick = close;
-    yes.onclick = function () { close(); onYes(); };
-    over.onclick = function (e) { if (e.target === over) close(); };
-    row.appendChild(no); row.appendChild(yes);
-    box.appendChild(row); over.appendChild(box);
-    document.body.appendChild(over);
+    return S.mistakesFor(ids, function (id) { return !!BY_ID[id]; });
   }
 
   /* ---------------- 场景分组 ---------------- */
@@ -134,14 +51,6 @@
     return 'linear-gradient(to top, #33475c 0 ' + f + '%, var(--call) ' + f + '% ' +
       (f + c) + '%, var(--raise) ' + (f + c) + '% 100%)';
   }
-  // 个人错误热力图：练过的格子按错误率着色，没练过的留空
-  function heatFill(rec) {
-    if (!rec || !rec.n) return '#243347';
-    var err = 1 - rec.correct / rec.n;
-    if (err <= 0) return 'rgba(47,168,119,.5)';
-    return 'rgba(229,83,61,' + (0.3 + err * 0.6).toFixed(2) + ')';
-  }
-
   function renderGrid(built, onPick, heat) {
     var box = el('div', 'gridbox');
     var grid = el('div', 'grid');
@@ -222,101 +131,15 @@
     return { seats: seats, heroIdx: h, idx: idx, pot: pot };
   }
 
-  // 座位坐标：slot 0 是英雄，逆时针依次是后面行动的位置。
-  // x/y 是座位中心，bx/by 是下注筹码，都是牌桌的百分比。
-  // dside 是按钮位标记贴在座位的哪一侧，它是座位的子元素，跟着座位走，不会因缩放而错位。
-  var SLOTS = [
-    { x: 50, y: 89, bx: 50, by: 62, dside: 'l' },
-    { x: 20, y: 60, bx: 34, by: 50, dside: 'r' },
-    { x: 20, y: 33, bx: 34, by: 43, dside: 'r' },
-    { x: 50, y: 10, bx: 50, by: 18, dside: 'l' },
-    { x: 80, y: 33, bx: 66, by: 43, dside: 'l' },
-    { x: 80, y: 60, bx: 66, by: 50, dside: 'l' }
-  ];
-
-  // 牌桌尺寸由 JS 量算：填满可用区域，但不允许比宽度的 1.67 倍更高。
-  // --u 是牌桌宽度的百分之一，桌上所有元素都按它缩放。
-  function fitTable(felt, retried) {
-    var box = felt.parentNode;
-    if (!box) return;
-    var cs = window.getComputedStyle(box);
-    var W = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    var H = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    if (W <= 0 || H <= 0) {
-      // 容器还没拿到尺寸（比如所在页面刚切换过来），下一帧再量一次
-      if (!retried) requestAnimationFrame(function () { fitTable(felt, true); });
-      return;
-    }
-    var w = Math.min(W, 560);
-    var h = Math.min(H, w / 0.6);
-    felt.style.width = Math.round(w) + 'px';
-    felt.style.height = Math.round(h) + 'px';
-    // 元素尺寸取宽高里更紧的那一维，桌子被压扁时元素跟着缩，不会互相压到
-    felt.style.setProperty('--u', (Math.min(w, h * 0.68) / 100) + 'px');
-  }
-
-  window.addEventListener('resize', refit);
-  window.addEventListener('orientationchange', refit);
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', refit);
-  function refit() {
-    var felt = document.querySelector('#screen-train .felt');
-    if (felt) fitTable(felt);
-  }
 
   function renderTable(sc, cards) {
     var st = tableState(sc);
-    var felt = el('div', 'felt');
-
-    var pot = el('div', 'pot');
-    pot.appendChild(el('small', null, 'Total Pot'));
-    pot.appendChild(el('span', null, num(st.pot) + ' BB'));
-    felt.appendChild(pot);
-
-    for (var slot = 0; slot < 6; slot++) {
-      var pos = ORDER[(st.heroIdx + slot) % 6];
-      var seat = st.seats[st.idx[pos]];
-      var S = SLOTS[slot];
-
-      var node = el('div', 'seat' + (seat.folded ? ' folded' : '') + (seat.hero ? ' hero' : ''));
-      node.style.left = S.x + '%';
-      node.style.top = S.y + '%';
-      node.appendChild(el('div', 'badge', pos));
-      // 已弃牌的人剩多少筹码与决策无关，只留一个变暗的位置圆圈，桌面才干净
-      if (!seat.folded) node.appendChild(el('div', 'stack', num(100 - seat.bet) + ' BB'));
-      if (pos === 'BTN') node.appendChild(el('div', 'dealer ' + S.dside, 'D'));
-      felt.appendChild(node);
-
-      if (seat.bet > 0 && !seat.folded) {
-        var bet = el('div', 'bet');
-        bet.style.left = S.bx + '%';
-        bet.style.top = S.by + '%';
-        bet.appendChild(el('b'));
-        bet.appendChild(el('span', null, num(seat.bet) + ' BB'));
-        felt.appendChild(bet);
-      }
-    }
-
-    var hole = el('div', 'hole');
-    cards.forEach(function (c) { hole.appendChild(cardNode(c, 'pcard')); });
-    felt.appendChild(hole);
-
-    return felt;
+    return Table.render({
+      seats: st.seats, heroPos: sc.hero, pot: st.pot, hole: cards
+    });
   }
 
-  function cardNode(c, cls) {
-    var n = el('div', cls + (RED[c[1]] ? ' red' : ''));
-    n.appendChild(el('div', 'r', c[0]));
-    n.appendChild(el('div', 's', SUITS[c[1]]));
-    return n;
-  }
-
-  function dealCards(key) {
-    var r1 = key[0], r2 = key[1], type = key[2];
-    var s = shuffled(['s', 'h', 'd', 'c']);
-    if (!type) return [r1 + s[0], r2 + s[1]];
-    if (type === 's') return [r1 + s[0], r2 + s[0]];
-    return [r1 + s[0], r2 + s[1]];
-  }
+  Table.watch(function () { return document.querySelector("#screen-train .felt"); });
 
   /* ---------------- 导航 ---------------- */
   var view = { name: 'home' };
@@ -359,17 +182,17 @@
     var root = document.getElementById('screen-home');
     clear(root);
 
-    if (store.mistakes.length) {
+    if (S.data.mistakes.length) {
       var wrap = el('div', 'grp');
       var bar = el('button', 'redobar');
       var left = el('div');
       left.appendChild(el('div', 'redotitle', '错题本'));
       left.appendChild(el('div', 'redosub',
-        store.mistakes.length + ' 手待清　·　连续答对两次自动移出'));
+        S.data.mistakes.length + ' 手待清　·　连续答对两次自动移出'));
       bar.appendChild(left);
       bar.appendChild(el('div', 'redogo', '开始复盘'));
       bar.onclick = function () {
-        var q = shuffled(store.mistakes).slice(0, 30);
+        var q = shuffled(S.data.mistakes).slice(0, 30);
         startSession(q.map(function (m) { return m.id; }), q, '错题复盘');
       };
       wrap.appendChild(bar);
@@ -459,7 +282,7 @@
       wrap.appendChild(el('div', 'mixnote', '混合练习不预览范围表。想先看表，点上面任一个对手位置。'));
     } else {
       var built = BUILT[sc.id];
-      var st = store.stats[sc.id];
+      var st = S.data.stats[sc.id];
       var heatOn = !!o.heat;
 
       var tabs = el('div', 'seg wide');
@@ -512,7 +335,7 @@
   function startSession(ids, queue, title) {
     session = {
       ids: ids, queue: queue || null, i: 0, answers: [],
-      total: queue ? queue.length : store.settings.hands,
+      total: queue ? queue.length : S.data.settings.hands,
       title: title || (view.opts && view.opts.group
         ? view.opts.group.toUpperCase() + ' - ' + view.opts.hero : 'TRAINING')
     };
@@ -564,7 +387,7 @@
     root.appendChild(acts);
 
     // 整屏拼完再量牌桌，否则量到的是还没扣掉按钮栏的高度
-    fitTable(felt);
+    Table.fit(felt);
   }
 
   function actBtn(action, label, sc) {
@@ -580,7 +403,7 @@
     var freqs = sc.noFold
       ? { raise: g.raise, call: g.call + g.fold, fold: 0 }
       : g;
-    var v = Range.judge(freqs, action, store.settings.threshold);
+    var v = Range.judge(freqs, action, S.data.settings.threshold);
 
     session.answers.push({
       id: session.cur.id, key: session.cur.key, cards: session.cur.cards,
@@ -602,7 +425,7 @@
       else nextHand();
     };
 
-    if (store.settings.feedback === 'teach') {
+    if (S.data.settings.feedback === 'teach') {
       flash(v.correct, action, freqs, sc, done);
     } else done();
   }
@@ -631,7 +454,7 @@
     if (open) { root.removeChild(open); if (heatOn === undefined) return; }
 
     var over = el('div', 'rangeover');
-    var st = store.stats[sc.id];
+    var st = S.data.stats[sc.id];
 
     var tabs = el('div', 'seg wide');
     [['GTO 范围', false], ['我的错误', true]].forEach(function (p) {
@@ -887,23 +710,23 @@
     clear(root);
     var pad = el('div', 'pad');
 
-    pad.appendChild(seg('每局手数', '一局练多少手', [10, 20, 50], store.settings.hands,
-      function (v) { store.settings.hands = v; saveStore(); renderSettings(); }));
+    pad.appendChild(seg('每局手数', '一局练多少手', [10, 20, 50], S.data.settings.hands,
+      function (v) { S.data.settings.hands = v; saveStore(); renderSettings(); }));
 
     pad.appendChild(seg('判定阈值', '所选动作频率达到多少算对',
       [['宽松', 15], ['标准', 30], ['严格', 'strict']],
-      store.settings.threshold,
-      function (v) { store.settings.threshold = v; saveStore(); renderSettings(); }));
+      S.data.settings.threshold,
+      function (v) { S.data.settings.threshold = v; saveStore(); renderSettings(); }));
 
     pad.appendChild(seg('反馈时机', '考试模式全程不提示，教学模式每手即时讲解',
-      [['考试', 'exam'], ['教学', 'teach']], store.settings.feedback,
-      function (v) { store.settings.feedback = v; saveStore(); renderSettings(); }));
+      [['考试', 'exam'], ['教学', 'teach']], S.data.settings.feedback,
+      function (v) { S.data.settings.feedback = v; saveStore(); renderSettings(); }));
 
     var wipe = el('button', 'cta ghost', '清空全部统计');
     wipe.style.marginTop = '28px';
     wipe.onclick = function () {
       ask('清空全部训练统计与错题记录，无法恢复。', function () {
-        store = blank(); saveStore(); show('home');
+        S.reset(); show('home');
       });
     };
     pad.appendChild(wipe);
