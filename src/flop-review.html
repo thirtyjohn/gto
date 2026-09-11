@@ -1,0 +1,269 @@
+<title>翻后分类器校验</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+  :root {
+    --ground: #eef1ed; --surface: #ffffff; --surface-2: #e6ebe6;
+    --ink: #16211d; --muted: #5f6d66; --line: #d5ddd6;
+    --accent: #0f5348; --accent-soft: #dcece6;
+    --ok: #2f7d4f; --bad: #b8402f; --warn: #a8531b;
+    --f-display: "Noto Serif SC", Georgia, serif;
+    --f-body: "Noto Sans SC", -apple-system, "PingFang SC", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+      --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+      --accent: #55b69c; --accent-soft: #16302a;
+      --ok: #5fbc82; --bad: #dd7a52; --warn: #d98f4c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+    --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+    --accent: #55b69c; --accent-soft: #16302a;
+    --ok: #5fbc82; --bad: #dd7a52; --warn: #d98f4c;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.7; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 36px 20px 80px; }
+
+  header.top { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 26px; }
+  .eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+  h1 { font-family: var(--f-display); font-size: clamp(26px, 4vw, 36px); margin: 0 0 10px; font-weight: 700; }
+  .dek { color: var(--muted); margin: 0 0 18px; max-width: 62ch; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 26px; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+  .facts b { color: var(--ink); font-weight: 500; }
+
+  .status { padding: 12px 16px; margin: 0 0 26px; font-size: 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+  .status.bad { background: var(--surface); border: 1px solid var(--bad); border-left-width: 3px; }
+  .status b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; display: block; margin-bottom: 4px; color: var(--accent); }
+  .status.bad b { color: var(--bad); }
+
+  h2 { font-family: var(--f-display); font-size: 20px; margin: 38px 0 4px; font-weight: 700; }
+  .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; }
+
+  .tw { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); margin: 0 0 24px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 7px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  .ok { color: var(--ok); font-weight: 700; }
+  .no { color: var(--bad); font-weight: 700; }
+  .dim { color: var(--muted); }
+  .bar { display: inline-block; height: 8px; background: var(--accent); border-radius: 2px; vertical-align: middle; }
+
+  .cards { display: inline-flex; gap: 3px; vertical-align: -6px; }
+  .pip {
+    width: 22px; height: 29px; background: #fff; border: 1px solid #c9d2cb; border-radius: 3px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: var(--f-mono); font-weight: 600; line-height: 1; color: #16202b;
+  }
+  .pip .r { font-size: 11px; } .pip .s { font-size: 9px; }
+  .pip.red { color: #c22f26; }
+
+  .samples { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .samp { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 11px 12px; }
+  .samp .row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .samp .lab { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); width: 28px; flex: none; }
+  .samp .out { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 6px; margin-top: 2px; }
+  .samp .out b { color: var(--ink); }
+
+  footer { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 14px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">F2 交付物 · 分类器校验</p>
+    <h1>翻后分类器校验</h1>
+    <p class="dek">牌面分类器跑通全部 22100 种翻牌，手牌分类器逐条通过用例。这两个分类器是策略表的行和列，它们错了后面全错，所以先单独验。</p>
+    <div class="facts">
+      <div>牌面结构 <b>7 类</b></div>
+      <div>花色 <b>3 类</b></div>
+      <div>手牌 <b>8 类</b></div>
+      <div>用例 <b id="f-cases">…</b></div>
+      <div>校验 <b id="f-check">运行中</b></div>
+    </div>
+  </header>
+
+  <div class="status" id="status"><b>校验结果</b><span id="status-text">正在枚举…</span></div>
+
+  <h2>牌面结构分布</h2>
+  <p class="sub">枚举全部 22100 种翻牌。每类占比应落在 3% 到 35% 之间，过小说明分得太碎，过大说明分得太粗。</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>结构</th><th class="n">占比</th><th class="n">牌面数</th><th class="n">彩虹</th><th class="n">双色</th><th class="n">单色</th><th>分布</th><th>样例</th></tr></thead>
+      <tbody id="dist"></tbody>
+    </table>
+  </div>
+
+  <h2>手牌分类用例</h2>
+  <p class="sub">每条用例写死了底牌、牌面和预期类别。说明书第 5 节末尾提到的边界情况都在里面。</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th class="n">#</th><th>底牌</th><th>牌面</th><th>预期</th><th>实得</th><th>读牌</th><th></th></tr></thead>
+      <tbody id="cases"></tbody>
+    </table>
+  </div>
+
+  <h2>随机抽样</h2>
+  <p class="sub">随机发牌面与底牌，显示两个分类器的联合输出。刷新页面重抽。</p>
+  <div class="samples" id="samples"></div>
+
+  <footer>翻牌圈决策训练器 · F2 分类器校验 · 数据源 src/board.js 与 src/cards.js</footer>
+</div>
+
+<script>
+<!--@include src/cards.js-->
+</script>
+<script>
+<!--@include src/board.js-->
+</script>
+<script>
+(function () {
+  'use strict';
+  var SYM = { s: '♠', h: '♥', d: '♦', c: '♣' };
+  var RED = { h: 1, d: 1 };
+  var problems = [];
+
+  function pips(cards) {
+    return '<span class="cards">' + cards.map(function (c) {
+      return '<span class="pip' + (RED[c[1]] ? ' red' : '') + '">' +
+        '<span class="r">' + c[0] + '</span><span class="s">' + SYM[c[1]] + '</span></span>';
+    }).join('') + '</span>';
+  }
+
+  /* ---------- 牌面结构分布 ---------- */
+  var tally = {}, bySuit = {}, example = {};
+  Board.STRUCTURES.forEach(function (k) {
+    tally[k] = 0;
+    bySuit[k] = { '彩虹': 0, '双色': 0, '单色': 0 };
+  });
+  var total = 0;
+  Board.enumerate(function (trio) {
+    var cl = Board.classify(trio);
+    tally[cl.structure]++;
+    bySuit[cl.structure][cl.suit]++;
+    total++;
+    if (!example[cl.structure]) example[cl.structure] = trio;
+  });
+
+  if (total !== 22100) problems.push('枚举总数 ' + total + '，应为 22100');
+
+  var tb = document.getElementById('dist');
+  var sum = 0;
+  Board.STRUCTURES.forEach(function (k) {
+    var pct = tally[k] / total * 100;
+    sum += tally[k];
+    if (pct < 3 || pct > 35) problems.push(k + ' 占比 ' + pct.toFixed(1) + '%，超出 3% 到 35% 的区间');
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><b>' + k + '</b></td>' +
+      '<td class="n">' + pct.toFixed(1) + '%</td>' +
+      '<td class="n">' + tally[k].toLocaleString() + '</td>' +
+      '<td class="n dim">' + bySuit[k]['彩虹'].toLocaleString() + '</td>' +
+      '<td class="n dim">' + bySuit[k]['双色'].toLocaleString() + '</td>' +
+      '<td class="n dim">' + bySuit[k]['单色'].toLocaleString() + '</td>' +
+      '<td><span class="bar" style="width:' + (pct * 4).toFixed(1) + 'px"></span></td>' +
+      '<td>' + pips(example[k]) + '</td>';
+    tb.appendChild(tr);
+  });
+  if (sum !== total) problems.push('各类之和 ' + sum + ' 与总数 ' + total + ' 不符');
+
+  /* ---------- 手牌分类用例 ---------- */
+  var CASES = [
+    [['Kd', 'Kh'], ['Ks', '7d', '2c'], '超强牌', '口袋对撞上牌面同点数，算三条不算超对'],
+    [['7h', '2h'], ['Ks', '7d', '2c'], '超强牌', '两对'],
+    [['6h', '5h'], ['9d', '8c', '7s'], '超强牌', '成顺'],
+    [['Ah', 'Kh'], ['Qh', '7h', '2h'], '超强牌', '成花'],
+    [['5c', '5d'], ['Ks', 'Kd', '5h'], '超强牌', '牌面配对时用到底牌的三条'],
+    [['Ac', 'Ad'], ['Ks', '7d', '2c'], '强顶对及以上', '超对'],
+    [['Ac', 'Kd'], ['Ks', '7d', '2c'], '强顶对及以上', '顶对大踢脚'],
+    [['Kc', '5d'], ['Ks', '7d', '2c'], '弱顶对', '顶对小踢脚'],
+    [['8c', '8d'], ['Ks', '7d', '2c'], '中对底对', '低于顶张的口袋对'],
+    [['7c', '3d'], ['Ks', '7d', '2c'], '中对底对', '中对'],
+    [['2h', '3d'], ['Ks', '7d', '2c'], '中对底对', '底对'],
+    [['Jh', 'Th'], ['9h', '8h', '2s'], '强听牌', '同花听牌加两头顺'],
+    [['Ah', 'Qh'], ['Jh', '7h', '2c'], '强听牌', '同花听牌加两张超牌'],
+    [['Th', '9h'], ['Jh', '7h', '3c'], '强听牌', '同花听牌同时是卡顺，归第 5 类'],
+    [['Jh', 'Th'], ['9c', '8d', '2s'], '强听牌', '两头顺加两张超牌，仍归第 5 类'],
+    [['6h', '5c'], ['7s', '8d', '2h'], '普通听牌', '两头顺但不含超牌'],
+    [['Ah', '5h'], ['Kh', '7h', '2c'], '普通听牌', '只有同花听牌'],
+    [['Ah', '2c'], ['Kh', '8h', '3h'], '普通听牌', '单色面上持一张该花色'],
+    [['Ac', 'Jd'], ['9s', '7h', '2c'], '弱牌有潜力', '两张超牌'],
+    [['Qh', 'Jh'], ['9h', '5c', '2d'], '弱牌有潜力', '后门同花加后门顺'],
+    [['Qd', 'Jc'], ['Ks', '7d', '2c'], '空气', '只有后门顺，缺后门同花'],
+    [['Ac', 'Qh'], ['Ks', 'Kd', '5c'], '空气', '牌面自带的对子不算我们的牌力'],
+    [['8c', '7d'], ['Ks', '9h', '2c'], '空气', '只有后门顺'],
+    [['Ac', '2d'], ['Ks', '9h', '5c'], '空气', '什么都没有']
+  ];
+
+  var cb = document.getElementById('cases');
+  var pass = 0;
+  CASES.forEach(function (t, i) {
+    var r = Cards.read(t[0], t[1]);
+    var good = r.cls === t[2];
+    if (good) pass++;
+    else problems.push('用例 ' + (i + 1) + '：' + t[0].join('') + ' / ' + t[1].join('') +
+      ' 预期 ' + t[2] + '，实得 ' + r.cls);
+    var notes = [];
+    if (r.flush) notes.push('同花');
+    if (r.straight) notes.push('顺子');
+    if (r.trips) notes.push('三条');
+    if (r.twoPair) notes.push('两对');
+    if (r.pair) notes.push(r.pair.kind + (r.kicker ? ' 踢脚' + r.kicker : ''));
+    if (r.flushDraw) notes.push('同花听');
+    if (r.oesd) notes.push('两头顺');
+    if (r.gutshot) notes.push('卡顺');
+    if (r.overcards) notes.push('两超牌');
+    if (r.backdoorFlush) notes.push('后门花');
+    if (r.backdoorStraight) notes.push('后门顺');
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="n">' + (i + 1) + '</td>' +
+      '<td>' + pips(t[0]) + '</td>' +
+      '<td>' + pips(t[1]) + '</td>' +
+      '<td>' + t[2] + '</td>' +
+      '<td class="' + (good ? 'ok' : 'no') + '">' + r.cls + '</td>' +
+      '<td class="dim">' + (notes.join('、') || '无') + '</td>' +
+      '<td class="' + (good ? 'ok' : 'no') + '">' + (good ? '✔' : '✖') + '</td>';
+    cb.appendChild(tr);
+  });
+  document.getElementById('f-cases').textContent = pass + ' / ' + CASES.length;
+
+  /* ---------- 随机抽样 ---------- */
+  var box = document.getElementById('samples');
+  for (var n = 0; n < 9; n++) {
+    var hole = [];
+    var pool = Board.DECK.slice();
+    while (hole.length < 2) hole.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    var flop = Board.randomFlop(hole);
+    var bc = Board.classify(flop);
+    var hc = Cards.read(hole, flop);
+    var node = document.createElement('div');
+    node.className = 'samp';
+    node.innerHTML =
+      '<div class="row"><span class="lab">底牌</span>' + pips(hole) + '</div>' +
+      '<div class="row"><span class="lab">牌面</span>' + pips(flop) + '</div>' +
+      '<div class="out"><b>' + bc.structure + '</b> · ' + bc.suit + '　→　<b>' + hc.cls + '</b></div>';
+    box.appendChild(node);
+  }
+
+  /* ---------- 汇总 ---------- */
+  var st = document.getElementById('status');
+  var txt = document.getElementById('status-text');
+  if (problems.length) {
+    st.className = 'status bad';
+    document.getElementById('f-check').textContent = problems.length + ' 处待修';
+    txt.innerHTML = '发现 ' + problems.length + ' 处问题：<ul style="margin:8px 0 0;padding-left:18px;font-family:var(--f-mono);font-size:12px">' +
+      problems.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul>';
+  } else {
+    document.getElementById('f-check').textContent = '全部通过';
+    txt.textContent = '22100 种翻牌全部命中 7 类之一且占比合理，' + CASES.length + ' 条手牌用例全部通过。';
+  }
+  window.__F2__ = { total: total, problems: problems, pass: pass, cases: CASES.length };
+})();
+</script>
