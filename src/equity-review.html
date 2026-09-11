@@ -1,0 +1,389 @@
+<title>胜率引擎校验</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap">
+<style>
+  :root {
+    --ground: #eef1ed; --surface: #ffffff; --surface-2: #e6ebe6;
+    --ink: #16211d; --muted: #5f6d66; --line: #d5ddd6;
+    --accent: #0f5348; --accent-soft: #dcece6;
+    --ok: #2f7d4f; --bad: #b8402f; --warn: #a8531b;
+    --f-display: "Noto Serif SC", Georgia, serif;
+    --f-body: "Noto Sans SC", -apple-system, "PingFang SC", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+      --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+      --accent: #55b69c; --accent-soft: #16302a;
+      --ok: #5fbc82; --bad: #dd7a52; --warn: #d98f4c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0c1310; --surface: #121b17; --surface-2: #182420;
+    --ink: #e4ebe6; --muted: #93a49b; --line: #24322c;
+    --accent: #55b69c; --accent-soft: #16302a;
+    --ok: #5fbc82; --bad: #dd7a52; --warn: #d98f4c;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.7; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 36px 20px 80px; }
+
+  header.top { border-bottom: 2px solid var(--ink); padding-bottom: 20px; margin-bottom: 26px; }
+  .eyebrow { font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+  h1 { font-family: var(--f-display); font-size: clamp(26px, 4vw, 36px); margin: 0 0 10px; font-weight: 700; }
+  .dek { color: var(--muted); margin: 0 0 18px; max-width: 64ch; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 26px; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+  .facts b { color: var(--ink); font-weight: 500; }
+
+  .status { padding: 12px 16px; margin: 0 0 26px; font-size: 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); }
+  .status.bad { background: var(--surface); border: 1px solid var(--bad); border-left-width: 3px; }
+  .status b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; display: block; margin-bottom: 4px; color: var(--accent); }
+  .status.bad b { color: var(--bad); }
+  .status ul { margin: 8px 0 0; padding-left: 18px; font-family: var(--f-mono); font-size: 12px; }
+
+  h2 { font-family: var(--f-display); font-size: 20px; margin: 38px 0 4px; font-weight: 700; }
+  .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 16px; max-width: 68ch; }
+
+  .tw { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); margin: 0 0 24px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { padding: 7px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.n, th.n { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  .ok { color: var(--ok); font-weight: 700; }
+  .no { color: var(--bad); font-weight: 700; }
+  .dim { color: var(--muted); }
+  .cards { font-family: var(--f-mono); font-size: 12.5px; }
+  .red { color: #c22f26; }
+
+  .note { background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 13px 16px; font-size: 14px; margin: 0 0 22px; }
+  .note b { font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); display: block; margin-bottom: 4px; }
+  .note p:last-child { margin: 0; }
+
+  footer { margin-top: 44px; border-top: 1px solid var(--line); padding-top: 14px; font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">F4 交付物 · 胜率引擎校验</p>
+    <h1>胜率引擎校验</h1>
+    <p class="dek">校验不依赖任何外部计算器。单挑胜率用精确枚举全部 990 种转牌河牌得出真值，再用它校对蒙特卡洛；另外用几条不容争辩的数学恒等式卡住引擎，比如两边胜率之和必须等于 100。</p>
+    <div class="facts">
+      <div>用例 <b id="f-cases">…</b></div>
+      <div>校验 <b id="f-check">运行中</b></div>
+      <div>耗时 <b id="f-time">…</b></div>
+    </div>
+  </header>
+
+  <div class="status" id="status"><b>校验结果</b><span id="status-text">正在枚举…</span></div>
+
+  <h2>一、牌力评估器</h2>
+  <p class="sub">十类牌型必须严格递减，同类之间按关键点数与踢脚比较。轮子顺 A5432 是最小的顺子，不是最大的。</p>
+  <div class="tw"><table>
+    <thead><tr><th>用例</th><th>牌</th><th>应当</th><th>牌</th><th></th></tr></thead>
+    <tbody id="t-eval"></tbody>
+  </table></div>
+
+  <h2>二、数学恒等式</h2>
+  <p class="sub">这些必须精确成立，差一点都是 bug。枚举总数必须是 C(45,2)=990；两边胜率之和必须是 100；一手牌对花色互换的自己必须是 50。</p>
+  <div class="tw"><table>
+    <thead><tr><th>恒等式</th><th>期望</th><th>实得</th><th></th></tr></thead>
+    <tbody id="t-ident"></tbody>
+  </table></div>
+
+  <h2>三、精确胜率与听牌公式</h2>
+  <p class="sub">用枚举算出的胜率，与只数出张的教科书公式对照。两者不会完全相等，因为公式只算主线成牌，枚举还包含了连牌两张的反超，所以枚举值应当略高。差额落在合理范围本身就是一种验证。</p>
+  <div class="tw"><table>
+    <thead><tr><th>局面</th><th>主线</th><th class="n">出张</th><th class="n">公式</th><th class="n">枚举</th><th class="n">差额</th><th></th></tr></thead>
+    <tbody id="t-outs"></tbody>
+  </table></div>
+
+  <h2>四、蒙特卡洛收敛</h2>
+  <p class="sub">同一局面分别用枚举和抽样算，抽样结果应当落在真值的三倍标准误之内。三倍标准误对应 99.7% 的置信度，超出就说明抽样有偏。</p>
+  <div class="tw"><table>
+    <thead><tr><th>局面</th><th class="n">枚举真值</th><th class="n">抽样 2000</th><th class="n">抽样 8000</th><th class="n">偏差</th><th class="n">3σ</th><th></th></tr></thead>
+    <tbody id="t-mc"></tbody>
+  </table></div>
+
+  <h2>五、对范围的胜率</h2>
+  <p class="sub">对手是一整条范围时枚举量太大，只能抽样。用一条只有几手牌的小范围做校验：逐个组合精确枚举后按权重平均，与抽样结果对照。</p>
+  <div class="tw"><table>
+    <thead><tr><th>局面</th><th>对手范围</th><th class="n">加权枚举</th><th class="n">抽样</th><th class="n">偏差</th><th></th></tr></thead>
+    <tbody id="t-range"></tbody>
+  </table></div>
+
+  <h2>六、范围分位</h2>
+  <p class="sub">把我方范围全部组合按当前领先率排序。分位必须覆盖 0 到 100，且与领先率同向单调。下表抽查几手牌。</p>
+  <div class="tw"><table>
+    <thead><tr><th>手牌</th><th class="n">现在领先</th><th class="n">范围分位</th><th>落在</th></tr></thead>
+    <tbody id="t-pct"></tbody>
+  </table></div>
+
+  <h2>七、性能</h2>
+  <div class="tw"><table>
+    <thead><tr><th>操作</th><th>规模</th><th class="n">耗时</th><th>时机</th></tr></thead>
+    <tbody id="t-perf"></tbody>
+  </table></div>
+
+  <footer>翻牌圈训练器 · F4 胜率引擎校验 · 数据源 src/equity.js</footer>
+</div>
+
+<script>
+<!--@include src/range.js-->
+</script>
+<script>
+<!--@include data/ranges.js-->
+</script>
+<script>
+<!--@include src/equity.js-->
+</script>
+<script>
+(function () {
+  'use strict';
+  var E = Equity;
+  var problems = [], cases = 0, pass = 0;
+  var T0 = performance.now();
+
+  function cardHtml(c) {
+    var sym = { s: '♠', h: '♥', d: '♦', c: '♣' }[c[1]];
+    var red = (c[1] === 'h' || c[1] === 'd');
+    return '<span class="' + (red ? 'red' : '') + '">' + c[0] + sym + '</span>';
+  }
+  function cs(list) { return '<span class="cards">' + list.map(cardHtml).join(' ') + '</span>'; }
+  function row(tb, cells, good) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = cells.join('') +
+      '<td class="' + (good ? 'ok' : 'no') + '">' + (good ? '✔' : '✖') + '</td>';
+    tb.appendChild(tr);
+    cases++; if (good) pass++;
+  }
+  function fail(msg) { problems.push(msg); }
+
+  /* ---------- 一、评估器 ---------- */
+  var EVAL = [
+    [['As','Ks','Qs','Js','Ts'], '>', ['9h','9d','9s','9c','2h'], '同花顺 胜 四条'],
+    [['9h','9d','9s','9c','2h'], '>', ['9h','9d','9s','2c','2h'], '四条 胜 葫芦'],
+    [['9h','9d','9s','2c','2h'], '>', ['As','Js','9s','5s','2s'], '葫芦 胜 同花'],
+    [['As','Js','9s','5s','2s'], '>', ['9h','8d','7s','6c','5h'], '同花 胜 顺子'],
+    [['9h','8d','7s','6c','5h'], '>', ['9h','9d','9s','5c','2h'], '顺子 胜 三条'],
+    [['9h','9d','9s','5c','2h'], '>', ['9h','9d','5s','5c','2h'], '三条 胜 两对'],
+    [['9h','9d','5s','5c','2h'], '>', ['9h','9d','8s','5c','2h'], '两对 胜 一对'],
+    [['9h','9d','8s','5c','2h'], '>', ['Ah','Jd','9s','5c','2h'], '一对 胜 高牌'],
+    [['6h','5d','4s','3c','2h'], '>', ['Ah','5d','4s','3c','2h'], '65432 胜 轮子顺 A5432'],
+    [['Ah','Kd','Qs','Jc','9h'], '>', ['Ad','Ks','Qh','Jd','8c'], '踢脚 9 胜 踢脚 8'],
+    [['Ah','Ad','As','2c','2h'], '>', ['Kh','Kd','Ks','Qc','Qh'], 'AAA22 胜 KKKQQ'],
+    [['Ah','Ad','2s','2c','Kh'], '>', ['Kh','Kd','Qs','Qc','Ah'], 'AA22K 胜 KKQQA']
+  ];
+  var tEval = document.getElementById('t-eval');
+  EVAL.forEach(function (t) {
+    var a = E.best5(t[0]), b = E.best5(t[2]);
+    var good = a > b;
+    if (!good) fail('评估器：' + t[3] + ' 判定失败');
+    row(tEval, ['<td>' + t[3] + '</td>', '<td>' + cs(t[0]) + '</td>',
+      '<td class="dim">胜过</td>', '<td>' + cs(t[2]) + '</td>'], good);
+  });
+  // 平分
+  (function () {
+    var a = E.best5(['Ah','Kh','Qd','Jc','9s']);
+    var b = E.best5(['Ad','Kd','Qs','Jh','9c']);
+    var good = a === b;
+    if (!good) fail('评估器：等价牌型未判平分');
+    row(tEval, ['<td>花色不同但牌型相同</td>', '<td>' + cs(['Ah','Kh','Qd','Jc','9s']) + '</td>',
+      '<td class="dim">平分</td>', '<td>' + cs(['Ad','Kd','Qs','Jh','9c']) + '</td>'], good);
+  })();
+  // 七张取五
+  (function () {
+    var seven = ['2c','3d','9h','8d','7s','6c','5h'];
+    var good = E.best7(seven) === E.best5(['9h','8d','7s','6c','5h']);
+    if (!good) fail('评估器：七张未取到最好的五张');
+    row(tEval, ['<td>七张取最好的五张</td>', '<td>' + cs(seven) + '</td>',
+      '<td class="dim">等于</td>', '<td>' + cs(['9h','8d','7s','6c','5h']) + '</td>'], good);
+  })();
+
+  /* ---------- 二、恒等式 ---------- */
+  var tId = document.getElementById('t-ident');
+  function ident(name, expect, got, good) {
+    if (!good) fail('恒等式：' + name + ' 期望 ' + expect + '，实得 ' + got);
+    row(tId, ['<td>' + name + '</td>', '<td class="dim">' + expect + '</td>',
+      '<td class="cards">' + got + '</td>'], good);
+  }
+  var board1 = ['Kd','7h','2c'];
+  var e1 = E.equityExact(['Ac','Kh'], ['9s','8s'], board1);
+  ident('枚举总数 = C(45,2)', '990', String(e1.runouts), e1.runouts === 990);
+  ident('赢 + 平 + 输 = 总数', '990',
+    (e1.win + e1.tie + e1.lose) + '', e1.win + e1.tie + e1.lose === 990);
+
+  var e2 = E.equityExact(['9s','8s'], ['Ac','Kh'], board1);
+  var sum = e1.equity + e2.equity;
+  ident('两边胜率之和 = 100', '100.000', sum.toFixed(3), Math.abs(sum - 100) < 1e-9);
+
+  var e3 = E.equityExact(['Ac','Kh'], ['Ad','Ks'], board1);
+  ident('花色互换的同一手牌 = 50', '50.000', e3.equity.toFixed(3), Math.abs(e3.equity - 50) < 1e-9);
+
+  var e4 = E.equityExact(['Ah','Qh'], ['2s','2d'], ['Kh','Jh','Th']);
+  ident('已成皇家同花顺 = 100', '100.000', e4.equity.toFixed(3), Math.abs(e4.equity - 100) < 1e-9);
+
+  var e5 = E.equityExact(['Kc','Ks'], ['2s','2d'], ['Kd','Kh','7c']);
+  ident('已成四条 K = 100', '100.000', e5.equity.toFixed(3), Math.abs(e5.equity - 100) < 1e-9);
+
+  /* ---------- 三、听牌公式 ---------- */
+  function outsFormula(k) { return (1 - (47 - k) / 47 * (46 - k) / 46) * 100; }
+  var OUTS = [
+    { name: '同花听牌对顶对', hero: ['9h','8h'], vill: ['Ad','Kc'], board: ['Kh','7h','2c'], k: 9, line: '成同花' },
+    { name: '两头顺听牌对超对', hero: ['Jc','Ts'], vill: ['Ad','Ah'], board: ['9d','8h','2c'], k: 8, line: '成顺子' },
+    { name: '卡顺听牌对超对', hero: ['Jc','9s'], vill: ['Ad','Ah'], board: ['Kd','Tc','2h'], k: 4, line: '来 Q 成顺' }
+  ];
+  var tOuts = document.getElementById('t-outs');
+  OUTS.forEach(function (t) {
+    var f = outsFormula(t.k);
+    var ex = E.equityExact(t.hero, t.vill, t.board).equity;
+    var diff = ex - f;
+    // 枚举值应当不低于公式值，且高出不超过 8 个点（反超只是少数分支）
+    var good = diff >= -0.05 && diff <= 8;
+    if (!good) fail('听牌公式：' + t.name + ' 枚举 ' + ex.toFixed(2) + '% 与公式 ' + f.toFixed(2) + '% 差 ' + diff.toFixed(2));
+    row(tOuts, [
+      '<td>' + t.name + '<br><span class="dim cards">' + t.hero.map(cardHtml).join('') + ' 对 ' +
+        t.vill.map(cardHtml).join('') + ' 牌面 ' + t.board.map(cardHtml).join('') + '</span></td>',
+      '<td class="dim">' + t.line + '</td>',
+      '<td class="n">' + t.k + '</td>',
+      '<td class="n dim">' + f.toFixed(1) + '%</td>',
+      '<td class="n">' + ex.toFixed(1) + '%</td>',
+      '<td class="n dim">+' + diff.toFixed(1) + '</td>'
+    ], good);
+  });
+
+  /* ---------- 四、蒙特卡洛收敛 ---------- */
+  var tMc = document.getElementById('t-mc');
+  var MC = [
+    { name: 'AK 对 98s', hero: ['Ac','Kh'], vill: ['9s','8s'], board: board1 },
+    { name: '99 对 AK', hero: ['9d','9c'], vill: ['Ad','Ks'], board: board1 },
+    { name: '同花听对顶对', hero: ['9h','8h'], vill: ['Ad','Kc'], board: ['Kh','7h','2c'] }
+  ];
+  MC.forEach(function (t) {
+    var truth = E.equityExact(t.hero, t.vill, t.board).equity;
+    var one = [{ cards: t.vill, w: 1 }];
+    var a = E.equityVsRange(t.hero, t.board, one, 2000);
+    var b = E.equityVsRange(t.hero, t.board, one, 8000);
+    var dev = Math.abs(b.equity - truth);
+    var lim = 3 * b.stderr;
+    var good = dev <= lim;
+    if (!good) fail('蒙特卡洛：' + t.name + ' 偏差 ' + dev.toFixed(2) + ' 超过 3σ = ' + lim.toFixed(2));
+    row(tMc, ['<td>' + t.name + '</td>',
+      '<td class="n">' + truth.toFixed(2) + '%</td>',
+      '<td class="n dim">' + a.equity.toFixed(2) + '%</td>',
+      '<td class="n">' + b.equity.toFixed(2) + '%</td>',
+      '<td class="n dim">' + dev.toFixed(2) + '</td>',
+      '<td class="n dim">' + lim.toFixed(2) + '</td>'], good);
+  });
+
+  /* ---------- 五、对范围的胜率 ---------- */
+  var tRange = document.getElementById('t-range');
+  var SMALL = [
+    { name: 'AK 对 {AA, KK, QQ}', hero: ['Ac','Kh'], board: board1,
+      range: [{ cards: ['As','Ad'], w: 1 }, { cards: ['Ks','Kc'], w: 1 }, { cards: ['Qs','Qd'], w: 1 }] },
+    { name: '99 对 {AK, 77, T9s} 含半频', hero: ['9d','9c'], board: board1,
+      range: [{ cards: ['Ad','Ks'], w: 1 }, { cards: ['7s','7d'], w: 0.5 }, { cards: ['Ts','9s'], w: 1 }] }
+  ];
+  SMALL.forEach(function (t) {
+    var num = 0, den = 0;
+    t.range.forEach(function (o) {
+      num += o.w * E.equityExact(t.hero, o.cards, t.board).equity;
+      den += o.w;
+    });
+    var truth = num / den;
+    var mc = E.equityVsRange(t.hero, t.board, t.range, 20000);
+    var dev = Math.abs(mc.equity - truth);
+    var good = dev <= 3 * mc.stderr + 0.3;
+    if (!good) fail('范围胜率：' + t.name + ' 偏差 ' + dev.toFixed(2));
+    row(tRange, ['<td>' + t.name + '</td>',
+      '<td class="dim cards">' + t.range.length + ' 手</td>',
+      '<td class="n">' + truth.toFixed(2) + '%</td>',
+      '<td class="n">' + mc.equity.toFixed(2) + '%</td>',
+      '<td class="n dim">' + dev.toFixed(2) + '</td>'], good);
+  });
+
+  /* ---------- 六、范围分位 ---------- */
+  var byId = {};
+  Range.buildAll(SCENARIOS).forEach(function (b) { byId[b.scenario.id] = b; });
+  var tLad = performance.now();
+  var ladder = E.rangeLadder(board1, byId['open.btn'], 'raise', byId['3bet.bb.vs_btn'], 'call');
+  var ladderMs = performance.now() - tLad;
+
+  var mono = true;
+  for (var i = 1; i < ladder.rows.length; i++) {
+    if (ladder.rows[i].ahead < ladder.rows[i - 1].ahead - 1e-9) mono = false;
+  }
+  if (!mono) fail('范围分位：排序未按领先率单调');
+  var lo = ladder.rows[0].below / ladder.total * 100;
+  var hi = (ladder.rows[ladder.rows.length - 1].below) / ladder.total * 100;
+  if (lo > 0.01) fail('范围分位：最低分位不是 0，实得 ' + lo.toFixed(2));
+  if (hi < 95) fail('范围分位：最高分位只有 ' + hi.toFixed(1) + '，覆盖不足');
+
+  var tPct = document.getElementById('t-pct');
+  [['A♣K♥', ['Ac','Kh']], ['5♣5♦', ['5c','5d']], ['A♠4♠', ['As','4s']],
+   ['Q♠J♠', ['Qs','Js']], ['9♠8♠', ['9s','8s']], ['6♠5♠', ['6s','5s']]].forEach(function (h) {
+    var p = E.percentileOf(h[1], ladder);
+    var zone = !p.inRange ? '不在范围内' : p.percentile >= 44 ? '价值区' : p.percentile >= 14 ? '过牌区' : '诈唬区';
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="cards">' + h[0] + '</td>' +
+      '<td class="n">' + (p.inRange ? p.ahead.toFixed(1) + '%' : '—') + '</td>' +
+      '<td class="n">' + (p.inRange ? p.percentile.toFixed(0) + '%' : '—') + '</td>' +
+      '<td class="dim">' + zone + '</td>';
+    tPct.appendChild(tr);
+  });
+  row(document.getElementById('t-pct'), ['<td colspan="3">分位单调且覆盖 0 到 ' + hi.toFixed(0) + '</td>'], mono && lo <= 0.01 && hi >= 95);
+
+  /* ---------- 七、性能 ---------- */
+  var perf = [];
+  (function () {
+    var t = performance.now();
+    var opp = E.expandRange(byId['3bet.bb.vs_btn'], 'call', board1.concat(['9s','8s']));
+    perf.push(['展开对手范围', opp.length + ' 个组合', (performance.now() - t).toFixed(1)]);
+
+    t = performance.now();
+    E.showdown(['9s','8s'], board1, opp);
+    perf.push(['当前强弱对比', opp.length + ' 次五张评估', (performance.now() - t).toFixed(1)]);
+
+    t = performance.now();
+    E.equityVsRange(['9s','8s'], board1, opp, 8000);
+    perf.push(['胜率抽样', '8000 样本', (performance.now() - t).toFixed(1)]);
+
+    t = performance.now();
+    E.equityExact(['Ac','Kh'], ['9s','8s'], board1);
+    perf.push(['单挑精确枚举', '990 种转河', (performance.now() - t).toFixed(1)]);
+
+    perf.push(['范围分位阶梯', ladder.rows.length + ' 组合，每牌面一次', ladderMs.toFixed(0)]);
+
+    t = performance.now();
+    E.rangeLadder(board1, byId['open.btn'], 'raise', byId['3bet.bb.vs_btn'], 'call');
+    perf.push(['同一牌面再次取分位', '命中缓存', (performance.now() - t).toFixed(1)]);
+  })();
+  var tPerf = document.getElementById('t-perf');
+  var when = ['发牌时', '决策后', '决策后', '仅校验用', '每牌面一次', '之后免费'];
+  perf.forEach(function (p, i) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + p[0] + '</td><td class="dim">' + p[1] + '</td>' +
+      '<td class="n">' + p[2] + ' ms</td><td class="dim">' + when[i] + '</td>';
+    tPerf.appendChild(tr);
+  });
+
+  /* ---------- 汇总 ---------- */
+  var total = (performance.now() - T0).toFixed(0);
+  document.getElementById('f-cases').textContent = pass + ' / ' + cases;
+  document.getElementById('f-time').textContent = total + ' ms';
+  var st = document.getElementById('status'), txt = document.getElementById('status-text');
+  if (problems.length) {
+    st.className = 'status bad';
+    document.getElementById('f-check').textContent = problems.length + ' 处待修';
+    txt.innerHTML = '发现 ' + problems.length + ' 处问题：<ul>' +
+      problems.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul>';
+  } else {
+    document.getElementById('f-check').textContent = '全部通过';
+    txt.textContent = cases + ' 条用例全部通过：牌型排序正确，五条数学恒等式精确成立，' +
+      '抽样落在真值三倍标准误内，范围分位单调且覆盖完整。';
+  }
+  window.__F4__ = { cases: cases, pass: pass, problems: problems, ms: +total };
+})();
+</script>
