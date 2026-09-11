@@ -122,10 +122,10 @@
   </table></div>
 
   <h2>三、分区落点</h2>
-  <p class="sub">K♦7♥2♣ 上，BTN 开池范围按当前领先率排序后各手牌的落点。分区边界由上面两个常数与尺度赔率共同决定。</p>
+  <p class="sub">K♦7♥2♣ 上，BTN 开池范围按当前领先率排序后各手牌的落点。分区边界由上面两个常数与尺度赔率共同决定。最后两列是第七节那三道闸给出的结论：分位只说排第几，闸说最后怎么打，两者可以不一样。</p>
   <div id="zoneviz"></div>
   <div class="tw"><table>
-    <thead><tr><th>手牌</th><th class="n">现在领先</th><th class="n">范围分位</th><th>落在</th><th>建议</th><th>理由</th></tr></thead>
+    <thead><tr><th>手牌</th><th class="n">现在领先</th><th class="n">范围分位</th><th>按分位落在</th><th class="n">被跟后领先</th><th>过闸后</th><th>建议</th></tr></thead>
     <tbody id="t-zone"></tbody>
   </table></div>
 
@@ -148,6 +148,27 @@
   <div class="tw"><table>
     <thead><tr><th>牌面结构</th><th class="n">彩虹面大注占比</th><th class="n">双色面大注占比</th></tr></thead>
     <tbody id="t-size"></tbody>
+  </table></div>
+
+  <h2>七、三道闸</h2>
+  <p class="sub">分区只回答"多少牌该下注"，不回答"哪几手"。三道闸补上这一步：价值闸问更差的牌会不会跟，诈唬排队问下注比过牌多赢多少概率，阻断进入对手的弃牌率。三者都由枚举与赔率算出，没有新增可调常数。</p>
+  <div class="tw"><table>
+    <thead><tr><th>检验</th><th>应当</th><th>实得</th><th></th></tr></thead>
+    <tbody id="t-gate"></tbody>
+  </table></div>
+
+  <h2>八、出张与阻断</h2>
+  <p class="sub">出张是"一张转牌能把我打成三条及以上"的张数，后门听牌记 0 张。两张牌至少中一次的概率用精确式子算，不用桌上那条乘四的口诀。阻断比的是我杀掉的续战牌与我杀掉的全部组合，基准正好是最小防守频率。</p>
+  <div class="tw"><table>
+    <thead><tr><th>局面</th><th>主线</th><th class="n">应有出张</th><th class="n">实得</th><th class="n">至少中一次</th><th></th></tr></thead>
+    <tbody id="t-outs"></tbody>
+  </table></div>
+
+  <h2>九、闸真的改了结论吗</h2>
+  <p class="sub">如果三道闸从不改变结论，那它们就只是装饰。下表在几个有代表性的牌面上，数出被价值闸拦下的牌量，以及诈唬名额里有多少给了带听牌的牌。</p>
+  <div class="tw"><table>
+    <thead><tr><th>牌面</th><th class="n">按分位在价值区</th><th class="n">过闸后</th><th class="n">大注被收回</th><th class="n">诈唬区平均出张</th><th class="n">候选池平均出张</th></tr></thead>
+    <tbody id="t-effect"></tbody>
   </table></div>
 
   <footer>翻牌圈训练器 · F5 分区模型校验 · 数据源 src/strategy.js</footer>
@@ -230,23 +251,33 @@
     '<span style="width:' + zA.valueWidth + '%">价值 ' + zA.valueFrom.toFixed(0) + '–100</span></div>';
 
   var HANDS = [['A♣K♥', ['Ac','Kh']], ['5♣5♦', ['5c','5d']], ['A♠4♠', ['As','4s']],
-               ['Q♠J♠', ['Qs','Js']], ['J♠T♠', ['Js','Ts']], ['9♠8♠', ['9s','8s']], ['6♠5♠', ['6s','5s']]];
+               ['A♦J♦', ['Ad','Jd']], ['Q♠J♠', ['Qs','Js']], ['J♠T♠', ['Js','Ts']], ['9♠8♠', ['9s','8s']], ['6♠5♠', ['6s','5s']]];
   var ZH = { value: '价值区', check: '过牌区', bluff: '诈唬区' };
   var tZ = document.getElementById('t-zone');
   var advCache = {};
+  var SIZES = { small: SMALL, big: BIG };
+  var anA = ladder.an;
+  var planA = S.planAggressor(anA, SIZES, {});
+
   HANDS.forEach(function (h) {
     var p = E.percentileOf(h[1], ladder);
-    if (!p.inRange) { row(tZ, ['<td>' + h[0] + '</td>', '<td class="n">—</td>', '<td class="n">—</td>', '<td class="dim">不在范围内</td>', '<td>—</td>', '<td class="dim">—</td>']); return; }
-    var a = S.adviseAggressor(p.percentile, { structure: bcls.structure, suit: bcls.suit }, { small: SMALL, big: BIG });
+    if (!p.inRange) { row(tZ, ['<td>' + h[0] + '</td>', '<td class="n">—</td>', '<td class="n">—</td>', '<td class="dim">不在范围内</td>', '<td class="n">—</td>', '<td>—</td>', '<td class="dim">—</td>']); return; }
+    var bc = { structure: bcls.structure, suit: bcls.suit };
+    // 不带 det：只考分位边界。带 det：三道闸之后的真结论。
+    var a = S.adviseAggressor(p.percentile, bc, SIZES);
+    var det = planA.byKey[h[1].slice().sort().join('')];
+    var g = S.adviseAggressor(p.percentile, bc, SIZES, {}, det);
     advCache[h[0]] = { p: p, a: a };
-    var act = a.zone === 'check' ? '过牌'
-      : '下注 · 小注 ' + a.weights.bet33 + ' 大注 ' + a.weights.bet75;
+    var act = g.zone === 'check' ? '过牌'
+      : '下注 · 小注 ' + g.weights.bet33 + ' 大注 ' + g.weights.bet75;
     row(tZ, ['<td>' + h[0] + '</td>',
       '<td class="n">' + p.ahead.toFixed(1) + '%</td>',
       '<td class="n">' + p.percentile.toFixed(0) + '%</td>',
       '<td><b style="color:var(--' + a.zone + ')">' + ZH[a.zone] + '</b></td>',
-      '<td class="dim">' + act + '</td>',
-      '<td class="dim" style="white-space:normal">' + a.why + '</td>']);
+      '<td class="n">' + det.calledAhead.toFixed(0) + '%</td>',
+      '<td><b style="color:var(--' + g.zone + ')">' + ZH[g.zone] + '</b>' +
+        (g.zone === a.zone ? '' : ' <span class="dim">← 改了</span>') + '</td>',
+      '<td class="dim">' + act + '</td>']);
   });
 
   /* ---------- 四、恒等式 ---------- */
@@ -297,6 +328,124 @@
       '<td class="n">' + S.bigShare(st, '双色') + '%</td>']);
   });
 
+  /* ---------- 七、三道闸 ---------- */
+  var tG = document.getElementById('t-gate');
+  function gate(name, expect, got, good) {
+    if (!good) problems.push('闸：' + name + ' 期望 ' + expect + ' 实得 ' + got);
+    row(tG, ['<td style="white-space:normal">' + name + '</td>',
+      '<td class="dim">' + expect + '</td>', '<td class="n">' + got + '</td>'], good);
+  }
+
+  var zoneW = { value: 0, bluff: 0, check: 0 }, maxW = 0;
+  var badValue = 0, badBluff = 0, contAvg = 0;
+  planA.recs.forEach(function (x) {
+    zoneW[x.zone] += x.w;
+    if (x.w > maxW) maxW = x.w;
+    if (x.zone === 'value' && x.calledAhead < 50) badValue++;
+    if (x.zone === 'bluff' && x.score <= 0) badBluff++;
+    contAvg += x.contFrac * x.w;
+  });
+  contAvg /= anA.total;
+  var sumW = zoneW.value + zoneW.bluff + zoneW.check;
+
+  gate('每个组合恰好落在一个区，权重之和等于范围总权重',
+    anA.total.toFixed(2), sumW.toFixed(2), Math.abs(sumW - anA.total) < 1e-6);
+  gate('价值区里不允许存在「被跟后领先不足一半」的牌',
+    '0 手', badValue + ' 手', badValue === 0);
+  gate('诈唬区里不允许存在「下注不提高胜率」的牌',
+    '0 手', badBluff + ' 手', badBluff === 0);
+  gate('实际诈唬量不超过赔率给的名额（最多溢出一个组合）',
+    '≤ ' + ((planA.bluffCapPct / 100 * anA.total) + maxW).toFixed(2),
+    zoneW.bluff.toFixed(2),
+    zoneW.bluff <= planA.bluffCapPct / 100 * anA.total + maxW + 1e-9);
+  // 分位落在价值区的总量不会正好等于名义宽度：分位取的是同分组的中点，
+  // 边界上那一组要么整组进、要么整组不进，所以会有零点几个点的出入。
+  // 闸该保证的是"只减不增"，比较对象是过闸前的那一档，不是那个常数。
+  var bandW = 0;
+  planA.recs.forEach(function (x) { if (x.pct >= 100 - planA.nominalValuePct) bandW += x.w; });
+  var bandPct = bandW / anA.total * 100;
+  gate('价值闸只会拦下，不会放进：过闸后的价值量不超过按分位落在价值区的量',
+    '≤ ' + bandPct.toFixed(1) + '%', planA.valuePct.toFixed(1) + '%',
+    planA.valuePct <= bandPct + 1e-9);
+  gate('阻断在全范围上必须抵消：加权平均续战比例等于最小防守频率',
+    (S.mdf(SMALL) * 100).toFixed(2) + '%', contAvg.toFixed(2) + '%',
+    Math.abs(contAvg - S.mdf(SMALL) * 100) < 1);
+
+  // 阻断的方向性：同花面上拿该花色的 A 应当挡掉更多续战牌
+  var monoBoard = ['Kh', '9h', '4h'];
+  var anM = E.analyze(monoBoard, byId['open.btn'], 'raise', byId['3bet.bb.vs_btn'], 'call');
+  var setM = E.continueSet(anM, BIG);
+  var withAh = E.blockers(['Ah', 'Qs'], anM, setM).foldFrac;
+  var withAs = E.blockers(['As', 'Qs'], anM, setM).foldFrac;
+  gate('同花面上手握该花色的 A，对手弃牌率应当更高（大注）',
+    '红桃A > 黑桃A', withAh.toFixed(1) + '% vs ' + withAs.toFixed(1) + '%', withAh > withAs);
+
+  /* ---------- 八、出张 ---------- */
+  var OUTS = [
+    ['A♥K♥ / Q♥7♥2♣', '同花听', ['Ah', 'Kh'], ['Qh', '7h', '2c'], 9],
+    ['9♠8♦ / 7♣6♥2♠', '两头顺听', ['9s', '8d'], ['7c', '6h', '2s'], 8],
+    ['K♠Q♦ / J♥9♣2♠', '卡顺', ['Ks', 'Qd'], ['Jh', '9c', '2s'], 4],
+    ['T♥9♥ / Q♥8♣2♥', '同花听加卡顺', ['Th', '9h'], ['Qh', '8c', '2h'], 12],
+    ['7♠7♦ / 7♣K♦2♥', '已成三条，只数满堂与四条', ['7s', '7d'], ['7c', 'Kd', '2h'], 7],
+    ['A♠K♦ / 9♥7♣2♠', '两张高牌，无听牌', ['As', 'Kd'], ['9h', '7c', '2s'], 0]
+  ];
+  var tO = document.getElementById('t-outs');
+  OUTS.forEach(function (c) {
+    var got = E.improveOuts(c[2], c[3]);
+    var good = got === c[4];
+    if (!good) problems.push('出张：' + c[0] + ' 期望 ' + c[4] + ' 实得 ' + got);
+    row(tO, ['<td class="cards">' + c[0] + '</td>', '<td class="dim">' + c[1] + '</td>',
+      '<td class="n">' + c[4] + '</td>', '<td class="n">' + got + '</td>',
+      '<td class="n">' + E.outsEquity(got).toFixed(1) + '%</td>'], good);
+  });
+  // 精确式子：九张出张两次机会中一次是 34.97%，不是口诀给的 36%
+  var e9 = E.outsEquity(9);
+  gate('九张出张、两张牌要发，至少中一次 = 1 − (38/47)(37/46)',
+    '34.97%', e9.toFixed(2) + '%', Math.abs(e9 - (1 - (38 / 47) * (37 / 46)) * 100) < 1e-9);
+  gate('零张出张的提升概率必须是零', '0%', E.outsEquity(0).toFixed(2) + '%', E.outsEquity(0) === 0);
+
+  /* ---------- 九、闸改了什么 ---------- */
+  var EFFECT = [
+    ['K♦7♥2♣ 干燥彩虹', ['Kd', '7h', '2c']],
+    ['9♥8♥5♠ 连接双色', ['9h', '8h', '5s']],
+    ['K♥9♥4♥ 同花面', ['Kh', '9h', '4h']],
+    ['A♠K♦Q♣ 三高牌', ['As', 'Kd', 'Qc']]
+  ];
+  var tE = document.getElementById('t-effect');
+  var drawPreferred = 0;
+  EFFECT.forEach(function (c) {
+    var a2 = E.analyze(c[1], byId['open.btn'], 'raise', byId['3bet.bb.vs_btn'], 'call');
+    var p2 = S.planAggressor(a2, SIZES, {});
+    var smallOnly = 0, bluffOuts = 0, bluffW = 0, poolOuts = 0, poolW = 0, band2 = 0;
+    p2.recs.forEach(function (x) {
+      if (x.pct >= 100 - p2.nominalValuePct) band2 += x.w;
+      if (x.zone === 'value') { if (!x.bigOK) smallOnly += x.w; return; }
+      poolOuts += x.outs * x.w; poolW += x.w;
+      if (x.zone === 'bluff') { bluffOuts += x.outs * x.w; bluffW += x.w; }
+    });
+    // 比较必须同类：拿诈唬区去比全范围没有意义，因为带出张的成牌本来就在价值区
+    var bo = bluffW ? bluffOuts / bluffW : 0, po = poolW ? poolOuts / poolW : 0;
+    if (bo >= po - 1e-9) drawPreferred++;
+    row(tE, ['<td>' + c[0] + '</td>',
+      '<td class="n">' + (band2 / a2.total * 100).toFixed(1) + '%</td>',
+      '<td class="n">' + p2.valuePct.toFixed(1) + '%</td>',
+      '<td class="n">' + (smallOnly / a2.total * 100).toFixed(1) + '%</td>',
+      '<td class="n">' + bo.toFixed(2) + '</td>',
+      '<td class="n">' + po.toFixed(2) + '</td>']);
+  });
+  gate('诈唬名额应当优先给带听牌的牌：诈唬区平均出张不低于候选池平均',
+    '4 个牌面全部成立', drawPreferred + ' 个成立', drawPreferred === EFFECT.length);
+
+  // 排队分对出张与阻断必须单调：其余条件相同时，多一张出张不能排得更后
+  var mono = true;
+  for (var q = 0; q <= 12; q++) {
+    if (S.bluffScore(25, S.eqWhenCalled(10, E.outsEquity(q)), 10) >
+        S.bluffScore(25, S.eqWhenCalled(10, E.outsEquity(q + 1)), 10)) mono = false;
+    if (S.bluffScore(25 + q, S.eqWhenCalled(10, 0), 10) >
+        S.bluffScore(25 + q + 1, S.eqWhenCalled(10, 0), 10)) mono = false;
+  }
+  gate('排队分对出张与对手弃牌率都必须单调递增', '单调', mono ? '单调' : '有反转', mono);
+
   /* ---------- 汇总 ---------- */
   document.getElementById('f-cases').textContent = pass + ' / ' + cases;
   var st = document.getElementById('status'), txt = document.getElementById('status-text');
@@ -308,7 +457,7 @@
   } else {
     document.getElementById('f-check').textContent = '全部通过';
     txt.textContent = cases + ' 条用例全部通过：八条由赔率导出的量精确成立，' +
-      '七手样例牌的分区落点与判定自洽。自由常数只有两个，都写在 src/strategy.js 顶部。';
+      '样例牌的分区落点与判定自洽，三道闸的恒等式与方向性全部成立。自由常数仍然只有两个，都写在 src/strategy.js 顶部。';
   }
   window.__F5__ = { cases: cases, pass: pass, problems: problems };
 })();

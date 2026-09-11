@@ -346,6 +346,29 @@
   });
   row(document.getElementById('t-pct'), ['<td colspan="3">分位单调、同分同位、覆盖 ' + lo.toFixed(1) + ' 到 ' + hi.toFixed(0) + '</td>'], mono && lo <= 2 && hi >= 95 && hi < 100 && !tieBad);
 
+  /* ---------- 六之二、双向阶梯必须自洽 ----------
+   * 我方阶梯与对手阶梯是同一张对照表的行与列，所以有硬性恒等式可查：
+   * 我方按权重的总落后量，必须等于对手按权重的总领先量。 */
+  var an1 = ladder.an;
+  // 每一对组合出现两次：在我方那一行里，也在对手那一列里。两次必须记同一件事，
+  // 所以求和要按「双方权重之积」来配，不能只按一边的权重。
+  var mWin = 0, mTie2 = 0, mLose = 0, oWin = 0, oTie2 = 0, oLose = 0;
+  an1.mine.forEach(function (r) {
+    mWin += r.w * r.aw; mTie2 += r.w * r.tw; mLose += r.w * (r.live - r.aw - r.tw);
+  });
+  an1.opp.forEach(function (r) {
+    oWin += r.w * r.aw; oTie2 += r.w * r.tw; oLose += r.w * (r.live - r.aw - r.tw);
+  });
+  if (Math.abs(mWin - oLose) > 1e-6) {
+    fail('双向阶梯：我方加权胜量 ' + mWin.toFixed(2) + ' 与对手加权负量 ' + oLose.toFixed(2) + ' 不相等');
+  }
+  if (Math.abs(mTie2 - oTie2) > 1e-6) fail('双向阶梯：两边的加权平局量不相等');
+  if (Math.abs(mLose - oWin) > 1e-6) fail('双向阶梯：我方加权负量与对手加权胜量不相等');
+  row(document.getElementById('t-pct'),
+    ['<td colspan="3">双向阶梯自洽：我方加权胜量 = 对手加权负量，平局量两边相等</td>'],
+    Math.abs(mWin - oLose) < 1e-6 && Math.abs(mTie2 - oTie2) < 1e-6 &&
+    Math.abs(mLose - oWin) < 1e-6);
+
   /* ---------- 七、性能 ---------- */
   var perf = [];
   (function () {
@@ -370,13 +393,23 @@
     t = performance.now();
     E.rangeLadder(board1, byId['open.btn'], 'raise', byId['3bet.bb.vs_btn'], 'call');
     perf.push(['同一牌面再次取分位', '命中缓存', (performance.now() - t).toFixed(1)]);
+
+    t = performance.now();
+    E.improveOuts(['9s','8s'], board1);
+    perf.push(['数一手牌的出张', '45 张转牌 × 六张取五', (performance.now() - t).toFixed(2), '建阶梯时顺带']);
+
+    t = performance.now();
+    var setP = E.continueSet(ladder.an, 0.33);
+    E.vsSet(['9s','8s'], board1, setP);
+    E.blockers(['9s','8s'], ladder.an, setP);
+    perf.push(['续战范围 + 阻断', setP.rows.length + ' 个续战组合', (performance.now() - t).toFixed(2), '每手牌一次']);
   })();
   var tPerf = document.getElementById('t-perf');
   var when = ['发牌时', '决策后', '决策后', '仅校验用', '每牌面一次', '之后免费'];
   perf.forEach(function (p, i) {
     var tr = document.createElement('tr');
     tr.innerHTML = '<td>' + p[0] + '</td><td class="dim">' + p[1] + '</td>' +
-      '<td class="n">' + p[2] + ' ms</td><td class="dim">' + when[i] + '</td>';
+      '<td class="n">' + p[2] + ' ms</td><td class="dim">' + (p[3] || when[i]) + '</td>';
     tPerf.appendChild(tr);
   });
 

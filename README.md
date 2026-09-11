@@ -1,8 +1,10 @@
-# 翻前 GTO 训练器
+# 德州扑克 GTO 训练器
 
-6-max 100BB 现金局的翻前范围训练器。36 个位置场景，先看范围表再开练，成绩存在手机本地。
+两个应用共用一套代码：翻前的起手牌范围训练，翻后的翻牌圈决策训练。
+都是纯静态单文件页面，装到手机主屏后断网可用。
 
-线上地址：https://thirtyjohn.github.io/gto/
+- 翻前：https://thirtyjohn.github.io/gto/
+- 翻牌圈：https://thirtyjohn.github.io/gto/flop/
 
 ## 目录
 
@@ -11,18 +13,28 @@
 | `src/ui.js` | 元素构造、确认框、热力图着色、本机存储与错题本 | 共用 |
 | `src/range.js` | 范围记法解析器、组合数加权发牌、判定规则 | 共用 |
 | `src/table.js` | 牌桌渲染与自适应尺寸 | 共用 |
-| `src/app.js` | 翻前的界面与训练流程 | 翻前 |
-| `src/app.html` | 页面骨架与样式，含 `<!--@include-->` 标记 | 翻前 |
-| `data/ranges.js` | 36 套范围数据，唯一的真相来源 | 翻前 |
+| `src/app.js` · `src/app.html` | 翻前的界面与训练流程 | 翻前 |
+| `data/ranges.js` | 36 套翻前范围，唯一的真相来源 | 翻前 |
 | `src/review.html` | 范围对照表的模板 | 翻前 |
+| `src/cards.js` | 底牌与公共牌的成牌、听牌、八类牌力 | 翻后 |
+| `src/board.js` | 牌面结构分类，七种结构 × 三种花色轴 | 翻后 |
+| `src/equity.js` | 牌力评估、范围展开、双向阶梯、出张、续战范围、阻断 | 翻后 |
+| `src/strategy.js` | 分区模型与三道闸，把胜率变成动作建议 | 翻后 |
+| `src/flop.js` · `src/flop.html` | 翻牌圈的界面与训练流程 | 翻后 |
+| `data/flop-scenarios.js` | 八个翻牌圈场景与对手预设 | 翻后 |
+| `src/equity-review.html` · `src/strategy-review.html` | 两份自校验页的模板 | 翻后 |
 | `tools/build.sh` | 把模板和脚本合成单文件 | 共用 |
 | `docs/` | 构建产物，GitHub Pages 的站点根目录 | 共用 |
 
-共用模块挂在三个全局对象上：`UI`、`Range`、`Table`。翻后应用将以同样的方式引用它们，见 `docs/flop-prd.html` 第 9 节。
+共用模块挂在三个全局对象上：`UI`、`Range`、`Table`。翻后另挂 `Cards`、`Board`、`Equity`、`Strategy`。
+翻后的双方范围全部取自 `data/ranges.js`，没有另造任何范围数据。
 
 ### 修改共用模块的规矩
 
 `ui.js`、`range.js`、`table.js` 被两个应用引用，改动前先跑回归。方法是把 `Math.random` 换成定值序列，走一遍固定操作，抓下每屏的渲染结果，改动前后两份快照必须完全一致。F1 抽取就是这么验的。
+
+`equity.js` 与 `strategy.js` 改动后，把两份校验页打开跑一遍，用例必须全绿。
+它们不依赖任何外部计算器：单挑胜率用精确枚举 990 种转牌河牌当真值，其余靠数学恒等式卡住。
 
 ## 构建
 
@@ -31,6 +43,9 @@
 ```bash
 bash tools/build.sh src/app.html docs/index.html
 bash tools/build.sh src/review.html docs/ranges-review.html
+bash tools/build.sh src/flop.html docs/flop/index.html
+bash tools/build.sh src/equity-review.html docs/flop-equity.html
+bash tools/build.sh src/strategy-review.html docs/flop-strategy.html
 ```
 
 `build.sh` 会把模板里的 `<!--@include 路径-->` 替换成对应文件的内容，产出可以直接双击打开的单文件页面。
@@ -50,11 +65,30 @@ A5s:75        该动作频率 75%，省略为 100%
 
 改完重新构建即可。`docs/ranges-review.html` 会校验每手牌的频率合计不超过 100%，并检查每个场景的入池率是否落在 `expect` 区间内，超出会在页面顶部标红。
 
+## 翻后模型的边界
+
+模型里"我定的"只有两个常数，写在 `src/strategy.js` 顶部：进攻方价值区宽度、防守方加注区宽度。
+其余全部由赔率与枚举导出：诈唬区宽度、最小防守频率、范围分位、对手续战范围、阻断、出张。
+
+刻意没做的事：不推导下注总频率。四种推导方式都试过并失败，五张对照表记在 `docs/flop-strategy.html` 第一节。
+
+已知的近似，都写在对应函数的注释里：
+- 出张只看一张转牌，后门听牌记 0 张，是有意的低估。
+- 诈唬排队时，过牌那一侧只按当前摊牌领先率计，不计过牌之后还能改进。
+  一条街的模型算不出过牌的实现率，与其塞一个实现率参数，不如把过牌这边算保守。
+- 对手的续战范围取"预估胜率最高的那部分，取到最小防守频率为止"，这是近似，不是解出来的。
+
 ## 部署
 
-GitHub Pages 的站点来源设为 `main` 分支的 `/docs` 目录。`docs/sw.js` 会预缓存全部资源，装到主屏幕后断网可用。
+GitHub Pages 的站点来源设为 `main` 分支的 `/docs` 目录。
+`docs/sw.js` 与 `docs/flop/sw.js` 各自预缓存本应用的资源，装到主屏幕后断网可用。
 
 ## 文档
 
-- 产品说明：`docs/prd.html`
-- 范围对照表：`docs/ranges-review.html`
+- 翻前产品说明：`docs/prd.html`
+- 翻前范围对照表：`docs/ranges-review.html`
+- 翻后产品说明：`docs/flop-prd.html`
+- 翻后分类器校验：`docs/flop-review.html`
+- 胜率引擎校验：`docs/flop-equity.html`
+- 分区模型校验：`docs/flop-strategy.html`
+- 界面设计：`docs/flop-screens.html`

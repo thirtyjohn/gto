@@ -160,23 +160,45 @@
     };
   }
 
+  /* 分区方案要整条范围一起算：诈唬名额只有拿全范围排队才分得出来。
+   * 一个牌面一份，与胜率阶梯共用同一个缓存生命周期。 */
+  var planCache = {};
+
+  function planOf(sc, board) {
+    var st = St.data.settings;
+    var ck = sc.id + '|' + board.join('') + '|' + st.valueWidth + '|' + st.raiseWidth;
+    if (planCache[ck]) return planCache[ck];
+    var an = E.analyze(board, heroBuilt(sc), heroAction(sc), oppBuilt(sc), oppAction(sc));
+    var opts = { valueWidth: st.valueWidth, raiseWidth: st.raiseWidth };
+    var p = sc.role === 'aggressor'
+      ? S.planAggressor(an, sc.sizes, opts)
+      : S.planDefender(an, sc.facing, sc.raiseMult, opts);
+    p.an = an;
+    planCache[ck] = p;
+    return p;
+  }
+
+  // 范围改了、对手预设换了、常数调了，两份缓存一起清
+  function clearCalc() { planCache = {}; E.clearCache(); }
+
   function analyse(sc, board, hole) {
     var oppRange = E.expandRange(oppBuilt(sc), oppAction(sc), board.concat(hole));
     var bd = beatBreakdown(hole, board, oppRange);
     var eq = E.equityVsRange(hole, board, oppRange, 6000);
-    var ladder = E.rangeLadder(board, heroBuilt(sc), heroAction(sc), oppBuilt(sc), oppAction(sc));
-    var p = E.percentileOf(hole, ladder);
+    var plan = planOf(sc, board);
+    // 分析模式里可以摆出不在自己范围内的牌，那时没有分位也就没有建议
+    var det = plan.byKey[hole.slice().sort().join('')] || null;
     var bcls = Board.classify(board);
     var opts = { valueWidth: St.data.settings.valueWidth, raiseWidth: St.data.settings.raiseWidth };
-    // 分析模式里可以摆出不在自己范围内的牌，那时没有分位也就没有建议
-    var adv = !p.inRange ? null
+    var adv = !det ? null
       : sc.role === 'aggressor'
-        ? S.adviseAggressor(p.percentile, bcls, sc.sizes, opts)
-        : S.adviseDefender(p.percentile, sc.facing, opts);
+        ? S.adviseAggressor(det.pct, bcls, sc.sizes, opts, det)
+        : S.adviseDefender(det.pct, sc.facing, opts, det);
     return {
       breakdown: bd, equity: eq.equity, stderr: eq.stderr,
       ahead: bd.ahead, delta: eq.equity - bd.ahead,
-      pct: p.percentile, board: bcls, advice: adv,
+      pct: det ? det.pct : null, board: bcls, advice: adv,
+      detail: det, plan: plan,
       hand: Cards.read(hole, board)
     };
   }
@@ -231,8 +253,8 @@
       bar.appendChild(left);
       bar.appendChild(el('div', 'redogo', '开始复盘'));
       bar.onclick = function () {
-        var q = shuffled(St.data.mistakes).slice(0, 20);
-        startSession(q[0] ? BY_ID[q[0].id] : null, q, '错题复盘');
+        var q = queueFromMistakes(shuffled(St.data.mistakes).slice(0, 20));
+        if (q.length) startSession(BY_ID[q[0].id], q, "错题复盘");
       };
       w.appendChild(bar);
       root.appendChild(w);
@@ -370,7 +392,7 @@
       var c = el('button', 'chip' + (St.data.settings.preset === k ? ' on' : ''), k);
       c.onclick = function () {
         St.data.settings.preset = k; saveStore();
-        E.clearCache(); renderSheet();
+        clearCalc(); renderSheet();
       };
       chips.appendChild(c);
     });
@@ -386,7 +408,7 @@
     var wrongs = mistakesFor([sc.id]);
     if (wrongs.length) {
       var redo = el('button', 'cta ghost', '只练错题 · ' + wrongs.length + ' 手');
-      redo.onclick = function () { startSession(sc, shuffled(wrongs).slice(0, 20), '错题复盘'); };
+      redo.onclick = function () { startSession(sc, queueFromMistakes(shuffled(wrongs).slice(0, 20)), '错题复盘'); };
       w.appendChild(redo);
     }
     root.appendChild(w);
@@ -435,7 +457,7 @@
     // 牌桌先画出来，分位阶梯在后台算，用户抬手时通常已经算完
     setTimeout(function () {
       if (session && session.cur && session.cur.board === board) {
-        E.rangeLadder(board, heroBuilt(sc), heroAction(sc), oppBuilt(sc), oppAction(sc));
+        planOf(sc, board);
       }
     }, 0);
   }
@@ -507,6 +529,20 @@
 
   function handKey(c) { return c.hole.join('') + '|' + c.board.join(''); }
 
+  // 错题本只存下这个 key，复盘时要把它还原成两张底牌加三张公共牌
+  function cutCards(s) {
+    var out = [];
+    for (var i = 0; i + 1 < s.length; i += 2) out.push(s.slice(i, i + 2));
+    return out;
+  }
+  function queueFromMistakes(list) {
+    return list.map(function (m) {
+      if (m.hole && m.board) return { id: m.id, hole: m.hole, board: m.board };
+      var parts = String(m.key || '').split('|');
+      return { id: m.id, hole: cutCards(parts[0] || ''), board: cutCards(parts[1] || '') };
+    }).filter(function (q) { return q.hole.length === 2 && q.board.length === 3; });
+  }
+
   /* ---------------- 揭示面板 ---------------- */
   function renderReveal() {
     var c = session.cur, sc = c.sc, r = c.result, a = r.analysis;
@@ -577,6 +613,10 @@
     body.appendChild(el('p', 'presetnote',
       a.board.structure + ' · ' + a.board.suit + '　你的牌：' + a.hand.cls));
 
+    // 二之二、对手的续战范围
+    var gb = gateBlock(sc, a);
+    if (gb) body.appendChild(gb);
+
     // 三、分位
     body.appendChild(el('div', 'lab', '你在自己范围里'));
     var z = a.advice.zones;
@@ -607,9 +647,16 @@
       zl.appendChild(el('span', null, '加注 ' + z.raiseFrom.toFixed(0) + '–100'));
     }
     body.appendChild(zl);
+    // 分位说的是"排第几"，闸说的是"最后怎么打"，两者可能不一致，必须讲清楚
+    var band = sc.role === 'aggressor'
+      ? (a.pct >= z.valueFrom ? 'value' : a.pct <= z.bluffTo ? 'bluff' : 'check')
+      : (a.pct <= z.foldTo ? 'fold' : a.pct >= z.raiseFrom ? 'raise' : 'call');
     var pl = el('p', 'zoneline');
-    pl.innerHTML = '排在第 <b>' + a.pct.toFixed(0) + '%</b>，落在' +
-      '<b style="color:' + ZONE_COLOR[a.advice.zone] + '">' + ZONE_CN[a.advice.zone] + '</b>';
+    pl.innerHTML = '排在第 <b>' + a.pct.toFixed(0) + '%</b>，按分位落在' +
+      '<b style="color:' + ZONE_COLOR[band] + '">' + ZONE_CN[band] + '</b>' +
+      (band === a.advice.zone ? ''
+        : '，但过闸之后按<b style="color:' + ZONE_COLOR[a.advice.zone] + '">' +
+          ZONE_CN[a.advice.zone] + '</b>打');
     body.appendChild(pl);
 
     // 四、建议
@@ -647,6 +694,38 @@
     root.appendChild(sheet);
   }
 
+  /* 三道闸的四个数字。分位只说"我在自己范围里排第几"，
+   * 这一块说的是"对手会怎么继续"，价值闸与诈唬排队都靠它。 */
+  function gateBlock(sc, a) {
+    var d = a.detail;
+    if (!d) return null;
+    var wrap = el('div');
+    wrap.appendChild(el('div', 'lab',
+      sc.role === 'aggressor' ? '对手面对小注会怎么继续' : '对手面对你的加注会怎么继续'));
+    var tiles = el('div', 'tiles');
+    [[Math.round(d.contFrac) + '%', '他继续的比例',
+      d.block > 0.5 ? 'var(--good)' : d.block < -0.5 ? 'var(--bad)' : null],
+     [Math.round(d.calledAhead) + '%', '被跟后你领先',
+      d.calledAhead >= 50 ? 'var(--good)' : 'var(--bad)'],
+     [d.outs + ' 张', '有效出张', d.outs >= 6 ? 'var(--good)' : null]
+    ].forEach(function (t) {
+      var e = el('div', 'tile');
+      var b = el('b', null, t[0]);
+      if (t[2]) { b.style.color = t[2]; e.style.borderColor = t[2]; }
+      e.appendChild(b);
+      e.appendChild(el('span', null, t[1]));
+      tiles.appendChild(e);
+    });
+    wrap.appendChild(tiles);
+    var blockTxt = d.block > 0.5
+      ? '你这两张牌挡住的续战牌比平均多 ' + d.block.toFixed(1) + ' 个点，他会多弃一些'
+      : d.block < -0.5
+        ? '你这两张牌挡住的续战牌比平均少 ' + Math.abs(d.block).toFixed(1) + ' 个点，他会多跟一些'
+        : '你这两张牌对他的续战比例几乎没有影响';
+    wrap.appendChild(el('p', 'presetnote', '阻断：' + blockTxt));
+    return wrap;
+  }
+
   function seg(parent, width, bg) {
     var i = el('i');
     i.style.cssText = 'width:' + width + '%;background:' + bg;
@@ -658,6 +737,53 @@
   function reasonText(sc, a) {
     var d = Math.round(a.delta);
     var z = a.advice.zone;
+    var det = a.detail, zs = a.advice.zones;
+
+    /* 三道闸改写结论时，理由必须讲闸的事，不能再讲分位，
+     * 否则会出现"排在顶部"后面接"所以过牌"这种自相矛盾。 */
+    if (det) {
+      var blockTail = det.block > 0.5
+        ? '，而且你手里这两张牌挡掉了他一部分续战牌'
+        : '';
+      if (sc.role === 'aggressor' && z === 'check' && det.pct >= zs.valueFrom) {
+        return '分位看着靠前，但真正要问的是：下注之后谁会跟。' +
+          '他跟注的那部分范围里，你只领先 ' + Math.round(det.calledAhead) + '%，' +
+          '比你差的牌都弃了、比你好的牌都跟了，这不是价值下注。过牌。';
+      }
+      if (sc.role === 'aggressor' && z === 'check' && det.pct <= zs.bluffTo) {
+        return '你在范围底部，但诈唬名额有限，' +
+          (det.score <= 0
+            ? '而这手牌下注并不会提高你赢下底池的概率：对手只弃 ' +
+              Math.round(det.foldFrac) + '%，你被跟之后也追不回来。'
+            : '这一轮的名额已经给了出张更多、阻断更强的牌。') +
+          '放弃它，把诈唬留给更值钱的组合。';
+      }
+      if (sc.role === 'aggressor' && z === 'bluff') {
+        return '摊牌价值不够，但诈唬名额该给这样的牌：' +
+          '有 ' + det.outs + ' 张出张能把你打成大牌，对手会弃掉 ' +
+          Math.round(det.foldFrac) + '%' + blockTail + '。' +
+          '被跟也还有 ' + Math.round(det.calledEq) + '% 的胜率，比过牌值钱。';
+      }
+      if (sc.role === 'aggressor' && z === 'value') {
+        return '排在你范围前列，而且他跟注之后你仍领先 ' + Math.round(det.calledAhead) + '%，' +
+          '更差的牌真的会跟。' +
+          (d <= -12 ? '牌力靠的是现在而不是将来，用小注拿价值。' :
+           d >= 8 ? '到河牌还能再涨 ' + d + ' 个点，敢用大注。' : '下注取价值。');
+      }
+      if (sc.role === 'defender' && z === 'raise' && !det.valueRaise) {
+        return '这手牌没有摊牌价值，但适合当加注诈唬：' +
+          '有 ' + det.outs + ' 张出张，对手面对加注会弃掉 ' +
+          Math.round(det.foldFrac) + '%' + blockTail + '，比跟注或弃牌都值钱。';
+      }
+      if (sc.role === 'defender' && z === 'call' && det.pct >= zs.raiseFrom) {
+        return '分位够加注，但他跟你的加注之后你只领先 ' + Math.round(det.calledAhead) + '%。' +
+          '加注只会赶走更差的牌、留下更好的牌，跟注更实在。';
+      }
+      if (sc.role === 'defender' && z === 'raise') {
+        return '排在你防守范围的顶部，被跟之后你仍领先 ' + Math.round(det.calledAhead) + '%，' +
+          '加注取价值，也把对手的听牌赶走。';
+      }
+    }
 
     if (z === 'value') {
       if (d <= -12) {
@@ -836,7 +962,7 @@
       var c = el('button', 'chip' + (s.id === an.scId ? ' on' : ''),
         s.hero + (s.role === 'aggressor' ? ' 进攻' : ' 防守'));
       c.onclick = function () {
-        an.scId = s.id; an.hole = []; E.clearCache(); renderAnalysis();
+        an.scId = s.id; an.hole = []; clearCalc(); renderAnalysis();
       };
       chips.appendChild(c);
     });
@@ -900,7 +1026,7 @@
       var c = el('button', 'chip' + (on ? ' on' : ''), k);
       c.onclick = function () {
         delete St.data.custom[customKey(ref)];
-        St.data.settings.preset = k; saveStore(); E.clearCache(); renderAnalysis();
+        St.data.settings.preset = k; saveStore(); clearCalc(); renderAnalysis();
       };
       host.appendChild(c);
     });
@@ -908,7 +1034,7 @@
       var cc = el('button', 'chip on', '自定义 · 点此还原');
       cc.onclick = function () {
         delete St.data.custom[customKey(ref)];
-        saveStore(); E.clearCache(); renderAnalysis();
+        saveStore(); clearCalc(); renderAnalysis();
       };
       host.appendChild(cc);
     }
@@ -957,7 +1083,7 @@
           var compact = arr.filter(function (x) { return !!x; });
           if (which === 'board') an.board = compact; else an.hole = compact;
           document.body.removeChild(over);
-          E.clearCache();
+          clearCalc();
           renderAnalysis();
         };
         grid.appendChild(c);
@@ -969,7 +1095,7 @@
       if (cur) {
         var arr = which === 'board' ? an.board : an.hole;
         arr.splice(idx, 1);
-        E.clearCache();
+        clearCalc();
       }
       document.body.removeChild(over);
       renderAnalysis();
@@ -984,7 +1110,7 @@
     var sc = BY_ID[an.scId];
     var d = dealHand(sc);
     an.hole = d.hole; an.board = d.board;
-    E.clearCache();
+    clearCalc();
     renderAnalysis();
   }
 
@@ -1017,6 +1143,9 @@
         '换一手牌，或者在上面切到别的场景。'));
       return wrap;
     }
+
+    var gb = gateBlock(sc, a);
+    if (gb) wrap.appendChild(gb);
 
     wrap.appendChild(el('div', 'lab', '建议'));
     sc.actions.forEach(function (k) {
@@ -1079,7 +1208,7 @@
     editTimer = setTimeout(function () {
       editTimer = null;
       saveStore();
-      E.clearCache();
+      clearCalc();
       refreshAnalysis();
     }, 400);
   }
@@ -1126,7 +1255,7 @@
 
     pad.appendChild(seg2('对手类型', '默认 GTO。改了之后所有胜率与建议都会重算',
       Object.keys(OPP_PRESETS), St.data.settings.preset,
-      function (v) { St.data.settings.preset = v; saveStore(); E.clearCache(); renderSettings(); }));
+      function (v) { St.data.settings.preset = v; saveStore(); clearCalc(); renderSettings(); }));
 
     var wipe = el('button', 'cta ghost', '清空全部统计');
     wipe.style.marginTop = '26px';
@@ -1173,6 +1302,9 @@
      ['它不是 GTO', '界面上不会出现 GTO 三个字，这是故意的。翻牌的节点数是千万级，只有 solver 能解。这里展示的胜率、组合分解、范围分位全部是精确计算，但把它们变成动作建议靠的是两个明说的常数，不是解出来的均衡。'],
      ['四个数字怎么看', '现在领先是你此刻战胜对手多少组合；算到河牌是把转牌河牌发完的胜率；后续增减是两者之差，正数说明你是听牌，负数说明你靠摊牌价值；范围分位是你这手牌在自己整条范围里的排名。'],
      ['为什么分位比胜率重要', '胜率相近的两手牌打法可能完全相反。中等牌力胜率不低但该过牌，因为下注只会被更好的跟、更差的弃；范围底部的牌胜率很低却该下注，因为它唯一的赢法就是让对手弃牌。分位决定你在极化结构里的位置。'],
+     ['「对手会怎么继续」那一块', '分位只说你排第几，这一块说对手会怎么应对，建议最后由它定。他继续的比例来自最小防守频率，再按你手里这两张牌挡掉了他多少续战组合修正，这就是阻断。被跟后你领先说的是：真被跟了，他那部分范围里你还打得过多少——不到一半就不是价值下注，哪怕分位很高也改过牌。有效出张数的是一张转牌能把你打成三条及以上的张数，后门听牌记零张。'],
+     ['分位在价值区却让我过牌', '因为更差的牌不会跟。A 高在 K 高干燥面上分位常常很靠前，但你一下注，比你差的全弃、比你好的全跟，价值无从谈起。同理，有些牌小注能拿到价值、大注拿不到，建议里就只留小注。'],
+     ['为什么我在范围底部却不让我诈唬', '诈唬名额是由赔率定死的，名额有限。名额给的是下注最能提高胜率的那些牌：出张多、挡住对手续战牌多的排在前面。轮不上的那些就放弃，这比每手底牌都打出去更值钱。'],
      ['贴边是什么意思', '分区边界是人定的常数，不该因为差一个百分点就把人判错。距离边界 5 个百分点以内时，相邻区的动作也算对。'],
      ['想调松紧', '设置里可以换对手类型。注意松不等于弱：一个什么 K 都跟的人，在 K 高面上的顶对比 GTO 玩家还多。'],
      ['数据存在哪', '全部存在这台手机的浏览器里，不上传，不需要注册。']
