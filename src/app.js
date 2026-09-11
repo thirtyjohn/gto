@@ -168,14 +168,15 @@
     return { seats: seats, heroIdx: h, idx: idx, pot: pot };
   }
 
-  // 座位坐标：slot 0 是英雄，逆时针依次是后面行动的位置
+  // 座位坐标：slot 0 是英雄，逆时针依次是后面行动的位置。
+  // x/y 是座位，bx/by 是下注筹码，dx/dy 是按钮位标记，都是牌桌的百分比。
   var SLOTS = [
-    { x: 50, y: 92, bx: 50, by: 76, dx: 62, dy: 84 },
-    { x: 12, y: 74, bx: 30, by: 70, dx: 24, dy: 62 },
-    { x: 12, y: 42, bx: 30, by: 46, dx: 24, dy: 54 },
-    { x: 50, y: 10, bx: 50, by: 25, dx: 38, dy: 18 },
-    { x: 88, y: 42, bx: 70, by: 46, dx: 76, dy: 54 },
-    { x: 88, y: 74, bx: 70, by: 70, dx: 76, dy: 62 }
+    { x: 50, y: 91, bx: 50, by: 66, dx: 63, dy: 86 },
+    { x: 22, y: 72, bx: 35, by: 60, dx: 31, dy: 80 },
+    { x: 22, y: 40, bx: 35, by: 51, dx: 31, dy: 32 },
+    { x: 50, y:  9, bx: 50, by: 24, dx: 36, dy: 14 },
+    { x: 78, y: 40, bx: 65, by: 51, dx: 69, dy: 32 },
+    { x: 78, y: 72, bx: 65, by: 60, dx: 69, dy: 80 }
   ];
 
   function renderTable(sc, cards) {
@@ -191,15 +192,6 @@
       var pos = ORDER[(st.heroIdx + slot) % 6];
       var seat = st.seats[st.idx[pos]];
       var S = SLOTS[slot];
-
-      if (!seat.hero && !seat.folded) {
-        var backs = el('div', 'backs');
-        backs.style.left = S.bx + '%';
-        backs.style.top = (S.y > 50 ? S.y - 9 : S.y + 9) + '%';
-        backs.appendChild(el('div', 'cardback'));
-        backs.appendChild(el('div', 'cardback'));
-        felt.appendChild(backs);
-      }
 
       var node = el('div', 'seat' + (seat.folded ? ' folded' : '') + (seat.hero ? ' hero' : ''));
       node.style.left = S.x + '%';
@@ -225,7 +217,6 @@
     }
 
     var hole = el('div', 'hole');
-    hole.style.bottom = 'calc(100% - ' + (SLOTS[0].y - 3) + '%)';
     cards.forEach(function (c) { hole.appendChild(cardNode(c, 'pcard')); });
     felt.appendChild(hole);
 
