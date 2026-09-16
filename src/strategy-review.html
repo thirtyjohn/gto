@@ -125,7 +125,7 @@
   <p class="sub">K♦7♥2♣ 上，BTN 开池范围按当前领先率排序后各手牌的落点。分区边界由上面两个常数与尺度赔率共同决定。最后两列是第七节那三道闸给出的结论：分位只说排第几，闸说最后怎么打，两者可以不一样。</p>
   <div id="zoneviz"></div>
   <div class="tw"><table>
-    <thead><tr><th>手牌</th><th class="n">现在领先</th><th class="n">范围分位</th><th>按分位落在</th><th class="n">被跟后领先</th><th>过闸后</th><th>建议</th></tr></thead>
+    <thead><tr><th>手牌</th><th class="n">现在领先</th><th class="n">范围分位</th><th>按分位落在</th><th class="n">被跟后打到河牌</th><th>过闸后</th><th>建议</th></tr></thead>
     <tbody id="t-zone"></tbody>
   </table></div>
 
@@ -164,10 +164,17 @@
     <tbody id="t-outs"></tbody>
   </table></div>
 
+  <h2>八之二、被跟后胜率的外推误差</h2>
+  <p class="sub">价值闸问的是「被跟之后打到河牌还剩多少胜率」。精确算它要枚举 990 种转河再乘上整条续战范围，一个牌面十几秒，做不到。实际用的是：45 张转牌逐一精确算出发完一张之后的领先率，与现在的领先率之差就是一条街的漂移，还要发两张所以乘二。下表把它跟蒙特卡洛枚举逐手对照——这是近似，误差摆在这里，不藏。</p>
+  <div class="tw"><table>
+    <thead><tr><th>牌面</th><th>手牌</th><th class="n">现在领先</th><th class="n">外推</th><th class="n">枚举真值</th><th class="n">误差</th><th></th></tr></thead>
+    <tbody id="t-approx"></tbody>
+  </table></div>
+
   <h2>九、闸真的改了结论吗</h2>
   <p class="sub">如果三道闸从不改变结论，那它们就只是装饰。下表在几个有代表性的牌面上，数出被价值闸拦下的牌量，以及诈唬名额里有多少给了带听牌的牌。</p>
   <div class="tw"><table>
-    <thead><tr><th>牌面</th><th class="n">按分位在价值区</th><th class="n">过闸后</th><th class="n">大注被收回</th><th class="n">诈唬区平均出张</th><th class="n">候选池平均出张</th></tr></thead>
+    <thead><tr><th>牌面</th><th class="n">按分位在价值区</th><th class="n">过闸后</th><th class="n">大注被收回</th><th class="n">诈唬区平均出张</th><th class="n">老规则平均出张</th></tr></thead>
     <tbody id="t-effect"></tbody>
   </table></div>
 
@@ -274,7 +281,7 @@
       '<td class="n">' + p.ahead.toFixed(1) + '%</td>',
       '<td class="n">' + p.percentile.toFixed(0) + '%</td>',
       '<td><b style="color:var(--' + a.zone + ')">' + ZH[a.zone] + '</b></td>',
-      '<td class="n">' + det.calledAhead.toFixed(0) + '%</td>',
+      '<td class="n">' + det.calledEq.toFixed(0) + '%</td>',
       '<td><b style="color:var(--' + g.zone + ')">' + ZH[g.zone] + '</b>' +
         (g.zone === a.zone ? '' : ' <span class="dim">← 改了</span>') + '</td>',
       '<td class="dim">' + act + '</td>']);
@@ -341,7 +348,7 @@
   planA.recs.forEach(function (x) {
     zoneW[x.zone] += x.w;
     if (x.w > maxW) maxW = x.w;
-    if (x.zone === 'value' && x.calledAhead < 50) badValue++;
+    if (x.zone === 'value' && x.calledEq < 50) badValue++;
     if (x.zone === 'bluff' && x.score <= 0) badBluff++;
     contAvg += x.contFrac * x.w;
   });
@@ -350,7 +357,7 @@
 
   gate('每个组合恰好落在一个区，权重之和等于范围总权重',
     anA.total.toFixed(2), sumW.toFixed(2), Math.abs(sumW - anA.total) < 1e-6);
-  gate('价值区里不允许存在「被跟后领先不足一半」的牌',
+  gate('价值区里不允许存在「被跟后打到河牌胜率不足一半」的牌',
     '0 手', badValue + ' 手', badValue === 0);
   gate('诈唬区里不允许存在「下注不提高胜率」的牌',
     '0 手', badBluff + ' 手', badBluff === 0);
@@ -404,6 +411,42 @@
     '34.97%', e9.toFixed(2) + '%', Math.abs(e9 - (1 - (38 / 47) * (37 / 46)) * 100) < 1e-9);
   gate('零张出张的提升概率必须是零', '0%', E.outsEquity(0).toFixed(2) + '%', E.outsEquity(0) === 0);
 
+  /* ---------- 八之二、外推误差 ----------
+   * 拿枚举当真值。样本要有代表性：脆弱的小对子、成牌、听牌、纯高牌都要有。 */
+  var APPROX = [
+    [['Ts', '6d', '3c'], ['4d', '4c'], '小对子被高牌围住'],
+    [['Ts', '6d', '3c'], ['9d', '9c'], '中对子'],
+    [['Ts', '6d', '3c'], ['As', 'Kd'], '两张高牌'],
+    [['Ts', '6d', '3c'], ['Ad', 'Th'], '顶对顶踢'],
+    [['9h', '8h', '5s'], ['Ah', 'Kh'], '坚果同花听'],
+    [['9h', '8h', '5s'], ['Jc', 'Jd'], '超对在连接面'],
+    [['Kh', '9h', '4h'], ['Kc', 'Qd'], '顶对在同花面'],
+    [['Kh', '9h', '4h'], ['7d', '7c'], '小对子在同花面']
+  ];
+  var tAp = document.getElementById('t-approx');
+  var worst = 0;
+  APPROX.forEach(function (c) {
+    var a2 = E.analyze(c[0], byId['open.btn'], 'raise', byId['3bet.bb.vs_btn'], 'call');
+    var st = E.continueSet(a2, SMALL);
+    var row2 = a2.byKey[c[1].slice().sort().join('')];
+    if (!row2) return;
+    var ce = E.calledEquity(row2, st);
+    var live = st.rows.filter(function (r) { return !E.conflict(c[1], r.cards); });
+    var truth = E.equityVsRange(c[1], c[0], live, 12000).equity;
+    var err = ce.est - truth;
+    if (Math.abs(err) > Math.abs(worst)) worst = err;
+    var good = Math.abs(err) <= 8;
+    if (!good) problems.push('外推：' + c[1].join('') + ' 误差 ' + err.toFixed(1) + ' 个百分点');
+    row(tAp, ['<td class="cards">' + c[0].join(' ') + '</td>',
+      '<td class="cards">' + c[1].join(' ') + ' <span class="dim">' + c[2] + '</span></td>',
+      '<td class="n">' + ce.showdown.toFixed(1) + '%</td>',
+      '<td class="n">' + ce.est.toFixed(1) + '%</td>',
+      '<td class="n">' + truth.toFixed(1) + '%</td>',
+      '<td class="n">' + (err >= 0 ? '+' : '') + err.toFixed(1) + '</td>'], good);
+  });
+  gate('外推与枚举的最大误差应当在 8 个百分点以内',
+    '≤ 8.0', Math.abs(worst).toFixed(1), Math.abs(worst) <= 8);
+
   /* ---------- 九、闸改了什么 ---------- */
   var EFFECT = [
     ['K♦7♥2♣ 干燥彩虹', ['Kd', '7h', '2c']],
@@ -416,15 +459,23 @@
   EFFECT.forEach(function (c) {
     var a2 = E.analyze(c[1], byId['open.btn'], 'raise', byId['3bet.bb.vs_btn'], 'call');
     var p2 = S.planAggressor(a2, SIZES, {});
-    var smallOnly = 0, bluffOuts = 0, bluffW = 0, poolOuts = 0, poolW = 0, band2 = 0;
+    var smallOnly = 0, bluffOuts = 0, bluffW = 0, pool2 = [], band2 = 0;
     p2.recs.forEach(function (x) {
       if (x.pct >= 100 - p2.nominalValuePct) band2 += x.w;
       if (x.zone === 'value') { if (!x.bigOK) smallOnly += x.w; return; }
-      poolOuts += x.outs * x.w; poolW += x.w;
+      pool2.push(x);
       if (x.zone === 'bluff') { bluffOuts += x.outs * x.w; bluffW += x.w; }
     });
-    // 比较必须同类：拿诈唬区去比全范围没有意义，因为带出张的成牌本来就在价值区
-    var bo = bluffW ? bluffOuts / bluffW : 0, po = poolW ? poolOuts / poolW : 0;
+    /* 比较对象必须是这一步取代掉的那条规则，而不是候选池的平均：
+     * 候选池里带出张的多半是能改进的成牌，本来就轮不到诈唬。
+     * 老规则是「分位最低的那一截」，就拿同样多的权重按分位从低往上取。 */
+    pool2.sort(function (m, n) { return m.pct - n.pct; });
+    var oldOuts = 0, oldW = 0;
+    for (var q2 = 0; q2 < pool2.length && oldW < bluffW; q2++) {
+      var take2 = Math.min(pool2[q2].w, bluffW - oldW);
+      oldOuts += pool2[q2].outs * take2; oldW += take2;
+    }
+    var bo = bluffW ? bluffOuts / bluffW : 0, po = oldW ? oldOuts / oldW : 0;
     if (bo >= po - 1e-9) drawPreferred++;
     row(tE, ['<td>' + c[0] + '</td>',
       '<td class="n">' + (band2 / a2.total * 100).toFixed(1) + '%</td>',
@@ -433,18 +484,16 @@
       '<td class="n">' + bo.toFixed(2) + '</td>',
       '<td class="n">' + po.toFixed(2) + '</td>']);
   });
-  gate('诈唬名额应当优先给带听牌的牌：诈唬区平均出张不低于候选池平均',
+  gate('新的诈唬排队不应比老的「取分位最低那一截」拿到更少出张',
     '4 个牌面全部成立', drawPreferred + ' 个成立', drawPreferred === EFFECT.length);
 
   // 排队分对出张与阻断必须单调：其余条件相同时，多一张出张不能排得更后
   var mono = true;
   for (var q = 0; q <= 12; q++) {
-    if (S.bluffScore(25, S.eqWhenCalled(10, E.outsEquity(q)), 10) >
-        S.bluffScore(25, S.eqWhenCalled(10, E.outsEquity(q + 1)), 10)) mono = false;
-    if (S.bluffScore(25 + q, S.eqWhenCalled(10, 0), 10) >
-        S.bluffScore(25 + q + 1, S.eqWhenCalled(10, 0), 10)) mono = false;
+    if (S.bluffScore(25, 10 + q * 5, 10) > S.bluffScore(25, 10 + (q + 1) * 5, 10)) mono = false;
+    if (S.bluffScore(25 + q, 10, 10) > S.bluffScore(25 + q + 1, 10, 10)) mono = false;
   }
-  gate('排队分对出张与对手弃牌率都必须单调递增', '单调', mono ? '单调' : '有反转', mono);
+  gate('排队分对被跟后胜率与对手弃牌率都必须单调递增', '单调', mono ? '单调' : '有反转', mono);
 
   /* ---------- 汇总 ---------- */
   document.getElementById('f-cases').textContent = pass + ' / ' + cases;

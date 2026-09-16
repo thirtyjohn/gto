@@ -10,7 +10,7 @@
  *     诈唬区宽度  = 价值区宽度 × 诈唬比 ÷ (1 − 诈唬比)，诈唬比由下注尺度的赔率决定
  *     弃牌区宽度  = 1 − 最小防守频率，同样由所面对的下注尺度决定
  *     分位         由 equity.js 按当前领先率排序算出
- *     价值闸       更差的牌会不会跟，由对手续战范围的枚举算出
+ *     价值闸       被跟之后打到河牌还剩多少胜率，由对手续战范围逐张转牌算出
  *     诈唬排队     由诈唬与过牌的期望值之差算出，出张与阻断都在里面
  *
  * 不做的事：不推导"下注总频率"。四种推导方式都试过并失败，记录在
@@ -90,18 +90,17 @@
    * 分区回答"多少牌该下注"，但没回答"哪几手"。下面三件事补上这一步，
    * 全部由赔率与枚举导出，没有新增可调常数。
    *
-   *   一、价值闸：下注取价值的前提是更差的牌还会跟。拿我这手牌去打对手的
-   *       续战范围，摊牌领先率不到一半就不是价值下注，改过牌。
+   *   一、价值闸：下注取价值的前提是更差的牌还会跟，而且跟下来之后你还赢得了。
+   *       拿我这手牌去打对手的续战范围，打到河牌的胜率不到一半就不是价值下注。
+   *       用的是胜率不是当前领先率：小对子现在领先、打完两张牌却输了的情况太常见。
    *   二、诈唬排队：诈唬名额由赔率定死，但名额该给谁，按诈唬与过牌的
    *       期望值之差排队 —— 出张多的自然排在前面。
    *   三、阻断：对手的续战比例不是一个固定数，我手里这两张牌会改变它，
    *       挡住的续战牌越多，对手弃牌越多，诈唬的期望值越高。
    */
 
-  // 被跟之后到河牌的胜率：摊牌先领先的算赢，落后的按出张救回一部分
-  function eqWhenCalled(showdownPct, outsEq) {
-    return showdownPct + (100 - showdownPct) * outsEq / 100;
-  }
+  // 「被跟之后打到河牌还剩多少胜率」由 equity.js 的 calledEquity 算出：
+  // 它同时装下了我的出张与对手的反超，所以这里不再另外加出张。
 
   // 下注之后赢下这个底池的概率：他弃牌我直接赢，他跟注我还有 calledEq
   function winIfBet(foldPct, calledEq) {
@@ -131,25 +130,29 @@
     var setB = E.continueSet(an, sizes.big);
 
     var recs = an.mine.map(function (r) {
-      var cs = E.vsSet(r.cards, board, setS);
-      var cb = E.vsSet(r.cards, board, setB);
+      var cs = E.calledEquity(r, setS);
       var bl = E.blockers(r.cards, an, setS);
-      var called = eqWhenCalled(cs.score, r.outsEq);
       return {
         key: r.key, cards: r.cards, w: r.w, pct: r.pct, eq: r.eq, outs: r.outs,
-        ahead: r.ahead,
-        calledAhead: cs.score, calledAheadBig: cb.score, calledEq: called,
+        ahead: r.ahead, row: r,
+        calledAhead: cs.showdown, calledEq: cs.est, calledTurn: cs.turn,
+        calledAheadBig: null, calledEqBig: null, bigOK: false,
         foldFrac: bl.foldFrac, block: bl.block, contFrac: bl.contFrac,
-        score: bluffScore(bl.foldFrac, called, r.ahead),
-        bigOK: cb.score >= 50,
+        score: bluffScore(bl.foldFrac, cs.est, r.ahead),
         zone: 'check'
       };
     });
 
-    // 一、价值闸：分位够高只是入场券，还要小注被跟时更差的牌真的在里面
+    /* 一、价值闸：分位够高只是入场券。真正的问题是被跟之后打到河牌还剩多少胜率。
+     * 这里用的不是「现在领先多少」—— 一副被高牌围着的小对子现在领先，
+     * 打完两张牌却往往已经输了，下注只会把它送进一个赢不了的底池。 */
     var valueW = 0;
     recs.forEach(function (x) {
-      if (x.pct >= 100 - V && x.calledAhead >= 50) { x.zone = 'value'; valueW += x.w; }
+      if (x.pct < 100 - V || x.calledEq < 50) return;
+      x.zone = 'value'; valueW += x.w;
+      // 过了小注这关才值得再问大注：大注逼走的牌多，能跟的更差的牌就少
+      var cb = E.calledEquity(x.row, setB);
+      x.calledAheadBig = cb.showdown; x.calledEqBig = cb.est; x.bigOK = cb.est >= 50;
     });
     var valuePct = an.total ? valueW / an.total * 100 : 0;
 
@@ -184,15 +187,14 @@
     var foldTo = (1 - mdf(b)) * 100;
 
     var recs = an.mine.map(function (r) {
-      var cs = E.vsSet(r.cards, board, set);
+      var cs = E.calledEquity(r, set);
       var bl = E.blockers(r.cards, an, set);
-      var called = eqWhenCalled(cs.score, r.outsEq);
       return {
         key: r.key, cards: r.cards, w: r.w, pct: r.pct, eq: r.eq, outs: r.outs,
-        ahead: r.ahead,
-        calledAhead: cs.score, calledEq: called,
+        ahead: r.ahead, row: r,
+        calledAhead: cs.showdown, calledEq: cs.est, calledTurn: cs.turn,
         foldFrac: bl.foldFrac, block: bl.block, contFrac: bl.contFrac,
-        score: bluffScore(bl.foldFrac, called, r.ahead),
+        score: bluffScore(bl.foldFrac, cs.est, r.ahead),
         valueRaise: false,
         zone: 'call'
       };
@@ -201,7 +203,7 @@
     var raiseW = 0;
     recs.forEach(function (x) {
       if (x.pct <= foldTo) x.zone = 'fold';
-      if (x.pct >= 100 - R && x.calledAhead >= 50) {
+      if (x.pct >= 100 - R && x.calledEq >= 50) {
         x.zone = 'raise'; x.valueRaise = true; raiseW += x.w;
       }
     });
@@ -235,15 +237,18 @@
     if (det) {
       zone = det.zone;
       if (zone === 'value') {
-        why = '排在你范围顶部，而且对手跟注之后你还领先 ' +
-          Math.round(det.calledAhead) + '%，更差的牌会跟，下注取价值';
+        why = '排在你范围顶部，被跟之后打到河牌仍有 ' +
+          Math.round(det.calledEq) + '% 胜率，更差的牌会跟，下注取价值';
       } else if (zone === 'bluff') {
         why = '没有摊牌价值，但有 ' + det.outs + ' 张出张' +
           (det.block > 0.5 ? '，还挡住了对手一部分续战牌' : '') +
           '，诈唬比过牌值钱';
+      } else if (pct >= z.valueFrom && det.calledAhead >= 50) {
+        why = '现在是领先的，但被跟之后打到河牌只剩 ' + Math.round(det.calledEq) +
+          '% 胜率：跟你的那些牌后面还会反超你。过牌保住摊牌价值';
       } else if (pct >= z.valueFrom) {
-        why = '看着靠前，但对手跟注之后你只领先 ' + Math.round(det.calledAhead) +
-          '%，更差的牌不会跟，下注反而吃亏，过牌';
+        why = '看着靠前，但跟你的那部分范围里你只有 ' + Math.round(det.calledEq) +
+          '% 胜率，更差的牌不会跟，下注反而吃亏，过牌';
       } else {
         why = '不上不下，下注会被更好的跟、更差的弃，过牌保住摊牌价值';
       }
@@ -274,7 +279,7 @@
     if (det) {
       zone = det.zone;
       if (zone === 'raise' && det.valueRaise) {
-        why = '排在你范围顶部，被跟之后你还领先 ' + Math.round(det.calledAhead) + '%，加注取价值';
+        why = '排在你范围顶部，被跟之后打到河牌仍有 ' + Math.round(det.calledEq) + '% 胜率，加注取价值';
       } else if (zone === 'raise') {
         why = '没有摊牌价值，但有 ' + det.outs + ' 张出张' +
           (det.block > 0.5 ? '，还挡住了对手一部分续战牌' : '') +
@@ -282,8 +287,8 @@
       } else if (zone === 'fold') {
         why = '排在你范围底部，赔率不够，当诈唬加注也不划算，弃牌';
       } else if (pct >= z.raiseFrom) {
-        why = '看着靠前，但被跟之后你只领先 ' + Math.round(det.calledAhead) +
-          '%，加注只会赶走更差的牌，跟注';
+        why = '看着靠前，但被跟之后打到河牌只剩 ' + Math.round(det.calledEq) +
+          '% 胜率，加注只会赶走更差的牌、留下打得过你的，跟注';
       } else {
         why = '够格继续但不够格加注，跟注保住摊牌价值';
       }
@@ -336,7 +341,7 @@
   global.Strategy = {
     CONST: CONST,
     bluffShare: bluffShare, mdf: mdf, bluffWidth: bluffWidth, bigShare: bigShare,
-    eqWhenCalled: eqWhenCalled, winIfBet: winIfBet, bluffScore: bluffScore,
+    winIfBet: winIfBet, bluffScore: bluffScore,
     aggressorZones: aggressorZones, defenderZones: defenderZones,
     planAggressor: planAggressor, planDefender: planDefender,
     adviseAggressor: adviseAggressor, adviseDefender: adviseDefender,

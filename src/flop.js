@@ -705,9 +705,9 @@
     var tiles = el('div', 'tiles');
     [[Math.round(d.contFrac) + '%', '他继续的比例',
       d.block > 0.5 ? 'var(--good)' : d.block < -0.5 ? 'var(--bad)' : null],
-     [Math.round(d.calledAhead) + '%', '被跟后你领先',
-      d.calledAhead >= 50 ? 'var(--good)' : 'var(--bad)'],
-     [d.outs + ' 张', '有效出张', d.outs >= 6 ? 'var(--good)' : null]
+     [Math.round(d.calledAhead) + '%', '被跟后现在领先', null],
+     [Math.round(d.calledEq) + '%', '被跟后打到河牌',
+      d.calledEq >= 50 ? 'var(--good)' : 'var(--bad)']
     ].forEach(function (t) {
       var e = el('div', 'tile');
       var b = el('b', null, t[0]);
@@ -717,6 +717,14 @@
       tiles.appendChild(e);
     });
     wrap.appendChild(tiles);
+    var drop = d.calledAhead - d.calledEq;
+    wrap.appendChild(el('p', 'presetnote',
+      '有效出张 ' + d.outs + ' 张。' +
+      (drop >= 8
+        ? '被跟之后打到河牌要掉 ' + Math.round(drop) + ' 个点：跟你的那些牌后面还会反超你。'
+        : drop <= -8
+          ? '被跟之后打到河牌还能涨 ' + Math.round(-drop) + ' 个点：这手牌靠的是后面。'
+          : '这手牌打到河牌胜率变化不大。')));
     var blockTxt = d.block > 0.5
       ? '你这两张牌挡住的续战牌比平均多 ' + d.block.toFixed(1) + ' 个点，他会多弃一些'
       : d.block < -0.5
@@ -746,8 +754,15 @@
         ? '，而且你手里这两张牌挡掉了他一部分续战牌'
         : '';
       if (sc.role === 'aggressor' && z === 'check' && det.pct >= zs.valueFrom) {
+        if (det.calledAhead >= 50) {
+          return '这手牌现在确实领先，问题出在后面。' +
+            '下注之后跟你的那部分范围，此刻你还领先 ' + Math.round(det.calledAhead) + '%，' +
+            '但把转牌河牌发完只剩 ' + Math.round(det.calledEq) + '%：' +
+            '你只有 ' + det.outs + ' 张出张，而跟下来的牌张张都可能反超你。' +
+            '下注把最该弃的牌赶走，留下的正是要打败你的牌。过牌，保住这点摊牌价值。';
+        }
         return '分位看着靠前，但真正要问的是：下注之后谁会跟。' +
-          '他跟注的那部分范围里，你只领先 ' + Math.round(det.calledAhead) + '%，' +
+          '跟你的那部分范围里你只有 ' + Math.round(det.calledEq) + '% 胜率，' +
           '比你差的牌都弃了、比你好的牌都跟了，这不是价值下注。过牌。';
       }
       if (sc.role === 'aggressor' && z === 'check' && det.pct <= zs.bluffTo) {
@@ -765,8 +780,8 @@
           '被跟也还有 ' + Math.round(det.calledEq) + '% 的胜率，比过牌值钱。';
       }
       if (sc.role === 'aggressor' && z === 'value') {
-        return '排在你范围前列，而且他跟注之后你仍领先 ' + Math.round(det.calledAhead) + '%，' +
-          '更差的牌真的会跟。' +
+        return '排在你范围前列，被跟之后打到河牌仍有 ' + Math.round(det.calledEq) + '% 胜率，' +
+          '更差的牌会跟，跟下来你也赢得了。' +
           (d <= -12 ? '牌力靠的是现在而不是将来，用小注拿价值。' :
            d >= 8 ? '到河牌还能再涨 ' + d + ' 个点，敢用大注。' : '下注取价值。');
       }
@@ -776,11 +791,11 @@
           Math.round(det.foldFrac) + '%' + blockTail + '，比跟注或弃牌都值钱。';
       }
       if (sc.role === 'defender' && z === 'call' && det.pct >= zs.raiseFrom) {
-        return '分位够加注，但他跟你的加注之后你只领先 ' + Math.round(det.calledAhead) + '%。' +
+        return '分位够加注，但他跟你的加注之后，你打到河牌只剩 ' + Math.round(det.calledEq) + '% 胜率。' +
           '加注只会赶走更差的牌、留下更好的牌，跟注更实在。';
       }
       if (sc.role === 'defender' && z === 'raise') {
-        return '排在你防守范围的顶部，被跟之后你仍领先 ' + Math.round(det.calledAhead) + '%，' +
+        return '排在你防守范围的顶部，被跟之后打到河牌仍有 ' + Math.round(det.calledEq) + '% 胜率，' +
           '加注取价值，也把对手的听牌赶走。';
       }
     }
